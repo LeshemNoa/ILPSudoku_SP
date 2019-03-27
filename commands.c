@@ -1,0 +1,548 @@
+#include "commands.h"
+
+/* TODO: check necessity of IGNORE in all of the below */
+
+bool isCommandAllowed(GameMode gameMode, CommandType commandType) {
+	switch (gameMode) {
+	case GAME_MODE_INIT:
+		switch (commandType) {
+		case COMMAND_TYPE_SOLVE:
+		case COMMAND_TYPE_EDIT:
+		case COMMAND_TYPE_EXIT:
+		case COMMAND_TYPE_IGNORE:
+			return true;
+		default:
+			return false;
+		}
+		break;
+	case GAME_MODE_EDIT:
+		switch (commandType) {
+		case COMMAND_TYPE_SOLVE:
+		case COMMAND_TYPE_EDIT:
+		case COMMAND_TYPE_PRINT_BOARD:
+		case COMMAND_TYPE_SET:
+		case COMMAND_TYPE_VALIDATE:
+		case COMMAND_TYPE_GENERATE:
+		case COMMAND_TYPE_UNDO:
+		case COMMAND_TYPE_REDO:
+		case COMMAND_TYPE_SAVE:
+		case COMMAND_TYPE_NUM_SOLUTIONS:
+		case COMMAND_TYPE_RESET:
+		case COMMAND_TYPE_EXIT:
+		case COMMAND_TYPE_IGNORE:
+			return true;
+		default:
+			return false;
+		}
+		break;
+	case GAME_MODE_SOLVE:
+		switch (commandType) {
+		case COMMAND_TYPE_SOLVE:
+		case COMMAND_TYPE_EDIT:
+		case COMMAND_TYPE_MARK_ERRORS:
+		case COMMAND_TYPE_PRINT_BOARD:
+		case COMMAND_TYPE_SET:
+		case COMMAND_TYPE_VALIDATE:
+		case COMMAND_TYPE_GUESS:
+		case COMMAND_TYPE_UNDO:
+		case COMMAND_TYPE_REDO:
+		case COMMAND_TYPE_SAVE:
+		case COMMAND_TYPE_HINT:
+		case COMMAND_TYPE_GUESS_HINT:
+		case COMMAND_TYPE_NUM_SOLUTIONS:
+		case COMMAND_TYPE_AUTOFILL:
+		case COMMAND_TYPE_RESET:
+		case COMMAND_TYPE_EXIT:
+		case COMMAND_TYPE_IGNORE:
+			return true;
+		default:
+			return false;
+		}
+		break;
+	}
+	return false;
+}
+
+char* getAllowedCommandsString(GameMode gameMode) {
+	switch (gameMode) {
+	case GAME_MODE_INIT:
+		return INIT_MODE_LIST_OF_ALLOWED_COMMANDS;
+	case GAME_MODE_EDIT:
+		return EDIT_MODE_LIST_OF_ALLOWED_COMMANDS;
+	case GAME_MODE_SOLVE:
+		return SOLVE_MODE_LIST_OF_ALLOWED_COMMANDS;
+	}
+	return NULL;
+}
+
+char* getAllowingModesString(CommandType commandType) {
+	switch (commandType) {
+	case COMMAND_TYPE_SOLVE:
+		return SOLVE_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_EDIT:
+		return EDIT_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_MARK_ERRORS:
+		return MARK_ERRORS_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_PRINT_BOARD:
+		return PRINT_BOARD_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_SET:
+		return SET_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_VALIDATE:
+		return VALIDATE_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_GUESS:
+		return GUESS_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_GENERATE:
+		return GENERATE_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_UNDO:
+		return UNDO_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_REDO:
+		return REDO_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_SAVE:
+		return SAVE_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_HINT:
+		return HINT_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_GUESS_HINT:
+		return GUESS_HINT_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+		return NUM_SOLUTIONS_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_AUTOFILL:
+		return AUTOFILL_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_RESET:
+		return RESET_COMMAND_LIST_OF_ALLOWING_STATES;
+	case COMMAND_TYPE_EXIT:
+		return EXIT_COMMAND_LIST_OF_ALLOWING_STATES;
+	default:
+		return NULL;
+	}
+}
+
+bool isCorrectArgumentsNum(Command* command) {
+	switch (command->type) {
+	case COMMAND_TYPE_PRINT_BOARD:
+	case COMMAND_TYPE_VALIDATE:
+	case COMMAND_TYPE_UNDO:
+	case COMMAND_TYPE_REDO:
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+	case COMMAND_TYPE_AUTOFILL:
+	case COMMAND_TYPE_RESET:
+	case COMMAND_TYPE_EXIT:
+	case COMMAND_TYPE_IGNORE:
+		if (command->argumentsNum == 0)
+			return true;
+		break;
+	case COMMAND_TYPE_SOLVE:
+	case COMMAND_TYPE_MARK_ERRORS:
+	case COMMAND_TYPE_GUESS:
+	case COMMAND_TYPE_SAVE:
+		if (command->argumentsNum == 1)
+			return true;
+		break;
+	case COMMAND_TYPE_GENERATE:
+	case COMMAND_TYPE_HINT:
+	case COMMAND_TYPE_GUESS_HINT:
+		if (command->argumentsNum == 2)
+			return true;
+		break;
+	case COMMAND_TYPE_SET:
+		if (command->argumentsNum == 3)
+			return true;
+		break;
+	case COMMAND_TYPE_EDIT:
+		if (command->argumentsNum >= 0 && command->argumentsNum <= 1)
+			return true;
+		break;
+	}
+	return false;
+}
+
+char* getCommandUsage(CommandType commandType) {
+	switch (commandType) {
+	case COMMAND_TYPE_SOLVE:
+		return SOLVE_COMMAND_USAGE;
+	case COMMAND_TYPE_EDIT:
+		return EDIT_COMMAND_USAGE;
+	case COMMAND_TYPE_MARK_ERRORS:
+		return MARK_ERRORS_COMMAND_USAGE;
+	case COMMAND_TYPE_PRINT_BOARD:
+		return PRINT_BOARD_COMMAND_USAGE;
+	case COMMAND_TYPE_SET:
+		return SET_COMMAND_USAGE;
+	case COMMAND_TYPE_VALIDATE:
+		return VALIDATE_COMMAND_USAGE;
+	case COMMAND_TYPE_GUESS:
+		return GUESS_COMMAND_USAGE;
+	case COMMAND_TYPE_GENERATE:
+		return GENERATE_COMMAND_USAGE;
+	case COMMAND_TYPE_UNDO:
+		return UNDO_COMMAND_USAGE;
+	case COMMAND_TYPE_REDO:
+		return REDO_COMMAND_USAGE;
+	case COMMAND_TYPE_SAVE:
+		return SAVE_COMMAND_USAGE;
+	case COMMAND_TYPE_HINT:
+		return HINT_COMMAND_USAGE;
+	case COMMAND_TYPE_GUESS_HINT:
+		return GUESS_HINT_COMMAND_USAGE;
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+		return NUM_SOLUTIONS_COMMAND_USAGE;
+	case COMMAND_TYPE_AUTOFILL:
+		return AUTOFILL_COMMAND_USAGE;
+	case COMMAND_TYPE_RESET:
+		return RESET_COMMAND_USAGE;
+	case COMMAND_TYPE_EXIT:
+		return EXIT_COMMAND_USAGE;
+	default:
+		return NULL;
+	}
+}
+
+bool identifyCommandByType(char* commandType, Command* commandOut) {
+	if (commandType == NULL) {
+		commandOut->type = COMMAND_TYPE_IGNORE;
+	} else if (strcmp(commandType, SOLVE_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_SOLVE;
+	} else if (strcmp(commandType, EDIT_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_EDIT;
+	} else if (strcmp(commandType, MARK_ERRORS_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_MARK_ERRORS;
+	} else if (strcmp(commandType, PRINT_BOARD_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_PRINT_BOARD;
+	} else if (strcmp(commandType, SET_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_SET;
+	} else if (strcmp(commandType, VALIDATE_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_VALIDATE;
+	} else if (strcmp(commandType, GUESS_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_GUESS;
+	} else if (strcmp(commandType, GENERATE_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_GENERATE;
+	} else if (strcmp(commandType, UNDO_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_UNDO;
+	} else if (strcmp(commandType, REDO_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_REDO;
+	} else if (strcmp(commandType, SAVE_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_SAVE;
+	} else if (strcmp(commandType, HINT_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_HINT;
+	} else if (strcmp(commandType, GUESS_HINT_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_GUESS_HINT;
+	} else if (strcmp(commandType, NUM_SOLUTIONS_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_NUM_SOLUTIONS;
+	} else if (strcmp(commandType, AUTOFILL_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_AUTOFILL;
+	} else if (strcmp(commandType, RESET_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_RESET;
+	} else if (strcmp(commandType, EXIT_COMMAND_TYPE_STRING) == 0) {
+		commandOut->type = COMMAND_TYPE_EXIT;
+	} else {
+		return false;
+	}
+	return true;
+}
+
+int getSizeofCommandArgsStruct(CommandType commandType) {
+	switch (commandType) {
+	case COMMAND_TYPE_SOLVE:
+		return sizeof(SolveCommandArguments);
+	case COMMAND_TYPE_EDIT:
+		return sizeof(EditCommandArguments);
+	case COMMAND_TYPE_MARK_ERRORS:
+		return sizeof(MarkErrorsCommandArguments);
+	case COMMAND_TYPE_PRINT_BOARD:
+		return sizeof(PrintBoardCommandArguments);
+	case COMMAND_TYPE_SET:
+		return sizeof(SetCommandArguments);
+	case COMMAND_TYPE_VALIDATE:
+		return sizeof(ValidateCommandArguments);
+	case COMMAND_TYPE_GUESS:
+		return sizeof(GuessCommandArguments);
+	case COMMAND_TYPE_GENERATE:
+		return sizeof(GenerateCommandArguments);
+	case COMMAND_TYPE_UNDO:
+		return sizeof(UndoCommandArguments);
+	case COMMAND_TYPE_REDO:
+		return sizeof(RedoCommandArguments);
+	case COMMAND_TYPE_SAVE:
+		return sizeof(SaveCommandArguments);
+	case COMMAND_TYPE_HINT:
+		return sizeof(HintCommandArguments);
+	case COMMAND_TYPE_GUESS_HINT:
+		return sizeof(GuessHintCommandArguments);
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+		return sizeof(NumSolutionsCommandArguments);
+	case COMMAND_TYPE_AUTOFILL:
+		return sizeof(AutofillCommandArguments);
+	case COMMAND_TYPE_RESET:
+		return sizeof(ResetCommandArguments);
+	case COMMAND_TYPE_EXIT:
+		return sizeof(ExitCommandArguments);
+	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		return sizeof(IgnoreCommandArguments);
+	}
+	return 0;
+}
+
+bool solveArgsParser(char* arg, int argNo, void* arguments) {
+	SolveCommandArguments* solveArguments = (SolveCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return parseStringArg(arg, &(solveArguments->filePath));
+	}
+	return false;
+}
+
+bool editArgsParser(char* arg, int argNo, void* arguments) {
+	EditCommandArguments* editArguments = (EditCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return parseStringArg(arg, &(editArguments->filePath)); /* TODO: what happens in case of quotes sign? (i.e., folder name with a space) */
+	}
+	return false;
+}
+
+bool markErrorsArgsParser(char* arg, int argNo, void* arguments) {
+	MarkErrorsCommandArguments* markErrorsArguments = (MarkErrorsCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return parseBooleanIntArg(arg, &(markErrorsArguments->shouldMarkError));
+	}
+	return false;
+}
+
+/**
+ * setArgsParser concretely implements an argument parser for the 'set' command.
+ *
+ * @param arg			[in] the string containing the specific argument currently
+ * 						being parsed and assigned to the appropriate attribute
+ * @param argsGameState		[in, out] a generic pointer to a command argument struct, casted
+ * 						to be a SetCommandArgument struct containing the arguments
+ * @param argNo 		[in] the parsed argument's index: argument 1 is the number of
+ * 						column of the cell for which the user requested a hint, argument
+ * 						2 is the number of the row, and argument 3 is the value to be set
+ * 						in the cell with those indices
+ * @return true 		iff parseIntArg successfully parsed and set a valid integer
+ * @return false 		iff the parsing failed
+ */
+bool setArgsParser(char* arg, int argNo, void* arguments) {
+	SetCommandArguments* setArguments = (SetCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return parseIntArg(arg, &(setArguments->col));
+	case 2:
+		return parseIntArg(arg, &(setArguments->row));
+	case 3:
+		return parseIntArg(arg, &(setArguments->value));
+	}
+	return false;
+}
+
+bool setArgsRangeChecker(void* arguments, int argNo, GameState* gameState) {
+	SetCommandArguments* setArguments = (SetCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return isIndexInRange(gameState, setArguments->col);
+	case 2:
+		return isIndexInRange(gameState, setArguments->row);
+	case 3:
+		return isCellValueInRange(gameState, setArguments->value);
+	}
+	return false;
+}
+
+bool guessArgsParser(char* arg, int argNo, void* arguments) {
+	GuessCommandArguments* guessArguments = (GuessCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return parseFloatArg(arg, &(guessArguments->threshold));
+	}
+	return false;
+}
+
+/* TODO: is guess's threshold limited in its range? */
+
+bool generateArgsParser(char* arg, int argNo, void* arguments) {
+	GenerateCommandArguments* generateArguments = (GenerateCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return parseIntArg(arg, &(generateArguments->numEmptyCellsToFill));
+	case 2:
+		return parseIntArg(arg, &(generateArguments->numCellsToClear));
+	}
+	return false;
+}
+
+bool generateArgsRangeChecker(void* arguments, int argNo, GameState* gameState) {
+	GenerateCommandArguments* generateArguments = (GenerateCommandArguments*)arguments;
+		switch (argNo) {
+		case 1:
+			return generateArguments->numEmptyCellsToFill >= 0 && generateArguments->numEmptyCellsToFill <= getBoardSize_MN2(gameState);
+		case 2:
+			return generateArguments->numCellsToClear >= 0 && generateArguments->numCellsToClear <= getBoardSize_MN2(gameState);
+		}
+		return false;
+}
+
+bool generateArgsValidator(void* arguments, int argNo, GameState* gameState) {
+	GenerateCommandArguments* generateArguments = (GenerateCommandArguments*)arguments;
+		switch (argNo) {
+		case 1:
+			return (generateArguments->numEmptyCellsToFill >= 0) && (generateArguments->numEmptyCellsToFill <= getNumEmptyCells(gameState)); 
+		case 2:
+			return true;
+		}
+		return false;
+}
+
+bool saveArgsParser(char* arg, int argNo, void* arguments) {
+	SaveCommandArguments* saveArguments = (SaveCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return parseStringArg(arg, &(saveArguments->filePath));
+	}
+	return false;
+}
+
+/**
+ * hintArgsParser concretely implements an argument parser for the 'hint' command.
+ *
+ * @param arg	 		[in] the string containing the specific argument currently
+ * 						being parsed and assigned to the appropriate attribute
+ * @param argsGameState		[in, out] a generic pointer to a command argument struct, casted
+ * 						to be a HintCommandArgument struct containing the arguments
+ * @param argNo 		[in] the parsed argument's index: argument 1 is the number of
+ * 						column of the cell for which the user requested a hint, and
+ * 						argument 2 is the number of the row
+ * @return true			iff parseIntArg successfully parsed and set a valid integer
+ * @return false 		iff the parsing failed
+ */
+bool hintArgsParser(char* arg, int argNo, void* arguments) {
+	HintCommandArguments* hintArguments = (HintCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return parseIntArg(arg, &(hintArguments->col));
+	case 2:
+		return parseIntArg(arg, &(hintArguments->row));
+	}
+	return false;
+}
+
+bool hintArgsRangeChecker(void* arguments, int argNo, GameState* gameState) {
+	HintCommandArguments* hintArguments = (HintCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return isIndexInRange(gameState, hintArguments->col);
+	case 2:
+		return isIndexInRange(gameState, hintArguments->row);
+	}
+	return false;
+}
+
+bool guessHintArgsParser(char* arg, int argNo, void* arguments) {
+	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return parseIntArg(arg, &(guessHintArguments->col));
+	case 2:
+		return parseIntArg(arg, &(guessHintArguments->row));
+	}
+	return false;
+}
+
+bool guessHintArgsRangeChecker(void* arguments, int argNo, GameState* gameState) {
+	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)arguments;
+	switch (argNo) {
+	case 1:
+		return isIndexInRange(gameState, guessHintArguments->col);
+	case 2:
+		return isIndexInRange(gameState, guessHintArguments->row);
+	}
+	return false;
+}
+
+commandArgsParser getCommandArgsParser(CommandType commandType) {
+	switch (commandType) {
+	case COMMAND_TYPE_SOLVE:
+		return solveArgsParser;
+	case COMMAND_TYPE_EDIT:
+		return editArgsParser;
+	case COMMAND_TYPE_MARK_ERRORS:
+		return markErrorsArgsParser;
+	case COMMAND_TYPE_SET:
+		return setArgsParser;
+	case COMMAND_TYPE_GUESS:
+		return guessArgsParser;
+	case COMMAND_TYPE_GENERATE:
+		return generateArgsParser;
+	case COMMAND_TYPE_SAVE:
+		return saveArgsParser;
+	case COMMAND_TYPE_HINT:
+		return hintArgsParser;
+	case COMMAND_TYPE_GUESS_HINT:
+		return guessHintArgsParser;
+	case COMMAND_TYPE_PRINT_BOARD:
+	case COMMAND_TYPE_VALIDATE:
+	case COMMAND_TYPE_UNDO:
+	case COMMAND_TYPE_REDO:
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+	case COMMAND_TYPE_AUTOFILL:
+	case COMMAND_TYPE_RESET:
+	case COMMAND_TYPE_EXIT:
+	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		return NULL;
+	}
+	return NULL;
+}
+
+commandArgsRangeChecker getCommandArgsRangeChecker(CommandType commandType) {
+	switch (commandType) {
+	case COMMAND_TYPE_SET:
+		return setArgsRangeChecker;
+	case COMMAND_TYPE_GENERATE:
+		return generateArgsRangeChecker;
+	case COMMAND_TYPE_HINT:
+		return hintArgsRangeChecker;
+	case COMMAND_TYPE_GUESS_HINT:
+		return guessHintArgsRangeChecker;
+	case COMMAND_TYPE_SOLVE:
+	case COMMAND_TYPE_EDIT:
+	case COMMAND_TYPE_MARK_ERRORS:
+	case COMMAND_TYPE_PRINT_BOARD:
+	case COMMAND_TYPE_VALIDATE:
+	case COMMAND_TYPE_GUESS:
+	case COMMAND_TYPE_UNDO:
+	case COMMAND_TYPE_REDO:
+	case COMMAND_TYPE_SAVE:
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+	case COMMAND_TYPE_AUTOFILL:
+	case COMMAND_TYPE_RESET:
+	case COMMAND_TYPE_EXIT:
+	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		return NULL;
+	}
+	return NULL;
+}
+
+commandArgsValidator getCommandArgsValidator(CommandType commandType) {
+	switch (commandType) {
+	case COMMAND_TYPE_GENERATE:
+		return generateArgsValidator;
+	case COMMAND_TYPE_SET:
+	case COMMAND_TYPE_SOLVE:
+	case COMMAND_TYPE_EDIT:
+	case COMMAND_TYPE_MARK_ERRORS:
+	case COMMAND_TYPE_PRINT_BOARD:
+	case COMMAND_TYPE_VALIDATE:
+	case COMMAND_TYPE_GUESS:
+	case COMMAND_TYPE_UNDO:
+	case COMMAND_TYPE_REDO:
+	case COMMAND_TYPE_SAVE:
+	case COMMAND_TYPE_HINT:
+	case COMMAND_TYPE_GUESS_HINT:
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+	case COMMAND_TYPE_AUTOFILL:
+	case COMMAND_TYPE_RESET:
+	case COMMAND_TYPE_EXIT:
+	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		return NULL;
+	}
+	return NULL;
+}

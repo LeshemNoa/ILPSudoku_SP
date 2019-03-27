@@ -1,0 +1,212 @@
+#ifndef COMMANDS_H_
+#define COMMANDS_H_
+
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "parser.h"
+#include "game.h"
+
+/**
+ * commandType keeps all the possible values for the type attribute of a command struct,
+ * and an additional IGNORE value, to be used when the command name the user provided
+ * contained only whitespaces.
+ */
+typedef enum commandType {
+	COMMAND_TYPE_SOLVE,
+	COMMAND_TYPE_EDIT,
+	COMMAND_TYPE_MARK_ERRORS,
+	COMMAND_TYPE_PRINT_BOARD,
+	COMMAND_TYPE_SET,
+	COMMAND_TYPE_VALIDATE,
+	COMMAND_TYPE_GUESS,
+	COMMAND_TYPE_GENERATE,
+	COMMAND_TYPE_UNDO,
+	COMMAND_TYPE_REDO,
+	COMMAND_TYPE_SAVE,
+	COMMAND_TYPE_HINT,
+	COMMAND_TYPE_GUESS_HINT,
+	COMMAND_TYPE_NUM_SOLUTIONS,
+	COMMAND_TYPE_AUTOFILL,
+	COMMAND_TYPE_RESET,
+	COMMAND_TYPE_EXIT,
+	COMMAND_TYPE_IGNORE} CommandType;
+
+#define SOLVE_COMMAND_TYPE_STRING ("solve")
+#define EDIT_COMMAND_TYPE_STRING ("edit")
+#define MARK_ERRORS_COMMAND_TYPE_STRING ("mark_errors")
+#define PRINT_BOARD_COMMAND_TYPE_STRING ("print_board")
+#define SET_COMMAND_TYPE_STRING ("set")
+#define VALIDATE_COMMAND_TYPE_STRING ("validate")
+#define GUESS_COMMAND_TYPE_STRING ("guess")
+#define GENERATE_COMMAND_TYPE_STRING ("generate")
+#define UNDO_COMMAND_TYPE_STRING ("undo")
+#define REDO_COMMAND_TYPE_STRING ("redo")
+#define SAVE_COMMAND_TYPE_STRING ("save")
+#define HINT_COMMAND_TYPE_STRING ("hint")
+#define GUESS_HINT_COMMAND_TYPE_STRING ("guess_hint")
+#define NUM_SOLUTIONS_COMMAND_TYPE_STRING ("num_solutions")
+#define AUTOFILL_COMMAND_TYPE_STRING ("autofill")
+#define RESET_COMMAND_TYPE_STRING ("reset")
+#define EXIT_COMMAND_TYPE_STRING ("exit")
+#define IGNORE_COMMAND_TYPE_STRING ("ignore")
+
+/* TODO: consider replacing this with a function that builds these strings of the above Defines */
+#define INIT_MODE_LIST_OF_ALLOWED_COMMANDS ("solve, edit, exit")
+#define EDIT_MODE_LIST_OF_ALLOWED_COMMANDS ("solve, edit, print_board, set, validate, generate, undo, redo, save, num_solutions, reset, exit")
+#define SOLVE_MODE_LIST_OF_ALLOWED_COMMANDS ("solve, edit, mark_errors, print_board, set, validate, guess, undo, redo, save, hint, guess_hint, num_solutions, autofill, reset, exit")
+
+bool isCommandAllowed(GameMode gameMode, CommandType commandType);
+
+char* getAllowedCommandsString(GameMode gameMode);
+
+/* TODO: consider replacing this with a function that builds these strings of the above Defines */
+#define SOLVE_COMMAND_LIST_OF_ALLOWING_STATES ("Init, Edit, Solve")
+#define EDIT_COMMAND_LIST_OF_ALLOWING_STATES ("Init, Edit, Solve")
+#define MARK_ERRORS_COMMAND_LIST_OF_ALLOWING_STATES ("Solve")
+#define PRINT_BOARD_COMMAND_LIST_OF_ALLOWING_STATES ("Edit, Solve")
+#define SET_COMMAND_LIST_OF_ALLOWING_STATES ("Edit, Solve")
+#define VALIDATE_COMMAND_LIST_OF_ALLOWING_STATES ("Edit, Solve")
+#define GUESS_COMMAND_LIST_OF_ALLOWING_STATES ("Solve")
+#define GENERATE_COMMAND_LIST_OF_ALLOWING_STATES ("Edit")
+#define UNDO_COMMAND_LIST_OF_ALLOWING_STATES ("Edit, Solve")
+#define REDO_COMMAND_LIST_OF_ALLOWING_STATES ("Edit, Solve")
+#define SAVE_COMMAND_LIST_OF_ALLOWING_STATES ("Edit, Solve")
+#define HINT_COMMAND_LIST_OF_ALLOWING_STATES ("Solve")
+#define GUESS_HINT_COMMAND_LIST_OF_ALLOWING_STATES ("Solve")
+#define NUM_SOLUTIONS_COMMAND_LIST_OF_ALLOWING_STATES ("Edit, Solve")
+#define AUTOFILL_COMMAND_LIST_OF_ALLOWING_STATES ("Solve")
+#define RESET_COMMAND_LIST_OF_ALLOWING_STATES ("Edit, Solve")
+#define EXIT_COMMAND_LIST_OF_ALLOWING_STATES ("Init, Edit, Solve")
+
+char* getAllowingModesString(CommandType commandType);
+
+typedef struct {
+	char* filePath;
+} SolveCommandArguments;
+
+typedef struct {
+	char* filePath;
+} EditCommandArguments;
+
+typedef struct {
+	bool shouldMarkError;
+} MarkErrorsCommandArguments;
+
+/**
+ * SetCommandArguments is a struct that contains the arguments the user provided
+ * for a 'set' type command - the value to set, and the column and row number of the cell
+ * to set this value in.
+ */
+typedef struct { /* Note: order of row and col is reverse to that provided by user */
+	int row;
+	int col;
+	int value;
+} SetCommandArguments;
+
+typedef struct {
+	float threshold; /* TODO: perhaps should be double? */
+} GuessCommandArguments;
+
+typedef struct {
+	int numEmptyCellsToFill;
+	int numCellsToClear;
+} GenerateCommandArguments;
+
+typedef struct {
+	char* filePath;
+} SaveCommandArguments;
+
+/**
+ * HintCommandArguments is a struct that contains the arguments the user provided
+ * for a 'hint' type command - the column and row number of the cell the user requests a
+ * hint for.
+ */
+typedef struct { /* Note: order of row and col is reverse to that provided by user */
+	int row;
+	int col;
+} HintCommandArguments;
+
+typedef struct { /* Note: order of row and col is reverse to that provided by user */
+	int row;
+	int col;
+} GuessHintCommandArguments;
+
+/**
+ * For consistency, we use an minimal size struct to respresent the arguments of
+ * commands with no arguments: 'validate', 'restart' and 'exit'
+ */
+typedef struct {
+	char dummy;
+} PrintBoardCommandArguments,
+  ValidateCommandArguments,
+  UndoCommandArguments,
+  RedoCommandArguments,
+  NumSolutionsCommandArguments,
+  AutofillCommandArguments,
+  ResetCommandArguments,
+  ExitCommandArguments,
+  IgnoreCommandArguments;
+
+#define COMMAND_ARGUMENTS_MAX_SIZE (sizeof(SolveCommandArguments) + sizeof(EditCommandArguments) + sizeof(MarkErrorsCommandArguments) + sizeof(SetCommandArguments) + sizeof(GuessCommandArguments) + sizeof(GenerateCommandArguments) + sizeof(SaveCommandArguments) + sizeof(HintCommandArguments) + sizeof(GuessHintCommandArguments) + sizeof(PrintBoardCommandArguments) + sizeof(ValidateCommandArguments) + sizeof(UndoCommandArguments) + sizeof(RedoCommandArguments) + sizeof(NumSolutionsCommandArguments) + sizeof(AutofillCommandArguments) + sizeof(ResetCommandArguments) + sizeof(ExitCommandArguments) + sizeof(IgnoreCommandArguments))
+
+/**
+ * Command is a struct that represents the user's command. It has two attributes -
+ * the command's type, matching one of the types defined in the commandType enum,
+ * and the command's arguments, a generic pointer to the concrete arguments struct.
+ */
+typedef struct {
+	CommandType type;
+	int argumentsNum;
+	/*void* arguments;*/
+	char arguments[COMMAND_ARGUMENTS_MAX_SIZE];
+
+} Command;
+
+bool isCorrectArgumentsNum(Command* command);
+
+#define SOLVE_COMMAND_USAGE ("solve <path>")
+#define EDIT_COMMAND_USAGE ("edit (<path>)")
+#define MARK_ERRORS_COMMAND_USAGE ("mark_errors <0|1>")
+#define PRINT_BOARD_COMMAND_USAGE ("print_board")
+#define SET_COMMAND_USAGE ("set <column_no> <row_no> <value>")
+#define VALIDATE_COMMAND_USAGE ("validate")
+#define GUESS_COMMAND_USAGE ("guess <threshold>")
+#define GENERATE_COMMAND_USAGE ("generate <num_cells_to_fill> <num_cells_to_clear>")
+#define UNDO_COMMAND_USAGE ("undo")
+#define REDO_COMMAND_USAGE ("redo")
+#define SAVE_COMMAND_USAGE ("save <path>")
+#define HINT_COMMAND_USAGE ("hint <column_no> <row_no>")
+#define GUESS_HINT_COMMAND_USAGE ("guess_hint <column_no> <row_no>")
+#define NUM_SOLUTIONS_COMMAND_USAGE ("num_solutions")
+#define AUTOFILL_COMMAND_USAGE ("autofill")
+#define RESET_COMMAND_USAGE ("reset")
+#define EXIT_COMMAND_USAGE ("exit")
+
+char* getCommandUsage(CommandType commandType);
+
+bool identifyCommandByType(char* commandName, Command* commandOut);
+
+/* function pointer to a concrete command type's ArgParser. There currently are 2 of these:
+* setArgsParser and hintArgsParser.
+* @params arg			[in] the string containing the specific argument currently
+ * 						being parsed
+* @params argGameState 		[in, out] a pointer to the concrete command argument struct
+* @params argNo		 	[in] the parsed argument's index
+*/
+typedef bool (*commandArgsParser)(char* arg, int argNo, void* arguments);
+
+typedef bool (*commandArgsRangeChecker)(void* arguments, int argNo, GameState* gameState);
+
+typedef bool (*commandArgsValidator)(void* arguments, int argNo, GameState* gameState);
+
+int getSizeofCommandArgsStruct(CommandType commandType);
+
+commandArgsParser getCommandArgsParser(CommandType commandType);
+
+commandArgsRangeChecker getCommandArgsRangeChecker(CommandType commandType);
+
+commandArgsValidator getCommandArgsValidator(CommandType commandType);
+
+#endif /* COMMANDS_H_ */
