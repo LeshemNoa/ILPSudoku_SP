@@ -181,5 +181,7 @@ void runGame() {
 
 	performCommandLoop(&state);
 
+	cleanupGameState(&state);
+
 	printf("Exiting...\n");
 }

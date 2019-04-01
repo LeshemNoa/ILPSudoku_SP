@@ -739,14 +739,6 @@ PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
-int performExitCommand(State* state, Command* command) {
-	UNUSED(command);
-
-	cleanupGameState(state);
-
-	return ERROR_SUCCESS;
-}
-
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
 
@@ -787,9 +779,8 @@ int performCommand(State* state, Command* command) {
 		case COMMAND_TYPE_RESET:
 			return performResetCommand(state, command);*/
 		case COMMAND_TYPE_EXIT:
-			return performExitCommand(state, command);
-		/*case COMMAND_TYPE_IGNORE: *//* TODO: is needed? */
-			/*return performIgnoreCommand(state, command);*/
+		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+			return ERROR_SUCCESS;
 		default: /* TODO: get rid of this */
 			break;
 		}
