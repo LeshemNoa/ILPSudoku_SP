@@ -790,3 +790,100 @@ bool shouldPrintBoardPostCommand(CommandType commandType) {
 	}
 	return false;
 }
+
+ProcessStringAsCommandErrorCode processCommandArguments(State* state, char* commandStrTokens[], Command* commandOut, int* problematicArgNo) {
+	int i = 0;
+	commandArgsParser parser = NULL;
+	commandArgsRangeChecker rangeChecker = NULL;
+	commandArgsValidator validator = NULL;
+
+	commandOut->arguments = calloc(1, getSizeofCommandArgsStruct(commandOut->type)); /* TODO: could avoid this using static allocation...! */
+	if (commandOut->arguments == NULL) {
+		return PROCESS_STRING_AS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILURE;
+	}
+
+	parser = getCommandArgsParser(commandOut->type);
+	rangeChecker = getCommandArgsRangeChecker(commandOut->type);
+	validator = getCommandArgsValidator(commandOut->type);
+
+	for (i = 0; i < commandOut->argumentsNum; i++) {
+		*problematicArgNo = i + 1;
+
+		if (!parser(commandStrTokens[i], i + 1, commandOut->arguments)) {
+			return PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_PARSED;
+		}
+		if (rangeChecker && !rangeChecker(commandOut->arguments, i + 1, state->gameState)) {
+			return PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_IN_RANGE;
+		}
+		if (validator && !validator(commandOut->arguments, i + 1, state->gameState)) {
+			return PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_AGREEING_WITH_BOARD;
+		}
+	}
+	return ERROR_SUCCESS;
+
+}
+
+ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* commandStr, Command* commandOut, int* problematicArgNo) {
+	char* commandStrTokens[(COMMAND_MAX_LENGTH + 1)/2 + 1] = {0}; /* A definite upper-boundary on the number of possible tokens */
+	char* commandType = NULL;
+
+	commandType = getFirstToken(commandStr);
+	if (!identifyCommandByType(commandType, commandOut)) {
+		return PROCESS_STRING_AS_COMMAND_UNKNOWN_COMMAND;
+	}
+	if (!isCommandAllowed(state->gameMode, commandOut->type)) {
+		return PROCESS_STRING_AS_COMMAND_COMMAND_NOT_ALLOWED_IN_CURRENT_MODE;
+	}
+
+	if (commandOut->type == COMMAND_TYPE_IGNORE) /* in such a case, looking for parameters is error-prone, and in any case there is no need */
+		return ERROR_SUCCESS;
+
+	commandOut->argumentsNum = splitArgumentsStringToTokens(commandStr, commandStrTokens);
+	if (!isCorrectArgumentsNum(commandOut)) {
+		return PROCESS_STRING_AS_COMMAND_INCORRECT_ARGUMENTS_NUM;
+	}
+
+	return processCommandArguments(state, commandStrTokens, commandOut, problematicArgNo);
+}
+
+commandArgsCleaner getCommandArgsCleaner(CommandType commandType) {
+	switch (commandType) {
+	case COMMAND_TYPE_SOLVE:
+	case COMMAND_TYPE_EDIT:
+	case COMMAND_TYPE_MARK_ERRORS:
+	case COMMAND_TYPE_PRINT_BOARD:
+	case COMMAND_TYPE_SET:
+	case COMMAND_TYPE_VALIDATE:
+	case COMMAND_TYPE_GUESS:
+	case COMMAND_TYPE_GENERATE:
+	case COMMAND_TYPE_UNDO:
+	case COMMAND_TYPE_REDO:
+	case COMMAND_TYPE_SAVE:
+	case COMMAND_TYPE_HINT:
+	case COMMAND_TYPE_GUESS_HINT:
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+	case COMMAND_TYPE_AUTOFILL:
+	case COMMAND_TYPE_RESET:
+	case COMMAND_TYPE_EXIT:
+	case COMMAND_TYPE_IGNORE:
+		return NULL;
+	}
+	return NULL;
+}
+
+void cleanupCommand(Command* command) {
+	commandArgsCleaner cleaner = NULL;
+
+	if (command == NULL || command->arguments == NULL) {
+		return;
+	}
+
+	cleaner = getCommandArgsCleaner(command->type);
+
+	if (cleaner != NULL) {
+		cleaner(command->arguments);
+	}
+
+	free(command->arguments);
+	command->arguments = NULL;
+}

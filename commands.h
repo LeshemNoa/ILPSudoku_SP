@@ -13,6 +13,9 @@
 
 #define ERROR_SUCCESS (0)
 
+#define COMMAND_MAX_LENGTH (256) /* One extra character for the newline character */
+#define COMMAND_END_MARKER ('\n')
+
 #define SOLVE_COMMAND_TYPE_STRING ("solve")
 #define EDIT_COMMAND_TYPE_STRING ("edit")
 #define MARK_ERRORS_COMMAND_TYPE_STRING ("mark_errors")
@@ -111,6 +114,17 @@ typedef enum {
 	IS_BOARD_VALID_FOR_COMMAND_CELL_IS_NOT_EMPTY
 } IsBoardValidForCommandErrorCode;
 
+typedef enum ProcessStringAsCommandErrorCode {
+	PROCESS_STRING_AS_COMMAND_UNKNOWN_COMMAND = 1,
+	PROCESS_STRING_AS_COMMAND_COMMAND_NOT_ALLOWED_IN_CURRENT_MODE,
+	PROCESS_STRING_AS_COMMAND_INCORRECT_ARGUMENTS_NUM,
+	PROCESS_STRING_AS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILURE,
+	PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_PARSED,
+	PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_IN_RANGE,
+	PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_AGREEING_WITH_BOARD
+	} ProcessStringAsCommandErrorCode;
+
+
 /* function pointer to a concrete command type's ArgParser. There currently are 2 of these:
 * setArgsParser and hintArgsParser.
 * @params arg			[in] the string containing the specific argument currently
@@ -123,6 +137,8 @@ typedef bool (*commandArgsParser)(char* arg, int argNo, void* arguments);
 typedef bool (*commandArgsRangeChecker)(void* arguments, int argNo, GameState* gameState);
 
 typedef bool (*commandArgsValidator)(void* arguments, int argNo, GameState* gameState);
+
+typedef void (*commandArgsCleaner)(void* arguments);
 
 
 typedef struct {
@@ -217,8 +233,8 @@ typedef struct {
 typedef struct {
 	CommandType type;
 	int argumentsNum;
-	/*void* arguments;*/
-	char arguments[COMMAND_ARGUMENTS_MAX_SIZE];
+	void* arguments;
+	/*har arguments[COMMAND_ARGUMENTS_MAX_SIZE];*/
 
 } Command;
 
@@ -247,5 +263,9 @@ IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* co
 int performCommand(State* state, Command* command);
 
 bool shouldPrintBoardPostCommand(CommandType commandType);
+
+ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* commandStr, Command* commandOut, int* problematicArgNo);
+
+void cleanupCommand(Command* command);
 
 #endif /* COMMANDS_H_ */

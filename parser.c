@@ -65,20 +65,6 @@ bool parseFloatArg(char* arg, float* dst) {
 	return (sscanfRetVal == 1);
 }
 
-/*void cleanupCommand(Command* command) {
-	commandArgsCleaner cleaners[] = {NULL, NULL, NULL, NULL, NULL, NULL}; *//* No cleanup is necessary for any command yet */
-
-	/*if (command == NULL || command->arguments == NULL) {
-		return;
-	}
-
-	if (cleaners[command->type] != NULL) {
-		cleaners[command->type](command->arguments);
-	}
-
-	free(command->arguments);
-}*/
-
 char* getFirstToken(char* commandStr) {
 	return strtok(commandStr, COMMAND_DELIMITERS);
 }

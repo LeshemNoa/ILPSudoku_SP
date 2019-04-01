@@ -2,9 +2,7 @@
 
 /* TODO: perhaps have errors printed to stderr, as discuseed earlier */
 
-#define COMMAND_MAX_LENGTH (256) /* One extra character for the newline character */
 #define INPUT_STRING_MAX_LENGTH (COMMAND_MAX_LENGTH + 1 + 1) /* One for COMMAND_END_MARKER, and one for the null terminator */
-#define COMMAND_END_MARKER ('\n')
 
 #define ERROR_SUCCESS (0)
 
@@ -50,76 +48,6 @@ GetInputStringErrorCode getInputString(char* commandStrOut, int commandMaxSize) 
 	return ERROR_SUCCESS;
 }
 
-/*typedef enum ProcessCommandArgumentsErrorCode {
-	PROCESS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILED = 1
-	} ProcessCommandArgumentsErrorCode;*/
-
-bool processCommandArguments(State* state, char* commandStrTokens[], Command* commandOut) {
-	int i = 0;
-	commandArgsParser parser = NULL;
-	commandArgsRangeChecker rangeChecker = NULL;
-	commandArgsValidator validator = NULL;
-
-	/*commandOut->arguments = calloc(1, getSizeofCommandArgsStruct(commandOut->type));*/ /* TODO: could avoid this using static allocation...! */
-	/*if (commandOut->arguments == NULL) {
-		return PROCESS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILED;
-	}*/
-
-	parser = getCommandArgsParser(commandOut->type);
-	rangeChecker = getCommandArgsRangeChecker(commandOut->type);
-	validator = getCommandArgsValidator(commandOut->type);
-
-	for (i = 0; i < commandOut->argumentsNum; i++) {
-		if (!parser(commandStrTokens[i], i + 1, commandOut->arguments)) {
-			printf("Error: failed to parse argument no. %d (due to wrong type)\n", i + 1);
-			return false;
-		}
-		if (rangeChecker && !rangeChecker(commandOut->arguments, i + 1, state->gameState)) {
-			printf("Error: Value of argument no. %d is out of expected range\n", i + 1);
-			return false;
-		}
-		if (validator && !validator(commandOut->arguments, i + 1, state->gameState)) {
-			printf("Error: Value of argument no. %d does not agree with the current board state\n", i + 1);
-			return false;
-		}
-	}
-	return true;
-
-}
-
-bool processStringAsCommand(State* state, char* commandStr, Command* commandOut) {
-	char* commandStrTokens[(COMMAND_MAX_LENGTH + 1)/2 + 1] = {0}; /* A definite upper-boundary on the number of possible tokens */
-	char* commandType = NULL;
-
-	commandType = getFirstToken(commandStr);
-	if (!identifyCommandByType(commandType, commandOut)) {
-		printf("Error: invalid command (unknown)\n");
-		printf("Allowed commands in current mode are the following: %s\n", getAllowedCommandsString(state->gameMode));
-		return false;
-	}
-	if (!isCommandAllowed(state->gameMode, commandOut->type)) {
-		printf("Error: invalid command (not allowed in the current mode)\n");
-		printf("Command '%s' is allowed in the following modes: %s\n", commandType, getAllowingModesString(commandOut->type));
-		return false;
-	}
-
-	if (commandOut->type == COMMAND_TYPE_IGNORE) /* in such a case, looking for parameters is error-prone */
-		return true;
-
-	commandOut->argumentsNum = splitArgumentsStringToTokens(commandStr, commandStrTokens);
-	if (!isCorrectArgumentsNum(commandOut)) {
-		printf("Error: incorrect number of arguments\n");
-		printf("Usage: %s\n", getCommandUsage(commandOut->type));
-		return false;
-	}
-
-	if (!processCommandArguments(state, commandStrTokens, commandOut)) {
-		return false;
-	}
-
-	return true;
-}
-
 void promptUserToInput(State* state) {
 	printf("%s>", getCurModeString(state));
 }
@@ -152,6 +80,35 @@ void printIsBoardValidForCommandError(IsBoardValidForCommandErrorCode errorCode)
 	printf("\n");
 }
 
+void printProcessStringAsCommandError(ProcessStringAsCommandErrorCode errorCode, int problematicArgNo, State* state, Command* command, char* commandName) {
+	switch (errorCode) {
+	case PROCESS_STRING_AS_COMMAND_UNKNOWN_COMMAND:
+		printf("Error: invalid command (unknown)\n");
+		printf("Allowed commands in current mode are the following: %s\n", getAllowedCommandsString(state->gameMode));
+		break;
+	case PROCESS_STRING_AS_COMMAND_COMMAND_NOT_ALLOWED_IN_CURRENT_MODE:
+		printf("Error: invalid command (not allowed in the current mode)\n");
+		printf("Command '%s' is allowed in the following modes: %s\n", commandName, getAllowingModesString(command->type));
+		break;
+	case PROCESS_STRING_AS_COMMAND_INCORRECT_ARGUMENTS_NUM:
+		printf("Error: incorrect number of arguments\n");
+		printf("Usage: %s\n", getCommandUsage(command->type));
+		break;
+	case PROCESS_STRING_AS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILURE:
+		printf("Error: Memory allocation for command's arguments' struct failed\n");
+		break;
+	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_PARSED:
+		printf("Error: failed to parse argument no. %d (due to wrong type)\n", problematicArgNo);
+		break;
+	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_IN_RANGE:
+		printf("Error: Value of argument no. %d is out of expected range\n", problematicArgNo);
+		break;
+	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_AGREEING_WITH_BOARD:
+		printf("Error: Value of argument no. %d does not agree with the current board state\n", problematicArgNo);
+		break;
+	}
+}
+
 /**
  * performCommandLoop manages the user interface of the game. It takes commands from the user and
  * validates them, displaying an error message when the command is found invalid. The commands are
@@ -167,6 +124,7 @@ void performCommandLoop(State* state) {
 		Command command = {0};
 		char inputStr[INPUT_STRING_MAX_LENGTH] = {0};
 		int errorCode = ERROR_SUCCESS;
+		int problematicArgNo = 0;
 
 		promptUserToInput(state);
 		errorCode = getInputString(inputStr, INPUT_STRING_MAX_LENGTH);
@@ -176,35 +134,36 @@ void performCommandLoop(State* state) {
 			continue;
 		}
 
-		if (!processStringAsCommand(state, inputStr, &command)) { /* TODO: this function should probably be in Commands module (and processCommandArguments as well)*/
-			continue;
-		}
-
-		if (command.type == COMMAND_TYPE_IGNORE) {
-			continue; /* TODO: hence, any function called from this point onwards doesn't need to pay attention to IGNORE command */
-		}
-
-		errorCode = isBoardValidForCommand(state, &command);
+		errorCode = processStringAsCommand(state, inputStr, &command, &problematicArgNo); /* Note: mustn't 'continue' or 'break' from this point on - cleanupCommand needs to be called in the end */
 		if (errorCode != ERROR_SUCCESS) {
-			printIsBoardValidForCommandError((IsBoardValidForCommandErrorCode)errorCode);
-			continue;
+			printProcessStringAsCommandError((ProcessStringAsCommandErrorCode)errorCode, problematicArgNo, state, &command, inputStr);
+			if (errorCode == PROCESS_STRING_AS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILURE)
+				loopHolds = false;
+		} else {
+
+			errorCode = isBoardValidForCommand(state, &command);
+			if (errorCode != ERROR_SUCCESS) {
+				printIsBoardValidForCommandError((IsBoardValidForCommandErrorCode)errorCode);
+			} else {
+
+				errorCode = performCommand(state, &command);
+				if (errorCode != ERROR_SUCCESS) {
+					/* TODO: call a printErrorMessage function, which should translate the error codes to string */
+				} else {
+					if (shouldPrintBoardPostCommand(command.type)) {
+						/* TODO: call  getBoard from Game module and printBoard from this module */
+					}
+
+					/* TODO: in solve mode and in case command was Set, if all cells are now filled, check whether board is solved or not and let user know (in case of successful solution, immediately switch to INIT mode */
+
+					if (command.type == COMMAND_TYPE_EXIT) {
+						loopHolds = false;
+					}
+				}
+			}
 		}
 
-		errorCode = performCommand(state, &command);
-		if (errorCode != ERROR_SUCCESS) {
-			/* TODO: call a printErrorMessage function, which should translate the error codes to string */
-			continue;
-		}
-
-		if (shouldPrintBoardPostCommand(command.type)) {
-			/* TODO: call  getBoard from Game module and printBoard from this module */
-		}
-
-		/* TODO: in solve mode and in case command was Set, if all cells are now filled, check whether board is solved or not and let user know (in case of successful solution, immediately switch to INIT mode */
-
-		if (command.type == COMMAND_TYPE_EXIT) {
-			loopHolds = false;
-		}
+		cleanupCommand(&command);
 	}
 }
 
