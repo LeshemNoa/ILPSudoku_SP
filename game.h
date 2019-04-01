@@ -30,6 +30,7 @@
  */
 #define EMPTY_CELL_VALUE (0)
 
+
 /**
  * Cell struct represents one cell of a sudoku puzzle board. It contains the value
  * in the cell, and a marker determining whether the cell is fixed (immutable) or not.
@@ -61,6 +62,7 @@ typedef struct {
 	GameMode gameMode;
 	GameState* gameState;} State;
 
+
 int getNumEmptyCells(GameState* gameState);
 
 int getBlockSize_MN(GameState* gameState);
@@ -72,5 +74,17 @@ bool isIndexInRange(GameState* gameState, int index);
 bool isCellValueInRange(GameState* gameState, int value);
 
 char* getCurModeString(State* state);
+
+bool isBoardErroneous(GameState* gameState);
+
+bool isBoardSolvable(GameState* gameState);
+
+bool isCellEmpty(GameState* gameState, int row, int col);
+
+bool isCellFixed(GameState* gameState, int row, int col);
+
+bool isThereMoveToUndo(GameState* gameState);
+
+bool isThereMoveToRedo(GameState* gameState);
 
 #endif /* GAME_H_ */

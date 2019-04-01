@@ -1,5 +1,7 @@
 #include "game.h"
 
+#define UNUSED(x) (void)(x)
+
 #define GAME_MODE_INIT_STRING ("INIT")
 #define GAME_MODE_EDIT_STRING ("EDIT")
 #define GAME_MODE_SOLVE_STRING ("SOLVE")
@@ -49,4 +51,44 @@ char* getCurModeString(State* state) {
 		return GAME_MODE_SOLVE_STRING;
 	}
 	return NULL;
+}
+
+bool isBoardErroneous(GameState* gameState) {
+	UNUSED(gameState);
+
+	return false;
+}
+
+bool isBoardSolvable(GameState* gameState) {
+	UNUSED(gameState);
+
+	return true;
+}
+
+bool isCellEmpty(GameState* gameState, int row, int col) {
+	UNUSED(gameState);
+	UNUSED(row);
+	UNUSED(col);
+
+	return true;
+}
+
+bool isCellFixed(GameState* gameState, int row, int col) {
+	UNUSED(gameState);
+	UNUSED(row);
+	UNUSED(col);
+
+	return false;
+}
+
+bool isThereMoveToUndo(GameState* gameState) {
+	UNUSED(gameState);
+
+	return false;
+}
+
+bool isThereMoveToRedo(GameState* gameState) {
+	UNUSED(gameState);
+
+	return false;
 }

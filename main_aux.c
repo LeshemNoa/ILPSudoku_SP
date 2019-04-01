@@ -1,5 +1,7 @@
 #include "main_aux.h"
 
+/* TODO: perhaps have errors printed to stderr, as discuseed earlier */
+
 #define COMMAND_MAX_LENGTH (256) /* One extra character for the newline character */
 #define INPUT_STRING_MAX_LENGTH (COMMAND_MAX_LENGTH + 1 + 1) /* One for COMMAND_END_MARKER, and one for the null terminator */
 #define COMMAND_END_MARKER ('\n')
@@ -73,7 +75,7 @@ bool processCommandArguments(State* state, char* commandStrTokens[], Command* co
 			return false;
 		}
 		if (rangeChecker && !rangeChecker(commandOut->arguments, i + 1, state->gameState)) {
-			printf("Error: Value of argument no. %d is out of exptected range\n", i + 1);
+			printf("Error: Value of argument no. %d is out of expected range\n", i + 1);
 			return false;
 		}
 		if (validator && !validator(commandOut->arguments, i + 1, state->gameState)) {
@@ -122,6 +124,34 @@ void promptUserToInput(State* state) {
 	printf("%s>", getCurModeString(state));
 }
 
+void printIsBoardValidForCommandError(IsBoardValidForCommandErrorCode errorCode) {
+	printf("The board is not valid to perform desired command: ");
+	switch (errorCode) {
+	case IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS:
+		printf("it is erroneous");
+		break;
+	case IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_UNDO:
+		printf("there is no move to undo");
+		break;
+	case IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_REDO:
+		printf("there is no move to redo");
+		break;
+	case IS_BOARD_VALID_FOR_COMMAND_BOARD_UNSOLVABLE:
+		printf("it is unsolvable");
+		break;
+	case IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_ERRONEOUS_VALUE:
+		printf("cell has erroneous value");
+		break;
+	case IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_FIXED_VALUE:
+		printf("cell has a fixed value");
+		break;
+	case IS_BOARD_VALID_FOR_COMMAND_CELL_IS_NOT_EMPTY:
+		printf("cell is not empty");
+		break;
+	}
+	printf("\n");
+}
+
 /**
  * performCommandLoop manages the user interface of the game. It takes commands from the user and
  * validates them, displaying an error message when the command is found invalid. The commands are
@@ -136,18 +166,44 @@ void performCommandLoop(State* state) {
 	while (loopHolds) {
 		Command command = {0};
 		char inputStr[INPUT_STRING_MAX_LENGTH] = {0};
-		GetInputStringErrorCode gisErrorCode = ERROR_SUCCESS;
+		int errorCode = ERROR_SUCCESS;
 
 		promptUserToInput(state);
-		gisErrorCode = getInputString(inputStr, INPUT_STRING_MAX_LENGTH);
-		if (gisErrorCode != ERROR_SUCCESS) {
-			if (gisErrorCode == GET_INPUT_STRING_REACHED_EOF)
+		errorCode = getInputString(inputStr, INPUT_STRING_MAX_LENGTH);
+		if (errorCode != ERROR_SUCCESS) {
+			if (errorCode == GET_INPUT_STRING_REACHED_EOF)
 				loopHolds = false;
 			continue;
 		}
 
-		if (processStringAsCommand(state, inputStr, &command)) {
-			/* performCommand(...);*/
+		if (!processStringAsCommand(state, inputStr, &command)) { /* TODO: this function should probably be in Commands module (and processCommandArguments as well)*/
+			continue;
+		}
+
+		if (command.type == COMMAND_TYPE_IGNORE) {
+			continue; /* TODO: hence, any function called from this point onwards doesn't need to pay attention to IGNORE command */
+		}
+
+		errorCode = isBoardValidForCommand(state, &command);
+		if (errorCode != ERROR_SUCCESS) {
+			printIsBoardValidForCommandError((IsBoardValidForCommandErrorCode)errorCode);
+			continue;
+		}
+
+		errorCode = performCommand(state, &command);
+		if (errorCode != ERROR_SUCCESS) {
+			/* TODO: call a printErrorMessage function, which should translate the error codes to string */
+			continue;
+		}
+
+		if (shouldPrintBoardPostCommand(command.type)) {
+			/* TODO: call  getBoard from Game module and printBoard from this module */
+		}
+
+		/* TODO: in solve mode and in case command was Set, if all cells are now filled, check whether board is solved or not and let user know (in case of successful solution, immediately switch to INIT mode */
+
+		if (command.type == COMMAND_TYPE_EXIT) {
+			loopHolds = false;
 		}
 	}
 }

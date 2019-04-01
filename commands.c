@@ -1,5 +1,7 @@
 #include "commands.h"
 
+#define UNUSED(x) (void)(x)
+
 /* TODO: check necessity of IGNORE in all of the below */
 
 bool isCommandAllowed(GameMode gameMode, CommandType commandType) {
@@ -545,4 +547,246 @@ commandArgsValidator getCommandArgsValidator(CommandType commandType) {
 		return NULL;
 	}
 	return NULL;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForSetCommand(State* state, Command* command) {
+	SetCommandArguments* args = (SetCommandArguments*)command->arguments;
+
+	if (state->gameMode == GAME_MODE_SOLVE) {
+		if (isCellFixed(state->gameState, args->row, args->col)) {
+			return IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_FIXED_VALUE;
+		}
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForValidateCommand(State* state, Command* command) {
+	ValidateCommandArguments* args = (ValidateCommandArguments*)command->arguments;
+
+	UNUSED(args);
+
+	if (isBoardErroneous(state->gameState)) {
+		return IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS;
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForGuessCommand(State* state, Command* command) {
+	GuessCommandArguments* args = (GuessCommandArguments*)command->arguments;
+
+	UNUSED(args);
+
+	if (isBoardErroneous(state->gameState)) {
+		return IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS;
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForUndoCommand(State* state, Command* command) {
+	UndoCommandArguments* args = (UndoCommandArguments*)command->arguments;
+
+	UNUSED(args);
+
+	if (isThereMoveToUndo(state->gameState)) {
+		return IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_UNDO;
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForRedoCommand(State* state, Command* command) {
+	RedoCommandArguments* args = (RedoCommandArguments*)command->arguments;
+
+	UNUSED(args);
+
+	if (isThereMoveToRedo(state->gameState)) {
+		return IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_REDO;
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForSaveCommand(State* state, Command* command) {
+	SaveCommandArguments* args = (SaveCommandArguments*)command->arguments;
+
+	UNUSED(args);
+
+	if (state->gameMode == GAME_MODE_EDIT) {
+		if (isBoardErroneous(state->gameState)) {
+			return IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS;
+		}
+		if (!isBoardSolvable(state->gameState)) {
+			return IS_BOARD_VALID_FOR_COMMAND_BOARD_UNSOLVABLE;
+		}
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForHintCommand(State* state, Command* command) {
+	HintCommandArguments* args = (HintCommandArguments*)command->arguments;
+
+	if (isBoardErroneous(state->gameState)) {
+		return IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS;
+	}
+	if (isCellFixed(state->gameState, args->row, args->col)) {
+		return IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_FIXED_VALUE;
+	}
+	if (!isCellEmpty(state->gameState, args->row, args->col)) {
+		return IS_BOARD_VALID_FOR_COMMAND_CELL_IS_NOT_EMPTY;
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForGuessHintCommand(State* state, Command* command) {
+	GuessHintCommandArguments* args = (GuessHintCommandArguments*)command->arguments;
+
+	if (isBoardErroneous(state->gameState)) {
+		return IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS;
+	}
+	if (isCellFixed(state->gameState, args->row, args->col)) {
+		return IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_FIXED_VALUE;
+	}
+	if (!isCellEmpty(state->gameState, args->row, args->col)) {
+		return IS_BOARD_VALID_FOR_COMMAND_CELL_IS_NOT_EMPTY;
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForNumSolutionsCommand(State* state, Command* command) {
+	NumSolutionsCommandArguments* args = (NumSolutionsCommandArguments*)command->arguments;
+
+	UNUSED(args);
+
+	if (isBoardErroneous(state->gameState)) {
+		return IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS;
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForAutofillCommand(State* state, Command* command) {
+	AutofillCommandArguments* args = (AutofillCommandArguments*)command->arguments;
+
+	UNUSED(args);
+
+	if (isBoardErroneous(state->gameState)) {
+		return IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS;
+	}
+
+	return ERROR_SUCCESS;
+}
+
+IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* command) {
+	switch (command->type) {
+		case COMMAND_TYPE_SET:
+			return isBoardValidForSetCommand(state, command);
+		case COMMAND_TYPE_VALIDATE:
+			return isBoardValidForValidateCommand(state, command);
+		case COMMAND_TYPE_GUESS:
+			return isBoardValidForGuessCommand(state, command);
+		case COMMAND_TYPE_UNDO:
+			return isBoardValidForUndoCommand(state, command);
+		case COMMAND_TYPE_REDO:
+			return isBoardValidForRedoCommand(state, command);
+		case COMMAND_TYPE_SAVE:
+			return isBoardValidForSaveCommand(state, command);
+		case COMMAND_TYPE_HINT:
+			return isBoardValidForHintCommand(state, command);
+		case COMMAND_TYPE_GUESS_HINT:
+			return isBoardValidForGuessHintCommand(state, command);
+		case COMMAND_TYPE_NUM_SOLUTIONS:
+			return isBoardValidForNumSolutionsCommand(state, command);
+		case COMMAND_TYPE_AUTOFILL:
+			return isBoardValidForAutofillCommand(state, command);
+		case COMMAND_TYPE_SOLVE:
+		case COMMAND_TYPE_EDIT:
+		case COMMAND_TYPE_MARK_ERRORS:
+		case COMMAND_TYPE_PRINT_BOARD:
+		case COMMAND_TYPE_GENERATE:
+		case COMMAND_TYPE_RESET:
+		case COMMAND_TYPE_EXIT:
+		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+			return ERROR_SUCCESS;
+		}
+	return ERROR_SUCCESS;
+}
+
+int performCommand(State* state, Command* command) {
+	int errorCode = ERROR_SUCCESS;
+
+	UNUSED(state);
+	UNUSED(command);
+
+	/*switch (command->type) {
+		case COMMAND_TYPE_SOLVE:
+			return performSolveCommand(state, command);
+		case COMMAND_TYPE_EDIT:
+			return performEditCommand(state, command);
+		case COMMAND_TYPE_MARK_ERRORS:
+			return performMarkErrorsCommand(state, command);
+		case COMMAND_TYPE_PRINT_BOARD:
+			return performPrintBoardCommand(state, command);
+		case COMMAND_TYPE_SET:
+			return performSetCommand(state, command);
+		case COMMAND_TYPE_VALIDATE:
+			return performValidateCommand(state, command);
+		case COMMAND_TYPE_GUESS:
+			return performGuessCommand(state, command);
+		case COMMAND_TYPE_GENERATE:
+			return performGenerateCommand(state, command);
+		case COMMAND_TYPE_UNDO:
+			return performUndoCommand(state, command);
+		case COMMAND_TYPE_REDO:
+			return performRedoCommand(state, command);
+		case COMMAND_TYPE_SAVE:
+			return performSaveCommand(state, command);
+		case COMMAND_TYPE_HINT:
+			return performHintCommand(state, command);
+		case COMMAND_TYPE_GUESS_HINT:
+			return performGuessHintCommand(state, command);
+		case COMMAND_TYPE_NUM_SOLUTIONS:
+			return performNumSolutionsCommand(state, command);
+		case COMMAND_TYPE_AUTOFILL:
+			return performAutofillCommand(state, command);
+		case COMMAND_TYPE_RESET:
+			return performResetCommand(state, command);
+		case COMMAND_TYPE_EXIT:
+			return performExitCommand(state, command);
+		case COMMAND_TYPE_IGNORE: *//* TODO: is needed? */
+			/*return performIgnoreCommand(state, command);
+		}*/
+
+	return errorCode;
+}
+
+bool shouldPrintBoardPostCommand(CommandType commandType) {
+	switch (commandType) {
+	case COMMAND_TYPE_SOLVE:
+	case COMMAND_TYPE_EDIT:
+	case COMMAND_TYPE_PRINT_BOARD:
+	case COMMAND_TYPE_SET:
+	case COMMAND_TYPE_GUESS: /* TODO: check! this is contrary to instructions, but seems legit (?) */
+	case COMMAND_TYPE_GENERATE:
+	case COMMAND_TYPE_UNDO:
+	case COMMAND_TYPE_REDO:
+	case COMMAND_TYPE_AUTOFILL:
+	case COMMAND_TYPE_RESET:
+		return true;
+	case COMMAND_TYPE_MARK_ERRORS:
+	case COMMAND_TYPE_VALIDATE:
+	case COMMAND_TYPE_SAVE:
+	case COMMAND_TYPE_HINT:
+	case COMMAND_TYPE_GUESS_HINT:
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+	case COMMAND_TYPE_EXIT:
+	case COMMAND_TYPE_IGNORE:
+		return false;
+	}
+	return false;
 }
