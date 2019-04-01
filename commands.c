@@ -2,6 +2,9 @@
 
 #define UNUSED(x) (void)(x)
 
+#define DEFAULT_M (3)
+#define DEFAULT_N (3)
+
 /* TODO: check necessity of IGNORE in all of the below */
 
 bool isCommandAllowed(GameMode gameMode, CommandType commandType) {
@@ -717,18 +720,45 @@ IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* co
 	return ERROR_SUCCESS;
 }
 
+typedef enum {
+	PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
+} PerformEditCommandErrorCode;
+
+PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
+	EditCommandArguments* editArguments = (EditCommandArguments*)(command->arguments);
+
+	if (command->argumentsNum == 0) { /* Start editing an empty 9x9 board */
+		 if (createNewGameState(state, DEFAULT_M, DEFAULT_N) == NULL) {
+			 return PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		 }
+		 state->gameMode = GAME_MODE_EDIT;
+	} else { /* Open from file */
+		UNUSED(editArguments->filePath);
+	}
+
+	return ERROR_SUCCESS;
+}
+
+int performExitCommand(State* state, Command* command) {
+	UNUSED(command);
+
+	cleanupGameState(state);
+
+	return ERROR_SUCCESS;
+}
+
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
 
 	UNUSED(state);
 	UNUSED(command);
 
-	/*switch (command->type) {
-		case COMMAND_TYPE_SOLVE:
-			return performSolveCommand(state, command);
+	switch (command->type) {
+		/*case COMMAND_TYPE_SOLVE:
+			return performSolveCommand(state, command);*/
 		case COMMAND_TYPE_EDIT:
 			return performEditCommand(state, command);
-		case COMMAND_TYPE_MARK_ERRORS:
+		/*case COMMAND_TYPE_MARK_ERRORS:
 			return performMarkErrorsCommand(state, command);
 		case COMMAND_TYPE_PRINT_BOARD:
 			return performPrintBoardCommand(state, command);
@@ -755,12 +785,14 @@ int performCommand(State* state, Command* command) {
 		case COMMAND_TYPE_AUTOFILL:
 			return performAutofillCommand(state, command);
 		case COMMAND_TYPE_RESET:
-			return performResetCommand(state, command);
+			return performResetCommand(state, command);*/
 		case COMMAND_TYPE_EXIT:
 			return performExitCommand(state, command);
-		case COMMAND_TYPE_IGNORE: *//* TODO: is needed? */
-			/*return performIgnoreCommand(state, command);
-		}*/
+		/*case COMMAND_TYPE_IGNORE: *//* TODO: is needed? */
+			/*return performIgnoreCommand(state, command);*/
+		default: /* TODO: get rid of this */
+			break;
+		}
 
 	return errorCode;
 }

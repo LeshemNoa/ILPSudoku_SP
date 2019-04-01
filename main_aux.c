@@ -2,7 +2,7 @@
 
 /* TODO: perhaps have errors printed to stderr, as discuseed earlier */
 
-#define INPUT_STRING_MAX_LENGTH (COMMAND_MAX_LENGTH + 1 + 1) /* One for COMMAND_END_MARKER, and one for the null terminator */
+#define INPUT_STRING_MAX_LENGTH (COMMAND_MAX_LENGTH + sizeof(COMMAND_END_MARKER) + 1) /* One for COMMAND_END_MARKER, and one for the null terminator */
 
 #define ERROR_SUCCESS (0)
 

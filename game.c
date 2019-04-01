@@ -13,8 +13,6 @@
  * Note: the implementation of this struct is meant to be hidden from the user.
  */
 struct GameState {
-	int numRowsInBlock_M;
-	int numColumnsInBlock_N;
 	Board puzzle;
 	int numEmpty;
 	int numErroneous;
@@ -25,7 +23,7 @@ int getNumEmptyCells(GameState* gameState) {
 }
 
 int getBlockSize_MN(GameState* gameState) {
-	return gameState->numRowsInBlock_M * gameState->numColumnsInBlock_N;
+	return gameState->puzzle.numRowsInBlock_M * gameState->puzzle.numColumnsInBlock_N;
 }
 
 int getBoardSize_MN2(GameState* gameState) {
@@ -91,4 +89,57 @@ bool isThereMoveToRedo(GameState* gameState) {
 	UNUSED(gameState);
 
 	return false;
+}
+
+GameState* createNewGameState(State* state, int numRowsInBlock_M, int numColumnsInBlock_N) {
+	int MN = numRowsInBlock_M * numColumnsInBlock_N;
+	GameState* gameState = NULL;
+
+	gameState = calloc(1, sizeof(GameState));
+	if (gameState != NULL) {
+		gameState->puzzle.numRowsInBlock_M = numRowsInBlock_M;
+		gameState->puzzle.numColumnsInBlock_N = numColumnsInBlock_N;
+		gameState->puzzle.cells = calloc(MN, sizeof(Cell*));
+		if (gameState->puzzle.cells != NULL) {
+			int row = 0;
+			for (row = 0; row < MN; row++) {
+				gameState->puzzle.cells[row] = calloc(MN, sizeof(Cell));
+				if (gameState->puzzle.cells[row] == NULL) {
+					break;
+				}
+			}
+			if (row == MN) {
+				state->gameState = gameState;
+				return gameState;
+			}
+		}
+	}
+	cleanupGameState(state);
+	return NULL;
+}
+
+void cleanupGameState(State* state) {
+	GameState* gameState = state->gameState;
+	int MN = 0;
+
+	if (gameState == NULL)
+		return;
+
+	MN = gameState->puzzle.numRowsInBlock_M * gameState->puzzle.numColumnsInBlock_N;
+
+	if (gameState->puzzle.cells != NULL) {
+		 int row = 0;
+		 for (row = 0; row < MN; row++) {
+			 if (gameState->puzzle.cells[row] != NULL) {
+				 free(gameState->puzzle.cells[row]);
+				 gameState->puzzle.cells[row] = NULL;
+			 }
+		 }
+		 free(gameState->puzzle.cells);
+		 gameState->puzzle.cells = NULL;
+	}
+
+	free(gameState);
+	state->gameState = NULL;
+
 }

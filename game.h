@@ -43,7 +43,9 @@ typedef struct {
  * Board struct represents a sudoku board.
  */
 typedef struct {
-	Cell** cells;} Board; /* TODO: this will require at least an N and M fields, too */
+	int numRowsInBlock_M;
+	int numColumnsInBlock_N;
+	Cell** cells;} Board;
 	
 
 /**
@@ -86,5 +88,9 @@ bool isCellFixed(GameState* gameState, int row, int col);
 bool isThereMoveToUndo(GameState* gameState);
 
 bool isThereMoveToRedo(GameState* gameState);
+
+GameState* createNewGameState(State* state, int numRowsInBlock_M, int numColumnsInBlock_N);
+
+void cleanupGameState(State* state);
 
 #endif /* GAME_H_ */
