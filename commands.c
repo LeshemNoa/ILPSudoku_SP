@@ -728,9 +728,12 @@ PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 	EditCommandArguments* editArguments = (EditCommandArguments*)(command->arguments);
 
 	if (command->argumentsNum == 0) { /* Start editing an empty 9x9 board */
+		cleanupGameState(state);
+
 		 if (createNewGameState(state, DEFAULT_M, DEFAULT_N) == NULL) {
 			 return PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
 		 }
+
 		 state->gameMode = GAME_MODE_EDIT;
 	} else { /* Open from file */
 		UNUSED(editArguments->filePath);
