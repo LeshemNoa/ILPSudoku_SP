@@ -16,10 +16,19 @@ struct GameState {
 	Board puzzle;
 	int numEmpty;
 	int numErroneous;
+	bool shouldMarkErrors;
 };
 
 int getNumEmptyCells(GameState* gameState) {
 	return gameState->numEmpty;
+}
+
+int getNumColumnsInBlock_N(GameState* gameState) {
+	return gameState->puzzle.numColumnsInBlock_N;
+}
+
+int getNumRowsInBlock_M(GameState* gameState) {
+	return gameState->puzzle.numRowsInBlock_M;
 }
 
 int getBlockSize_MN(GameState* gameState) {
@@ -64,19 +73,23 @@ bool isBoardSolvable(GameState* gameState) {
 }
 
 bool isCellEmpty(GameState* gameState, int row, int col) {
-	UNUSED(gameState);
-	UNUSED(row);
-	UNUSED(col);
-
-	return true;
+	return gameState->puzzle.cells[row][col].value == EMPTY_CELL_VALUE;
 }
 
 bool isCellFixed(GameState* gameState, int row, int col) {
-	UNUSED(gameState);
-	UNUSED(row);
-	UNUSED(col);
+	return gameState->puzzle.cells[row][col].isFixed;
+}
 
-	return false;
+bool isCellErroneous(GameState* gameState, int row, int col) {
+	return gameState->puzzle.cells[row][col].isErroneous;
+}
+
+int getCellValue(GameState* gameState, int row, int col) {
+	return gameState->puzzle.cells[row][col].value;
+}
+
+bool shouldMarkErrors(GameState* gameState) {
+	return gameState->shouldMarkErrors;
 }
 
 bool isThereMoveToUndo(GameState* gameState) {

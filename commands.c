@@ -755,8 +755,6 @@ int performCommand(State* state, Command* command) {
 			return performEditCommand(state, command);
 		/*case COMMAND_TYPE_MARK_ERRORS:
 			return performMarkErrorsCommand(state, command);
-		case COMMAND_TYPE_PRINT_BOARD:
-			return performPrintBoardCommand(state, command);
 		case COMMAND_TYPE_SET:
 			return performSetCommand(state, command);
 		case COMMAND_TYPE_VALIDATE:
@@ -781,6 +779,7 @@ int performCommand(State* state, Command* command) {
 			return performAutofillCommand(state, command);
 		case COMMAND_TYPE_RESET:
 			return performResetCommand(state, command);*/
+		case COMMAND_TYPE_PRINT_BOARD:
 		case COMMAND_TYPE_EXIT:
 		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
 			return ERROR_SUCCESS;

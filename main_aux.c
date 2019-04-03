@@ -6,9 +6,83 @@
 
 #define ERROR_SUCCESS (0)
 
+#define BLOCK_SEPARATOR ('|')
+#define SPACE_CHARACTER (' ')
+#define EMPTY_CELL_STRING ("  ")
+#define FIXED_CELL_MARKER ('.')
+#define ERROENOUS_CELL_MARKER ('*')
+#define DASH_CHARACTER ('-')
+
+#define LENGTH_OF_STRING_REPRESENTING_CELL (4)
+
+
 typedef enum GetInputStringErrorCode {
 	GET_INPUT_STRING_REACHED_EOF = 1,
 	GET_INPUT_STRING_COMMAND_TOO_LONG} GetInputStringErrorCode;
+
+void printSeparatorLine(State* state) {
+	int M = getNumRowsInBlock_M(state->gameState);
+	int N = getNumColumnsInBlock_N(state->gameState);
+
+	int i = 0;
+	for (i = 0; i < LENGTH_OF_STRING_REPRESENTING_CELL * (M * N) + M + 1; i++)
+		printf("%c", DASH_CHARACTER);
+
+	printf("\n");
+}
+
+void printCell(State* state, int row, int col) {
+	printf("%c", SPACE_CHARACTER);
+
+	if (!isCellEmpty(state->gameState, row, col))
+		printf("%2d", getCellValue(state->gameState, row, col));
+	else
+		printf("%s", EMPTY_CELL_STRING);
+
+	if (isCellFixed(state->gameState, row, col))
+		printf("%c", FIXED_CELL_MARKER);
+	else if (isCellErroneous(state->gameState, row, col) &&
+		((state->gameMode == GAME_MODE_EDIT) || (shouldMarkErrors(state->gameState))))
+			printf("%c", ERROENOUS_CELL_MARKER);
+	else printf("%c", SPACE_CHARACTER);
+}
+
+void printRow(State* state, int rowsBlock, int rowInBlock) {
+	int M = getNumRowsInBlock_M(state->gameState);
+	int N = getNumColumnsInBlock_N(state->gameState);
+	int row = rowsBlock * M + rowInBlock;
+	int col = 0;
+
+	for (col = 0; col < N * M; col++) {
+		if (col % N == 0)
+			printf("%c", BLOCK_SEPARATOR);
+		printCell(state, row, col);
+	}
+	printf("%c", BLOCK_SEPARATOR);
+
+	printf("\n");
+}
+
+void printRowsBlock(State* state, int rowsBlock) {
+	int rowInBlock = 0;
+	int numRowsInBlock = getNumRowsInBlock_M(state->gameState);
+
+	for(rowInBlock = 0; rowInBlock < numRowsInBlock; rowInBlock++) {
+		printRow(state, rowsBlock, rowInBlock);
+	}
+}
+
+void printBoard(State* state) {
+	int rowsBlock = 0;
+	int numRowsBlocks = getNumColumnsInBlock_N(state->gameState);
+
+	printSeparatorLine(state);
+
+	for (rowsBlock = 0; rowsBlock < numRowsBlocks; rowsBlock++) {
+		printRowsBlock(state, rowsBlock);
+		printSeparatorLine(state);
+	}
+}
 
 /**
  * getCommandString reads a command string from stdin, and writes the input
@@ -150,8 +224,10 @@ void performCommandLoop(State* state) {
 				if (errorCode != ERROR_SUCCESS) {
 					/* TODO: call a printErrorMessage function, which should translate the error codes to string */
 				} else {
+					/* TODO: output of command should be printed here */
+
 					if (shouldPrintBoardPostCommand(command.type)) {
-						/* TODO: call  getBoard from Game module and printBoard from this module */
+						printBoard(state);
 					}
 
 					/* TODO: in solve mode and in case command was Set, if all cells are now filled, check whether board is solved or not and let user know (in case of successful solution, immediately switch to INIT mode */

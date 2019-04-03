@@ -37,7 +37,8 @@
  */
 typedef struct {
 	int value;
-    bool isFixed;} Cell;
+    bool isFixed;
+	bool isErroneous;} Cell;
 
 /**
  * Board struct represents a sudoku board.
@@ -67,6 +68,10 @@ typedef struct {
 
 int getNumEmptyCells(GameState* gameState);
 
+int getNumColumnsInBlock_N(GameState* gameState);
+
+int getNumRowsInBlock_M(GameState* gameState);
+
 int getBlockSize_MN(GameState* gameState);
 
 int getBoardSize_MN2(GameState* gameState);
@@ -84,6 +89,12 @@ bool isBoardSolvable(GameState* gameState);
 bool isCellEmpty(GameState* gameState, int row, int col);
 
 bool isCellFixed(GameState* gameState, int row, int col);
+
+bool isCellErroneous(GameState* gameState, int row, int col);
+
+int getCellValue(GameState* gameState, int row, int col);
+
+bool shouldMarkErrors(GameState* gameState);
 
 bool isThereMoveToUndo(GameState* gameState);
 
