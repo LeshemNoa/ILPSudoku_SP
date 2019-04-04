@@ -5,6 +5,9 @@
 #define DEFAULT_M (3)
 #define DEFAULT_N (3)
 
+#define FIXED_CELL_MARKER_IN_FILE ('.')
+#define EMPTY_CELL_VALUE_IN_FILE (0)
+
 /* TODO: check necessity of IGNORE in all of the below */
 
 bool isCommandAllowed(GameMode gameMode, CommandType commandType) {
@@ -721,8 +724,111 @@ IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* co
 }
 
 typedef enum {
-	PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
+	PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
+	PERFORM_EDIT_COMMAND_FILE_COULD_NOT_BE_OPENED,
+	PERFORM_EDIT_COMMAND_COULD_NOT_PARSE_BOARD_DIMENSIONS,
+	PERFORM_EDIT_COMMAND_DIMENSION_ARE_NOT_POSITIVE,
+	PERFORM_EDIT_COMMAND_BAD_FORMAT_FAILED_TO_READ_A_CELL,
+	PERFORM_EDIT_COMMAND_BAD_FORMAT_FILE_CONTAINS_TOO_MUCH_CONTENT,
+	PERFORM_EDIT_COMMAND_CELL_VALUE_NOT_IN_RANGE
 } PerformEditCommandErrorCode;
+
+bool isFileEmpty(FILE* file) {
+	char chr = '\0';
+	int fscanfRetVal = 0;
+	fscanfRetVal = fscanf(file, " %c", &chr);
+	return fscanfRetVal == EOF;
+}
+
+bool readCellFromFileToBoard(FILE* file, Cell* destination, bool isLastCell) {
+	char isFixedChar = '\0';
+
+	int fscanfRetVal = 0;
+	fscanfRetVal = fscanf(file, " %d%c ", &(destination->value), &isFixedChar);
+
+	if (fscanfRetVal == 2) {
+		destination->isFixed = (isFixedChar == FIXED_CELL_MARKER_IN_FILE);
+		return true;
+	}
+
+	if ((fscanfRetVal == 1) && isLastCell) {
+		destination->isFixed = false;
+		return true;
+	}
+
+	return false;
+}
+
+bool readCellsFromFileToBoard(FILE* file, Board* boardInOut) {
+	int nm = boardInOut->numColumnsInBlock_N * boardInOut->numRowsInBlock_M;
+
+	int row = 0, col = 0;
+	for (row = 0; row < nm; row++)
+		for (col = 0; col < nm; col++)
+			if (!readCellFromFileToBoard(file, &(boardInOut->cells[row][col]), (row + 1 == nm) && (col + 1 == nm)))
+				return false;
+
+	return true;
+}
+
+bool areCellValuesInRange(Board* board) {
+	int nm = board->numColumnsInBlock_N * board->numRowsInBlock_M;
+	int row = 0;
+	int col = 0;
+	for (row = 0; row < nm; row++)
+		for (col = 0; col < nm; col++) {
+			int value = board->cells[row][col].value;
+			if ((value != EMPTY_CELL_VALUE_IN_FILE) && ((value < 1) || (value > nm)))
+				return false;
+		}
+
+	return true;
+}
+
+PerformEditCommandErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) {
+	PerformEditCommandErrorCode retVal = ERROR_SUCCESS;
+	FILE* file = NULL;
+	int fscanfRetVal = 0;
+	int n = 0, m = 0;
+
+	file = fopen(filePath, "r");
+	if (file == NULL) {
+		retVal = PERFORM_EDIT_COMMAND_FILE_COULD_NOT_BE_OPENED;
+	} else {
+		fscanfRetVal = fscanf(file, " %d %d ", &m, &n);
+		if (fscanfRetVal != 2) {
+			retVal = PERFORM_EDIT_COMMAND_COULD_NOT_PARSE_BOARD_DIMENSIONS;
+		} else {
+			if (!((n > 0) && (m > 0))) {
+				retVal = PERFORM_EDIT_COMMAND_DIMENSION_ARE_NOT_POSITIVE;
+			} else {
+				Board tempBoard = {0};
+				if (createBoard(&tempBoard, m, n) == NULL) {
+					retVal = PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+				} else {
+					if (!readCellsFromFileToBoard(file, &tempBoard)) {
+						retVal = PERFORM_EDIT_COMMAND_BAD_FORMAT_FAILED_TO_READ_A_CELL;
+					} else {
+						if (!isFileEmpty(file)) {
+							retVal = PERFORM_EDIT_COMMAND_BAD_FORMAT_FILE_CONTAINS_TOO_MUCH_CONTENT;
+						} else {
+							if (!areCellValuesInRange(&tempBoard)) {
+								retVal = PERFORM_EDIT_COMMAND_CELL_VALUE_NOT_IN_RANGE;
+							} else {
+								/* TODO: call findErroneousCells */
+								*boardInOut = tempBoard;
+							}
+						}
+					}
+				}
+				if (retVal != ERROR_SUCCESS)
+					cleanupBoard(&tempBoard);
+			}
+		}
+		fclose(file);
+	}
+	return retVal;
+}
 
 PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 	EditCommandArguments* editArguments = (EditCommandArguments*)(command->arguments);
@@ -730,15 +836,24 @@ PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 	if (command->argumentsNum == 0) { /* Start editing an empty 9x9 board */
 		cleanupGameState(state);
 
-		 if (createNewGameState(state, DEFAULT_M, DEFAULT_N) == NULL) {
+		 if (createGameState(state, DEFAULT_M, DEFAULT_N, NULL) == NULL) {
 			 return PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
 		 }
 
-		 state->gameMode = GAME_MODE_EDIT;
 	} else { /* Open from file */
-		UNUSED(editArguments->filePath);
+		Board board;
+		PerformEditCommandErrorCode retVal = ERROR_SUCCESS;
+		retVal = loadBoardFromFile(editArguments->filePath, &board);
+		if (retVal != ERROR_SUCCESS)
+			return retVal;
+		if (createGameState(state, 0, 0, &board) == NULL) {
+			cleanupBoard(&board);
+			return PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		}
+		markAllCellsAsNotFixed(state->gameState);
 	}
 
+	state->gameMode = GAME_MODE_EDIT;
 	return ERROR_SUCCESS;
 }
 

@@ -104,27 +104,61 @@ bool isThereMoveToRedo(GameState* gameState) {
 	return false;
 }
 
-GameState* createNewGameState(State* state, int numRowsInBlock_M, int numColumnsInBlock_N) {
+void cleanupBoard(Board* boardInOut) {
+	int MN = boardInOut->numRowsInBlock_M * boardInOut->numColumnsInBlock_N;
+
+	if (boardInOut->cells != NULL) {
+		 int row = 0;
+		 for (row = 0; row < MN; row++) {
+			 if (boardInOut->cells[row] != NULL) {
+				 free(boardInOut->cells[row]);
+				 boardInOut->cells[row] = NULL;
+			 }
+		 }
+		 free(boardInOut->cells);
+		 boardInOut->cells = NULL;
+	}
+}
+
+Board* createBoard(Board* boardInOut, int numRowsInBlock_M, int numColumnsInBlock_N) {
+	Board tempBoard;
+
 	int MN = numRowsInBlock_M * numColumnsInBlock_N;
+	tempBoard.cells = calloc(MN, sizeof(Cell*));
+	if (tempBoard.cells != NULL) {
+		int row = 0;
+		for (row = 0; row < MN; row++) {
+			tempBoard.cells[row] = calloc(MN, sizeof(Cell));
+			if (tempBoard.cells[row] == NULL) {
+				break;
+			}
+		}
+		if (row == MN) {
+			boardInOut->cells = tempBoard.cells;
+			boardInOut->numRowsInBlock_M = numRowsInBlock_M;
+			boardInOut->numColumnsInBlock_N = numColumnsInBlock_N;
+			return boardInOut;
+		}
+	}
+	return NULL;
+}
+
+GameState* createGameState(State* state, int numRowsInBlock_M, int numColumnsInBlock_N, Board* board) {
 	GameState* gameState = NULL;
 
 	gameState = calloc(1, sizeof(GameState));
 	if (gameState != NULL) {
-		gameState->puzzle.numRowsInBlock_M = numRowsInBlock_M;
-		gameState->puzzle.numColumnsInBlock_N = numColumnsInBlock_N;
-		gameState->puzzle.cells = calloc(MN, sizeof(Cell*));
-		if (gameState->puzzle.cells != NULL) {
-			int row = 0;
-			for (row = 0; row < MN; row++) {
-				gameState->puzzle.cells[row] = calloc(MN, sizeof(Cell));
-				if (gameState->puzzle.cells[row] == NULL) {
-					break;
-				}
-			}
-			if (row == MN) {
+		if (board == NULL) {
+			Board* board = NULL;
+			board = createBoard(&(gameState->puzzle), numRowsInBlock_M, numColumnsInBlock_N);
+			if (board != NULL) {
 				state->gameState = gameState;
 				return gameState;
 			}
+		} else {
+			gameState->puzzle = *board; /* Note: we copy the struct, hence the pre-allocation Cells** within the given board is retained */
+			state->gameState = gameState;
+			return gameState;
 		}
 	}
 	cleanupGameState(state);
@@ -133,26 +167,26 @@ GameState* createNewGameState(State* state, int numRowsInBlock_M, int numColumns
 
 void cleanupGameState(State* state) {
 	GameState* gameState = state->gameState;
-	int MN = 0;
 
 	if (gameState == NULL)
 		return;
 
-	MN = gameState->puzzle.numRowsInBlock_M * gameState->puzzle.numColumnsInBlock_N;
-
-	if (gameState->puzzle.cells != NULL) {
-		 int row = 0;
-		 for (row = 0; row < MN; row++) {
-			 if (gameState->puzzle.cells[row] != NULL) {
-				 free(gameState->puzzle.cells[row]);
-				 gameState->puzzle.cells[row] = NULL;
-			 }
-		 }
-		 free(gameState->puzzle.cells);
-		 gameState->puzzle.cells = NULL;
-	}
+	cleanupBoard(&(gameState->puzzle));
 
 	free(gameState);
 	state->gameState = NULL;
+}
 
+void setCellFixedness(GameState* gameState, int row, int col, bool isFixed) {
+	gameState->puzzle.cells[row][col].isFixed = isFixed;
+}
+
+void markAllCellsAsNotFixed(GameState* gameState) {
+	int nm = gameState->puzzle.numColumnsInBlock_N * gameState->puzzle.numRowsInBlock_M;
+
+	int row = 0;
+	int col = 0;
+	for (row = 0; row < nm; row++)
+		for (col = 0; col < nm; col++)
+			setCellFixedness(gameState, row, col, false);
 }

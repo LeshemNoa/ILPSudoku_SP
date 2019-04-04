@@ -122,7 +122,7 @@ typedef enum ProcessStringAsCommandErrorCode {
 	PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_PARSED,
 	PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_IN_RANGE,
 	PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_AGREEING_WITH_BOARD
-	} ProcessStringAsCommandErrorCode;
+} ProcessStringAsCommandErrorCode;
 
 
 /* function pointer to a concrete command type's ArgParser. There currently are 2 of these:

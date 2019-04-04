@@ -100,8 +100,14 @@ bool isThereMoveToUndo(GameState* gameState);
 
 bool isThereMoveToRedo(GameState* gameState);
 
-GameState* createNewGameState(State* state, int numRowsInBlock_M, int numColumnsInBlock_N);
+void cleanupBoard(Board* boardInOut);
+
+Board* createBoard(Board* boardInOut, int numRowsInBlock_M, int numColumnsInBlock_N);
+
+GameState* createGameState(State* state, int numRowsInBlock_M, int numColumnsInBlock_N, Board* board);
 
 void cleanupGameState(State* state);
+
+void markAllCellsAsNotFixed(GameState* gameState);
 
 #endif /* GAME_H_ */
