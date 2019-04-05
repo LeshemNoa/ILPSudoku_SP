@@ -981,6 +981,21 @@ PerformSaveCommandErrorCode performSaveCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
+typedef enum {
+	PERFORM_MARK_ERRORS_COMMAND_NO_CHANGE = 1
+} PerformMarkErrorsCommandErrorCode;
+
+PerformMarkErrorsCommandErrorCode performMarkErrorsCommand(State* state, Command* command) {
+	MarkErrorsCommandArguments* markErrorsArguments = (MarkErrorsCommandArguments*)(command->arguments);
+
+	if (shouldMarkErrors(state->gameState) == markErrorsArguments->shouldMarkError)
+		return PERFORM_MARK_ERRORS_COMMAND_NO_CHANGE;
+
+	setMarkErrors(state->gameState, markErrorsArguments->shouldMarkError);
+
+	return ERROR_SUCCESS;
+}
+
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
 
@@ -992,9 +1007,9 @@ int performCommand(State* state, Command* command) {
 			return performSolveCommand(state, command);
 		case COMMAND_TYPE_EDIT:
 			return performEditCommand(state, command);
-		/*case COMMAND_TYPE_MARK_ERRORS:
+		case COMMAND_TYPE_MARK_ERRORS:
 			return performMarkErrorsCommand(state, command);
-		case COMMAND_TYPE_SET:
+		/*case COMMAND_TYPE_SET:
 			return performSetCommand(state, command);
 		case COMMAND_TYPE_VALIDATE:
 			return performValidateCommand(state, command);

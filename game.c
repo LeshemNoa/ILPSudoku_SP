@@ -18,7 +18,7 @@ struct GameState {
 	Board puzzle;
 	int numEmpty;
 	int numErroneous;
-	bool shouldMarkErrors;
+	bool shouldMarkErrors; /* TODO: default value of this field needs to be 'true'. Maybe change its name to shouldHideErrors, so default initialisation with {0} will work seamlessly? */
 };
 
 int getNumEmptyCells(GameState* gameState) {
@@ -140,6 +140,10 @@ int getCellValue(GameState* gameState, int row, int col) {
 
 bool shouldMarkErrors(GameState* gameState) {
 	return gameState->shouldMarkErrors;
+}
+
+void setMarkErrors(GameState* gameState, bool shouldMarkErrors) {
+	gameState->shouldMarkErrors = shouldMarkErrors;
 }
 
 bool isThereMoveToUndo(GameState* gameState) {

@@ -100,6 +100,8 @@ int getCellValue(GameState* gameState, int row, int col);
 
 bool shouldMarkErrors(GameState* gameState);
 
+void setMarkErrors(GameState* gameState, bool shouldMarkErrors);
+
 bool isThereMoveToUndo(GameState* gameState);
 
 bool isThereMoveToRedo(GameState* gameState);
