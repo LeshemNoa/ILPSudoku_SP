@@ -173,9 +173,11 @@ void printProcessStringAsCommandError(ProcessStringAsCommandErrorCode errorCode,
 		break;
 	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_PARSED:
 		printf("Error: failed to parse argument no. %d (due to wrong type)\n", problematicArgNo);
+		printf("Usage: %s\n", getCommandUsage(command->type));
 		break;
 	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_IN_RANGE:
 		printf("Error: Value of argument no. %d is out of expected range\n", problematicArgNo);
+		/* TODO: print appropriate range! (can be passed through the command! (we can define some range struct for that)))*/
 		break;
 	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_AGREEING_WITH_BOARD:
 		printf("Error: Value of argument no. %d does not agree with the current board state\n", problematicArgNo);
