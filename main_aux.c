@@ -223,6 +223,7 @@ void performCommandLoop(State* state) {
 				errorCode = performCommand(state, &command);
 				if (errorCode != ERROR_SUCCESS) {
 					/* TODO: call a printErrorMessage function, which should translate the error codes to string */
+					/* TODO: decide if error is recoverable; if not, loopHolds = false! */
 				} else {
 					/* TODO: output of command should be printed here */
 

@@ -725,13 +725,17 @@ IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* co
 
 typedef enum {
 	PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
-	PERFORM_EDIT_COMMAND_FILE_COULD_NOT_BE_OPENED,
-	PERFORM_EDIT_COMMAND_COULD_NOT_PARSE_BOARD_DIMENSIONS,
-	PERFORM_EDIT_COMMAND_DIMENSION_ARE_NOT_POSITIVE,
-	PERFORM_EDIT_COMMAND_BAD_FORMAT_FAILED_TO_READ_A_CELL,
-	PERFORM_EDIT_COMMAND_BAD_FORMAT_FILE_CONTAINS_TOO_MUCH_CONTENT,
-	PERFORM_EDIT_COMMAND_CELL_VALUE_NOT_IN_RANGE
+	PERFORM_EDIT_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE
 } PerformEditCommandErrorCode;
+
+typedef enum {
+	LOAD_BOARD_FROM_FILE_FILE_COULD_NOT_BE_OPENED = 1,
+	LOAD_BOARD_FROM_FILE_COULD_NOT_PARSE_BOARD_DIMENSIONS,
+	LOAD_BOARD_FROM_FILE_DIMENSION_ARE_NOT_POSITIVE,
+	LOAD_BOARD_FROM_FILE_BAD_FORMAT_FAILED_TO_READ_A_CELL,
+	LOAD_BOARD_FROM_FILE_BAD_FORMAT_FILE_CONTAINS_TOO_MUCH_CONTENT,
+	LOAD_BOARD_FROM_FILE_CELL_VALUE_NOT_IN_RANGE
+} LoadBoardFromFileErrorCode;
 
 bool isFileEmpty(FILE* file) {
 	char chr = '\0';
@@ -785,37 +789,37 @@ bool areCellValuesInRange(Board* board) {
 	return true;
 }
 
-PerformEditCommandErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) {
-	PerformEditCommandErrorCode retVal = ERROR_SUCCESS;
+LoadBoardFromFileErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) {
+	LoadBoardFromFileErrorCode retVal = ERROR_SUCCESS;
 	FILE* file = NULL;
 	int fscanfRetVal = 0;
 	int n = 0, m = 0;
 
 	file = fopen(filePath, "r");
 	if (file == NULL) {
-		retVal = PERFORM_EDIT_COMMAND_FILE_COULD_NOT_BE_OPENED;
+		retVal = LOAD_BOARD_FROM_FILE_FILE_COULD_NOT_BE_OPENED;
 	} else {
 		fscanfRetVal = fscanf(file, " %d %d ", &m, &n);
 		if (fscanfRetVal != 2) {
-			retVal = PERFORM_EDIT_COMMAND_COULD_NOT_PARSE_BOARD_DIMENSIONS;
+			retVal = LOAD_BOARD_FROM_FILE_COULD_NOT_PARSE_BOARD_DIMENSIONS;
 		} else {
 			if (!((n > 0) && (m > 0))) {
-				retVal = PERFORM_EDIT_COMMAND_DIMENSION_ARE_NOT_POSITIVE;
+				retVal = LOAD_BOARD_FROM_FILE_DIMENSION_ARE_NOT_POSITIVE;
 			} else {
 				Board tempBoard = {0};
 				if (createBoard(&tempBoard, m, n) == NULL) {
 					retVal = PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
 				} else {
 					if (!readCellsFromFileToBoard(file, &tempBoard)) {
-						retVal = PERFORM_EDIT_COMMAND_BAD_FORMAT_FAILED_TO_READ_A_CELL;
+						retVal = LOAD_BOARD_FROM_FILE_BAD_FORMAT_FAILED_TO_READ_A_CELL;
 					} else {
 						if (!isFileEmpty(file)) {
-							retVal = PERFORM_EDIT_COMMAND_BAD_FORMAT_FILE_CONTAINS_TOO_MUCH_CONTENT;
+							retVal = LOAD_BOARD_FROM_FILE_BAD_FORMAT_FILE_CONTAINS_TOO_MUCH_CONTENT;
 						} else {
 							if (!areCellValuesInRange(&tempBoard)) {
-								retVal = PERFORM_EDIT_COMMAND_CELL_VALUE_NOT_IN_RANGE;
+								retVal = LOAD_BOARD_FROM_FILE_CELL_VALUE_NOT_IN_RANGE;
 							} else {
-								/* TODO: call findErroneousCells */
+								findErroneousCells(&tempBoard);
 								*boardInOut = tempBoard;
 							}
 						}
@@ -845,7 +849,7 @@ PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 		PerformEditCommandErrorCode retVal = ERROR_SUCCESS;
 		retVal = loadBoardFromFile(editArguments->filePath, &board);
 		if (retVal != ERROR_SUCCESS)
-			return retVal;
+			return PERFORM_EDIT_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE + retVal;
 		if (createGameState(state, 0, 0, &board) == NULL) {
 			cleanupBoard(&board);
 			return PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
@@ -857,6 +861,126 @@ PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
+typedef enum {
+	PERFORM_SOLVE_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
+	PERFORM_SOLVE_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE
+} PerformSolveCommandErrorCode;
+
+PerformSolveCommandErrorCode performSolveCommand(State* state, Command* command) {
+	SolveCommandArguments* solveArguments = (SolveCommandArguments*)(command->arguments);
+
+	Board board;
+	PerformSolveCommandErrorCode retVal = ERROR_SUCCESS;
+	retVal = loadBoardFromFile(solveArguments->filePath, &board);
+	if (retVal != ERROR_SUCCESS)
+		return PERFORM_SOLVE_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE + retVal;
+	if (createGameState(state, 0, 0, &board) == NULL) {
+		cleanupBoard(&board);
+		return PERFORM_SOLVE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	}
+
+	state->gameMode = GAME_MODE_SOLVE;
+	return ERROR_SUCCESS;
+}
+
+typedef enum {
+	PERFORM_SAVE_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
+	PERFORM_SAVE_COMMAND_ERROR_IN_SAVE_BOARD_TO_FILE
+} PerformSaveCommandErrorCode;
+
+typedef enum {
+	SAVE_BOARD_TO_FILE_FILE_COULD_NOT_BE_OPENED = 1,
+	SAVE_BOARD_TO_FILE_DIMENSIONS_COULD_NOT_BE_WRITTEN,
+	SAVE_BOARD_TO_FILE_FAILED_TO_WRITE_A_CELL
+} SaveBoardToFileErrorCode;
+
+typedef enum {
+	WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_FIXED,
+	WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_NOT_EMPTY
+} writeCellFromBoardToFileFixednessCriterion;
+
+bool writeCellFromBoardToFile(FILE* file, Cell* cell, writeCellFromBoardToFileFixednessCriterion fixednessCriterion, bool isLastInRow) {
+	int fprintfRetVal = 0;
+	fprintfRetVal = fprintf(file, "%d", cell->value);
+	if (fprintfRetVal <= 0)
+		return false;
+
+	if (((fixednessCriterion == WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_FIXED) && isBoardCellFixed(cell)) ||
+		((fixednessCriterion == WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_NOT_EMPTY) && !isBoardCellEmpty(cell))) {
+			fprintfRetVal = fprintf(file, "%c", FIXED_CELL_MARKER_IN_FILE);
+			if (fprintfRetVal <= 0)
+				return false;
+	}
+
+	if (!isLastInRow) {
+		fprintfRetVal = fprintf(file, " ");
+		if (fprintfRetVal <= 0)
+			return false;
+	}
+
+	return true;
+}
+
+bool writeCellsFromBoardToFile(FILE* file, Board* boardInOut, writeCellFromBoardToFileFixednessCriterion fixednessCriterion) {
+	int nm = boardInOut->numColumnsInBlock_N * boardInOut->numRowsInBlock_M;
+
+	int row = 0, col = 0;
+	for (row = 0; row < nm; row++) {
+		for (col = 0; col < nm; col++)
+			if (!writeCellFromBoardToFile(file, &(boardInOut->cells[row][col]), fixednessCriterion, (col + 1 == nm)))
+				return false;
+		fprintf(file, "\n");
+	}
+
+	return true;
+}
+
+SaveBoardToFileErrorCode saveBoardToFile(char* filePath, Board* board, writeCellFromBoardToFileFixednessCriterion fixednessCriterion) {
+	SaveBoardToFileErrorCode retVal = ERROR_SUCCESS;
+	FILE* file = NULL;
+	int fprintfRetVal = 0;
+
+	file = fopen(filePath, "w");
+	if (file == NULL) {
+		retVal = SAVE_BOARD_TO_FILE_FILE_COULD_NOT_BE_OPENED;
+	} else {
+		fprintfRetVal = fprintf(file, "%d %d\n", board->numRowsInBlock_M, board->numColumnsInBlock_N);
+		if (fprintfRetVal <= 0) {
+			retVal = SAVE_BOARD_TO_FILE_DIMENSIONS_COULD_NOT_BE_WRITTEN;
+		} else {
+			if (!writeCellsFromBoardToFile(file, board, fixednessCriterion)) {
+				retVal = SAVE_BOARD_TO_FILE_FAILED_TO_WRITE_A_CELL;
+			}
+		}
+		fclose(file);
+	}
+	return retVal;
+}
+
+PerformSaveCommandErrorCode performSaveCommand(State* state, Command* command) {
+	SaveCommandArguments* saveArguments = (SaveCommandArguments*)(command->arguments);
+
+	PerformSaveCommandErrorCode retVal = ERROR_SUCCESS;
+
+	Board exportedBoard = {0};
+
+	writeCellFromBoardToFileFixednessCriterion fixednessCriteria = WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_FIXED;
+	if (state->gameMode == GAME_MODE_EDIT) {
+		fixednessCriteria = WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_NOT_EMPTY;
+	}
+
+	if (!exportBoard(state->gameState, &exportedBoard)) {
+		return PERFORM_SAVE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	}
+
+	retVal = saveBoardToFile(saveArguments->filePath, &exportedBoard, fixednessCriteria);
+	cleanupBoard(&exportedBoard);
+	if (retVal != ERROR_SUCCESS)
+		return PERFORM_SAVE_COMMAND_ERROR_IN_SAVE_BOARD_TO_FILE + retVal;
+
+	return ERROR_SUCCESS;
+}
+
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
 
@@ -864,8 +988,8 @@ int performCommand(State* state, Command* command) {
 	UNUSED(command);
 
 	switch (command->type) {
-		/*case COMMAND_TYPE_SOLVE:
-			return performSolveCommand(state, command);*/
+		case COMMAND_TYPE_SOLVE:
+			return performSolveCommand(state, command);
 		case COMMAND_TYPE_EDIT:
 			return performEditCommand(state, command);
 		/*case COMMAND_TYPE_MARK_ERRORS:
@@ -881,10 +1005,10 @@ int performCommand(State* state, Command* command) {
 		case COMMAND_TYPE_UNDO:
 			return performUndoCommand(state, command);
 		case COMMAND_TYPE_REDO:
-			return performRedoCommand(state, command);
+			return performRedoCommand(state, command);*/
 		case COMMAND_TYPE_SAVE:
 			return performSaveCommand(state, command);
-		case COMMAND_TYPE_HINT:
+		/*case COMMAND_TYPE_HINT:
 			return performHintCommand(state, command);
 		case COMMAND_TYPE_GUESS_HINT:
 			return performGuessHintCommand(state, command);

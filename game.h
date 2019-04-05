@@ -82,6 +82,10 @@ bool isCellValueInRange(GameState* gameState, int value);
 
 char* getCurModeString(State* state);
 
+bool isBoardCellFixed(Cell* cell);
+
+bool isBoardCellEmpty(Cell* cell);
+
 bool isBoardErroneous(GameState* gameState);
 
 bool isBoardSolvable(GameState* gameState);
@@ -102,6 +106,8 @@ bool isThereMoveToRedo(GameState* gameState);
 
 void cleanupBoard(Board* boardInOut);
 
+void cleanupBoard(Board* boardInOut);
+
 Board* createBoard(Board* boardInOut, int numRowsInBlock_M, int numColumnsInBlock_N);
 
 GameState* createGameState(State* state, int numRowsInBlock_M, int numColumnsInBlock_N, Board* board);
@@ -109,5 +115,9 @@ GameState* createGameState(State* state, int numRowsInBlock_M, int numColumnsInB
 void cleanupGameState(State* state);
 
 void markAllCellsAsNotFixed(GameState* gameState);
+
+bool findErroneousCells(Board* board);
+
+bool exportBoard(GameState* gameState, Board* boardInOut);
 
 #endif /* GAME_H_ */
