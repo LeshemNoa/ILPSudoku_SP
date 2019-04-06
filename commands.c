@@ -591,6 +591,18 @@ IsBoardValidForCommandErrorCode isBoardValidForGuessCommand(State* state, Comman
 	return ERROR_SUCCESS;
 }
 
+IsBoardValidForCommandErrorCode isBoardValidForGenerateCommand(State* state, Command* command) {
+	GenerateCommandArguments* args = (GenerateCommandArguments*)command->arguments;
+
+	UNUSED(args);
+
+	if (isBoardErroneous(state->gameState)) {
+		return IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS;
+	}
+
+	return ERROR_SUCCESS;
+}
+
 IsBoardValidForCommandErrorCode isBoardValidForUndoCommand(State* state, Command* command) {
 	UndoCommandArguments* args = (UndoCommandArguments*)command->arguments;
 
@@ -696,6 +708,8 @@ IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* co
 			return isBoardValidForValidateCommand(state, command);
 		case COMMAND_TYPE_GUESS:
 			return isBoardValidForGuessCommand(state, command);
+		case COMMAND_TYPE_GENERATE:
+			return isBoardValidForGenerateCommand(state, command);
 		case COMMAND_TYPE_UNDO:
 			return isBoardValidForUndoCommand(state, command);
 		case COMMAND_TYPE_REDO:
@@ -714,7 +728,6 @@ IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* co
 		case COMMAND_TYPE_EDIT:
 		case COMMAND_TYPE_MARK_ERRORS:
 		case COMMAND_TYPE_PRINT_BOARD:
-		case COMMAND_TYPE_GENERATE:
 		case COMMAND_TYPE_RESET:
 		case COMMAND_TYPE_EXIT:
 		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
@@ -871,7 +884,11 @@ PerformSolveCommandErrorCode performSolveCommand(State* state, Command* command)
 
 	Board board;
 	PerformSolveCommandErrorCode retVal = ERROR_SUCCESS;
-	retVal = loadBoardFromFile(solveArguments->filePath, &board);
+	retVal = loadBoardFromFile(solveArguments->filePath, &board); /* Note: any superficially legitimate board may be
+	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   loaded for solving, even one that's inherently
+	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   unsolvable (i.e.: two fixed cells that are
+	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   neighbours and share the same value). */
+																  /* TODO: move this note to function's documentation in due time */
 	if (retVal != ERROR_SUCCESS)
 		return PERFORM_SOLVE_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE + retVal;
 	if (createGameState(state, 0, 0, &board) == NULL) {

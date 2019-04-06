@@ -233,7 +233,8 @@ void performCommandLoop(State* state) {
 						printBoard(state);
 					}
 
-					/* TODO: in solve mode and in case command was Set, if all cells are now filled, check whether board is solved or not and let user know (in case of successful solution, immediately switch to INIT mode */
+					/* TODO: in solve mode, if all cells are now filled, check whether board is solved or not and let user know (in case of successful solution, immediately switch to INIT mode
+					 * 		 this takes care of the case of loading a solved board for solving - immediately it shall be announced that the board was solved, and we then switch to INIT mode */
 
 					if (command.type == COMMAND_TYPE_EXIT) {
 						loopHolds = false;
