@@ -63,6 +63,7 @@ typedef enum GameMode {
 
 typedef struct {
 	GameMode gameMode;
+	bool shouldHideErrors;
 	GameState* gameState;} State;
 
 
@@ -98,9 +99,9 @@ bool isCellErroneous(GameState* gameState, int row, int col);
 
 int getCellValue(GameState* gameState, int row, int col);
 
-bool shouldMarkErrors(GameState* gameState);
+bool shouldMarkErrors(State* state);
 
-void setMarkErrors(GameState* gameState, bool shouldMarkErrors);
+void setMarkErrors(State* state, bool shouldMarkErrors);
 
 bool isThereMoveToUndo(GameState* gameState);
 

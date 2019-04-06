@@ -988,10 +988,10 @@ typedef enum {
 PerformMarkErrorsCommandErrorCode performMarkErrorsCommand(State* state, Command* command) {
 	MarkErrorsCommandArguments* markErrorsArguments = (MarkErrorsCommandArguments*)(command->arguments);
 
-	if (shouldMarkErrors(state->gameState) == markErrorsArguments->shouldMarkError)
+	if (shouldMarkErrors(state) == markErrorsArguments->shouldMarkError)
 		return PERFORM_MARK_ERRORS_COMMAND_NO_CHANGE;
 
-	setMarkErrors(state->gameState, markErrorsArguments->shouldMarkError);
+	setMarkErrors(state, markErrorsArguments->shouldMarkError);
 
 	return ERROR_SUCCESS;
 }

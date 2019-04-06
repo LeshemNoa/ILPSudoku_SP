@@ -42,7 +42,7 @@ void printCell(State* state, int row, int col) {
 	if (isCellFixed(state->gameState, row, col))
 		printf("%c", FIXED_CELL_MARKER);
 	else if (isCellErroneous(state->gameState, row, col) &&
-		((state->gameMode == GAME_MODE_EDIT) || (shouldMarkErrors(state->gameState))))
+			((state->gameMode == GAME_MODE_EDIT) || (shouldMarkErrors(state))))
 			printf("%c", ERROENOUS_CELL_MARKER);
 	else printf("%c", SPACE_CHARACTER);
 }
