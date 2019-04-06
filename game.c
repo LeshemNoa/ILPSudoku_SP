@@ -241,13 +241,7 @@ void setCellFixedness(GameState* gameState, int row, int col, bool isFixed) {
 }
 
 void setBoardCellErroneousness(Cell* cell, bool isErroneous) {
-	if (!isErroneous) {
-		cell->isErroneous = false;
-		return;
-	}
-
-	if (!isBoardCellFixed(cell))
-		cell->isErroneous = true;
+	cell->isErroneous = isErroneous;
 }
 
 void setCellErroneousness(GameState* gameState, int row, int col, bool isFixed) {
