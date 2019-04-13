@@ -33,7 +33,7 @@
 #define EMPTY_CELL_VALUE (0)
 
 typedef struct {
-	Cell* cell;
+	Cell* cell; /* CR: Do you think we'll be needing this here? */
 	int prevVal;
 	int newVal;
 } singleCellMove;
@@ -75,7 +75,8 @@ typedef enum GameMode {
 typedef struct {
 	GameMode gameMode;
 	GameState* gameState;
-	UndoRedoList* moveList; } State;
+	UndoRedoList* moveList; } State; /* CR: moveList shouldn't be part of State, but rather - part of GameState. As we discussed, it is not a property of the entire application - it is a property of the current board
+									  * 	Also, when dynamic allocation isn't necessary, it is at least advisable to consider not doing it. You might want to consider not having a pointer here. Again, you decide */
 
 int getNumEmptyCells(GameState* gameState);
 
