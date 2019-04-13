@@ -24,12 +24,23 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "undo_redo_list.h"
+#include "linked_list.h" 
 
 /**
  * The value defined in this constant would mark an empty cell in the sudoku board.
  */
 #define EMPTY_CELL_VALUE (0)
 
+typedef struct {
+	Cell* cell;
+	int prevVal;
+	int newVal;
+} singleCellMove;
+
+typedef struct {
+	List* singleCellMoves;
+} Move;
 
 /**
  * Cell struct represents one cell of a sudoku puzzle board. It contains the value
@@ -63,8 +74,8 @@ typedef enum GameMode {
 
 typedef struct {
 	GameMode gameMode;
-	GameState* gameState;} State;
-
+	GameState* gameState;
+	UndoRedoList* moveList; } State;
 
 int getNumEmptyCells(GameState* gameState);
 

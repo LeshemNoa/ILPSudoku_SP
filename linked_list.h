@@ -12,6 +12,7 @@ typedef struct list
 {
     Node* head;
     Node* tail;
+    int size;
 } List;
 
 List* createNewList();

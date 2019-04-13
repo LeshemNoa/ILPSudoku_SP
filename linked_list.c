@@ -6,6 +6,7 @@ List* createNewList() {
     if (list != NULL) {
         list->head = NULL;
         list->tail = NULL;
+        list->size = 0;
     }
     return list;
 }
@@ -35,6 +36,7 @@ bool push(List* list, void* new_data) {
         list->head = new_node;
         list->tail = list->head;
     }
+    list->size++;
     return true;
 }
 
@@ -58,6 +60,7 @@ void* pop(List* list) {
         old_head->prev = NULL;
     }
     free(old_head);
+    list->size--;
     return data;   
 }
 
@@ -74,6 +77,7 @@ bool pushBack(List* list, void* new_data) {
         list->head = new_node;
         list->tail = list->head;
     }
+    list->size++;
     return true;
 }
 
@@ -96,6 +100,7 @@ void* popBack(List* list) {
         list->tail->prev = NULL;
         old_tail->next = NULL;
     }
+    list->size--;
     free(old_tail);
     return data;   
 }

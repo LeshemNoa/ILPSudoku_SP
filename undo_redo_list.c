@@ -1,16 +1,12 @@
 #include "undo_redo_list.h"
 #include <stdlib.h>
 
-/* enforcing undo-redo list is never empty: there's always an initial
-state, whether it's an empty board or a loaded board */
-UndoRedoList* createNewUndoRedo(void* start) {
+/* can be empty - right after load or new game setup*/
+UndoRedoList* createNewUndoRedo() {
     UndoRedoList* move_list;
     List* list = createNewList();
     if (list == NULL) { return NULL; }
-    if (push(list, start) == false) {
-        destroyList(list);
-        return NULL;
-    }
+    
     move_list = (UndoRedoList*) malloc(sizeof(UndoRedoList));
     if (move_list != NULL) {
         move_list->list = list;

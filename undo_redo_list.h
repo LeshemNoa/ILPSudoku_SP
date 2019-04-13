@@ -7,7 +7,7 @@ typedef struct {
     Node* current;
 } UndoRedoList;
 
-UndoRedoList* createNewUndoRedo(void* start);
+UndoRedoList* createNewUndoRedo();
 bool makeMove(UndoRedoList* move_list, void* new_data);
 bool undo(UndoRedoList* move_list);
 bool redo(UndoRedoList* move_list);
