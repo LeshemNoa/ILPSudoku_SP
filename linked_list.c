@@ -3,8 +3,10 @@
 
 List* createNewList() {
     List* list = malloc(sizeof(List));
-    list->head = NULL;
-    list->tail = NULL;
+    if (list != NULL) {
+        list->head = NULL;
+        list->tail = NULL;
+    }
     return list;
 }
 
@@ -19,33 +21,44 @@ Node* createNewNode(void* new_data) {
     return new_node;
 }
 
-void push(void* new_data, List* list) {
+/* returns true on success, i.e. no malloc issue */
+bool push(List* list, void* new_data) {
+    Node* new_node = createNewNode(new_data);
+    if (new_node == NULL) { return false; }
+
     if (list->head != NULL) {
-        Node* new_node = createNewNode(new_data);
-        list->head->prev = new_node;
-        new_node->next = list->head;
+        list->head->next = new_node;
+        new_node->prev = list->head;
         list->head = new_node;
     }
-    else {
-        list->head = createNewNode(new_data);
+    else { /* pushing into an empty list */
+        list->head = new_node;
+        list->tail = list->head;
     }
+    return true;
 }
 
 void* pop(List* list) {
     void* data;
     Node* old_head = NULL;
-    if (list->head != NULL) {
-        Node* new_head = list->head->next;
-        if(new_head != NULL) {
-            new_head->prev = NULL;
-        }
-        list->head->next = NULL;
-        old_head = list->head;
-        list->head = new_head;
+
+    if (list->head == NULL) { /* list is empty */
+        return NULL;
     }
+
+    old_head = list->head;
     data = old_head->data;
+    if (old_head->prev == NULL) { /* list has 1 element */
+        list->head = NULL;
+        list->tail = NULL;
+    } 
+    else { 
+        list->head = old_head->prev;
+        list->head->next = NULL;
+        old_head->prev = NULL;
+    }
     free(old_head);
-    return data;
+    return data;   
 }
 
 void destroyList(List* list) {
@@ -56,3 +69,5 @@ void destroyList(List* list) {
     }
     free(list);
 }
+
+

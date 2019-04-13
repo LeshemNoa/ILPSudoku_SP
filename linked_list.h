@@ -1,5 +1,6 @@
 #ifndef LINKED_LIST_H
 #define LINKED_LIST_H
+#include <stdbool.h>
 
 typedef struct node {
     void* data;
@@ -15,7 +16,8 @@ typedef struct list
 
 List* createNewList();
 void destroyList(List* list);
-void push(void* new_data, List* list);
+
+bool push(List* list, void* new_data);
 void* pop(List* list);
 
 #endif /* LINKED_LIST_H */
