@@ -4,13 +4,14 @@
 /* enforcing undo-redo list is never empty: there's always an initial
 state, whether it's an empty board or a loaded board */
 UndoRedoList* createNewUndoRedo(void* start) {
+    UndoRedoList* move_list;
     List* list = createNewList();
     if (list == NULL) { return NULL; }
     if (push(list, start) == false) {
         destroyList(list);
         return NULL;
     }
-    UndoRedoList* move_list = (UndoRedoList*) malloc(sizeof(UndoRedoList));
+    move_list = (UndoRedoList*) malloc(sizeof(UndoRedoList));
     if (move_list != NULL) {
         move_list->list = list;
         move_list->current = list->head;

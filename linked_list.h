@@ -19,5 +19,7 @@ void destroyList(List* list);
 
 bool push(List* list, void* new_data);
 void* pop(List* list);
+bool pushBack(List* list, void* new_data);
+void* popBack(List* list);
 
 #endif /* LINKED_LIST_H */
