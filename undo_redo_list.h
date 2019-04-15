@@ -1,8 +1,7 @@
 #ifndef UNDO_REDO_LIST_H
 #define UNDO_REDO_LIST_H
 #include "linked_list.h"
-
-typedef struct Move Move; 
+#include "game.h"
 
 typedef struct {
     List* list; /* CR: do you need this to be a pointer? Maybe not. Consider and decide for yourself */

@@ -1,4 +1,5 @@
 #include "commands.h"
+#include "game.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -999,22 +1000,14 @@ PerformMarkErrorsCommandErrorCode performMarkErrorsCommand(State* state, Command
 	return ERROR_SUCCESS;
 }
 
-typedef enum {
-	VALUE_FIXED = 1,
-	VALUE_INVALID /* is this necessary? */
-} PerformSetCommandErrorCode;
 
-PerformSetCommandErrorCode performSetCommand(State* state, Command* command) {
+/* Assuming that upon call to this functions all conditions have been
+checked - in solve mode fixed cells cannot be set etc.*/
+int performSetCommand(State* state, Command* command) {
 	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
-
-	switch(state->gameMode) {
-		case (GAME_MODE_EDIT):
-			
-		case (GAME_MODE_SOLVE):
-	}
+	setPuzzleCell(state, setArguments->row, setArguments->col, setArguments->value);
+	return 1; /* for now, wasn't sure what to return as int is expected */
 }
-
- 
 
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;

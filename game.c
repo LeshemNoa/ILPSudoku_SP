@@ -1,4 +1,5 @@
 #include "game.h"
+#include "undo_redo_list.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -19,6 +20,7 @@ struct GameState {
 	int numEmpty;
 	int numErroneous;
 	bool shouldMarkErrors; /* TODO: default value of this field needs to be 'true'. Maybe change its name to shouldHideErrors, so default initialisation with {0} will work seamlessly? */
+	UndoRedoList* moveList;
 };
 
 int getNumEmptyCells(GameState* gameState) {
@@ -43,7 +45,7 @@ int getBoardSize_MN2(GameState* gameState) {
 }
 
 bool isIndexInRange(GameState* gameState, int index) {
-	return index >= 1 && index <= getBlockSize_MN(gameState);
+	return index >= 0 && index <= getBlockSize_MN(gameState) - 1;
 }
 
 bool isCellValueInRange(GameState* gameState, int value) {
@@ -72,9 +74,9 @@ Cell* getBoardCellByColumn(Board* board, int column, int index) { /* Note: not t
 
 Cell* getBoardCellByBlock(Board* board, int block, int index) { /* Note: not to be exported */
 	int colInBlocksMatrix = block % board->numRowsInBlock_M;
-	int rowInBlocksMatrix = block / board->numRowsInBlock_M;
+	int rowInBlocksMatrix = block / board->numRowsInBlock_M; 
 	int colInBlock = index % board->numColumnsInBlock_N;
-	int rowInBlock = index / board->numColumnsInBlock_N;
+	int rowInBlock = index / board->numColumnsInBlock_N; 
 
 	int row = rowInBlocksMatrix * board->numRowsInBlock_M + rowInBlock;
 	int col = colInBlocksMatrix * board->numColumnsInBlock_N + colInBlock;
@@ -341,3 +343,22 @@ bool exportBoard(GameState* gameState, Board* boardInOut) {
 
 	return true;
 }
+
+void setCellValue(Board* board, int row, int col, int value) {
+	board->cells[row][col].value = value;
+}
+
+/* Maintaining the invariant: at all times, all erroneous cells are marked
+correctly after each change in the board */
+void setPuzzleCell(State* state, int row, int col, int value) {
+	if (isCellEmpty(state->gameState, row, col)) {
+		state->gameState->numEmpty--;
+	}
+	if (value == EMPTY_CELL_VALUE) {
+		state->gameState->numEmpty++;
+	}
+	setCellValue(&(state->gameState->puzzle), row, col, value);
+	findErroneousCells(&(state->gameState->puzzle));
+}
+
+
