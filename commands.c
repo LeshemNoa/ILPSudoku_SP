@@ -330,15 +330,16 @@ bool markErrorsArgsParser(char* arg, int argNo, void* arguments) {
  * @return true 		iff parseIntArg successfully parsed and set a valid integer
  * @return false 		iff the parsing failed
  */
+
 bool setArgsParser(char* arg, int argNo, void* arguments) {
 	SetCommandArguments* setArguments = (SetCommandArguments*)arguments;
 	switch (argNo) {
 	case 1:
-		return parseIntArg(arg, &(setArguments->col));
+		return parseIntArgOffset(arg, &(setArguments->col), -1);
 	case 2:
-		return parseIntArg(arg, &(setArguments->row));
+		return parseIntArgOffset(arg, &(setArguments->row), -1);
 	case 3:
-		return parseIntArg(arg, &(setArguments->value));
+		return parseIntArg(arg - 1, &(setArguments->value));
 	}
 	return false;
 }
@@ -426,9 +427,9 @@ bool hintArgsParser(char* arg, int argNo, void* arguments) {
 	HintCommandArguments* hintArguments = (HintCommandArguments*)arguments;
 	switch (argNo) {
 	case 1:
-		return parseIntArg(arg, &(hintArguments->col));
+		return parseIntArgOffset(arg, &(hintArguments->col), -1);
 	case 2:
-		return parseIntArg(arg, &(hintArguments->row));
+		return parseIntArgOffset(arg, &(hintArguments->row), -1);
 	}
 	return false;
 }
@@ -448,9 +449,9 @@ bool guessHintArgsParser(char* arg, int argNo, void* arguments) {
 	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)arguments;
 	switch (argNo) {
 	case 1:
-		return parseIntArg(arg, &(guessHintArguments->col));
+		return parseIntArgOffset(arg, &(guessHintArguments->col), -1);
 	case 2:
-		return parseIntArg(arg, &(guessHintArguments->row));
+		return parseIntArgOffset(arg, &(guessHintArguments->row), -1);
 	}
 	return false;
 }
@@ -899,6 +900,8 @@ typedef enum {
 	WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_NOT_EMPTY
 } writeCellFromBoardToFileFixednessCriterion;
 
+
+
 bool writeCellFromBoardToFile(FILE* file, Cell* cell, writeCellFromBoardToFileFixednessCriterion fixednessCriterion, bool isLastInRow) {
 	int fprintfRetVal = 0;
 	fprintfRetVal = fprintf(file, "%d", cell->value);
@@ -995,6 +998,23 @@ PerformMarkErrorsCommandErrorCode performMarkErrorsCommand(State* state, Command
 
 	return ERROR_SUCCESS;
 }
+
+typedef enum {
+	VALUE_FIXED = 1,
+	VALUE_INVALID /* is this necessary? */
+} PerformSetCommandErrorCode;
+
+PerformSetCommandErrorCode performSetCommand(State* state, Command* command) {
+	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
+
+	switch(state->gameMode) {
+		case (GAME_MODE_EDIT):
+			
+		case (GAME_MODE_SOLVE):
+	}
+}
+
+ 
 
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
