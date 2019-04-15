@@ -340,7 +340,7 @@ bool setArgsParser(char* arg, int argNo, void* arguments) {
 	case 2:
 		return parseIntArgOffset(arg, &(setArguments->row), -1);
 	case 3:
-		return parseIntArg(arg - 1, &(setArguments->value));
+		return parseIntArg(arg, &(setArguments->value));
 	}
 	return false;
 }

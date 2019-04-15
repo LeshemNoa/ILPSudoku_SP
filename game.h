@@ -74,7 +74,7 @@ typedef enum GameMode {
 
 typedef struct {
 	GameMode gameMode;
-	GameState* gameState;} State; /* this should probably be somewhere else, but where???*/
+	GameState* gameState;} State;
 
 int getNumEmptyCells(GameState* gameState);
 
