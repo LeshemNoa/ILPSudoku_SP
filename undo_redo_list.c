@@ -11,6 +11,7 @@ UndoRedoList* createNewUndoRedo() { /* CR: depending on what you decide, this fu
     if (move_list != NULL) {
         move_list->list = list;
         move_list->current = list->head;
+        move_list->numUndos = 0;
     }
     else {
         destroyList(list); /* allocating List succeeded, allocating UndoRedo failed*/
@@ -19,13 +20,13 @@ UndoRedoList* createNewUndoRedo() { /* CR: depending on what you decide, this fu
 }
 
 /* returns true on success, i.e. push was successful */
-bool makeMove(UndoRedoList* move_list, void* new_data) { /* CR: why void* you know what you expect here: a so-called 'Move' */
-    while (move_list->list->head != move_list->current) { /* CR: this loop could be replaced by some 'split'+destroy functions (in linked_list). Also try as much as possible to use functions from linked_list when changing a linked_list 'object' */
+bool makeMove(UndoRedoList* move_list, Move* new_move) {
+    while (move_list->list->head != move_list->current) {
         void* data = pop(move_list->list);
         free(data);
     }
-    if (!push(move_list->list, new_data)) { return false; }
-    move_list->current = move_list->list->head; /* CR: getting the head via a function would be my advice here (as much as possible - to use an object through an interface */
+    if (!push(move_list->list, new_move)) { return false; }
+    move_list->current = move_list->list->head;
     return true;
 }
 
@@ -34,7 +35,8 @@ bool undo(UndoRedoList* move_list) { /* CR: this name suggests that the undoing 
     if (move_list->current == move_list->list->tail) {
         return false; /* cannot move current back anymore */
     }
-    move_list->current = move_list->current->prev;
+    move_list->current = move_list->current->next;
+    move_list->numUndos = 0;
     return true;
 }
 
@@ -43,7 +45,7 @@ bool redo(UndoRedoList* move_list) {
     if (move_list->current == move_list->list->head) {
         return false; /* cannot advance current further */
     }
-    move_list->current = move_list->current->next;
+    move_list->current = move_list->current->prev;
     return true;
 }
 

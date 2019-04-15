@@ -2,14 +2,17 @@
 #define UNDO_REDO_LIST_H
 #include "linked_list.h"
 
+typedef struct Move Move; 
+
 typedef struct {
     List* list; /* CR: do you need this to be a pointer? Maybe not. Consider and decide for yourself */
-    Node* current; /* CR: perhaps some numerical field indicating where 'current' is situated will be helpful? i.e.: if no undo's had taken place - 0, if k undo's had taken place - k */
+    Node* current;
+    int numUndos;
 } UndoRedoList;
 
 UndoRedoList* createNewUndoRedo();
-bool makeMove(UndoRedoList* move_list, void* new_data);
-bool undo(UndoRedoList* move_list);
+bool makeMove(UndoRedoList* move_list, Move* new_move);
+bool undo(UndoRedoList* move_list); /* should this pass out move to undo? */
 bool redo(UndoRedoList* move_list);
 bool reset(UndoRedoList* move_list);
 void* getCurrent(UndoRedoList* move_list);
