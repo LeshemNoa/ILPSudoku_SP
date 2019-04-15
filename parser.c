@@ -31,6 +31,14 @@ bool parseIntArg(char* arg, int* dst) {
 	return (sscanfRetVal == 1);
 }
 
+bool parseIntArgOffset(char* arg, int* dst, int offset) {
+	int sscanfRetVal = sscanf(arg, "%d", dst);
+	if (sscanfRetVal == 1) {
+		*dst += offset;
+	}
+	return (sscanfRetVal == 1);
+}
+
 bool parseBooleanIntArg(char* arg, bool* dst) {
 	if (strlen(arg) != 1)
 		return false;

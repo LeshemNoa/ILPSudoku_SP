@@ -17,7 +17,7 @@ typedef struct list
 
 List* createNewList();
 void destroyList(List* list);
-
+bool isEmpty(List* list);
 bool push(List* list, void* new_data);
 void* pop(List* list);
 bool pushBack(List* list, void* new_data);
