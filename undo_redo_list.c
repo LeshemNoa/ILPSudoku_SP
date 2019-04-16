@@ -3,11 +3,11 @@
 
 /* Lists are not dynamically allocated anymore. Nodes and their data still are */
 
-void initUndoRedo(UndoRedoList* move_list) { 
-    if (move_list != NULL) {
-        initList(&(move_list->list));
-        move_list->current = move_list->list.head;
-        move_list->numUndos = 0;
+void initUndoRedo(UndoRedoList* moveList) { 
+    if (moveList != NULL) {
+        initList(&(moveList->list));
+        moveList->current = moveList->list.head;
+        moveList->numUndos = 0;
     }
 }
 
@@ -24,55 +24,60 @@ singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row){
     scMove->newVal = newVal;
 }
 
+/* false is returned on memory allocation error */
 bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int col, int row) {
     singleCellMove* scMove = createSingleCellMove(prevVal, newVal, col, row);
+    if (scMove == NULL) { return false; }
     return push(&(move->singleCellMoves), scMove);
 }
 
-/* returns true on success, i.e. push was successful */
-bool makeMove(UndoRedoList* move_list, Move* new_move) {
-    while (move_list->list.head != move_list->current) {
-        void* data = pop(&(move_list->list));
+/* returns false upon memory allocation error in push */
+bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
+    while (moveList->list.head != moveList->current) {
+        void* data = pop(&(moveList->list));
         free(data);
     }
-    if (!push(&(move_list->list), new_move)) { return false; }
-    move_list->current = move_list->list.head;
+    if (!push(&(moveList->list), newMove)) { return false; }
+    moveList->current = moveList->list.head;
+    moveList->numUndos = 0;
     return true;
 }
 
-/* return true iff something's actually changed */
-bool undo(UndoRedoList* move_list) { /* CR: this name suggests that the undoing will happen here, which is wrong. This function will probably be returning the 'Move' to be undone.. */
-    if (move_list->current == move_list->list.tail) {
-        return false; /* cannot move current back anymore */
+Move* undoInList(UndoRedoList* moveList) {
+    Move* moveToUndo;
+    if (moveList->current == moveList->list.tail) {
+        return NULL; /* no more moves to undo */
     }
-    move_list->current = move_list->current->next;
-    move_list->numUndos = 0;
-    return true;
+    moveToUndo = getCurrent(moveList);
+    moveList->current = moveList->current->next;
+    moveList->numUndos++;
+    return moveToUndo;
 }
 
-/* return true iff something's actually changed */
-bool redo(UndoRedoList* move_list) {
-    if (move_list->current == move_list->list.head) {
+Move* redoInList(UndoRedoList* moveList) {
+    Move* moveToRedo;
+    if (moveList->current == moveList->list.head) {
         return false; /* cannot advance current further */
     }
-    move_list->current = move_list->current->prev;
+    moveToRedo = getCurrent(moveList);
+    moveList->current = moveList->current->prev;
     return true;
 }
 
 /* return true iff something's actually changed */
-bool reset(UndoRedoList* move_list) { /* CR: there's no need for such a function here. Reset is a command of the game, and in no way a part of the undo_redo_list module itself */
+bool reset(UndoRedoList* moveList) { /* CR response: I'm leaving this here for now, I'll use it later */
     bool changed = false;
-    while (undo(move_list)) {
+    while (undo(moveList)) {
         changed = true;
     }
     return changed;
 }
 
-void* getCurrent(UndoRedoList* move_list) {
-    return move_list->current->data;
+Move* getCurrent(UndoRedoList* moveList) {
+    return (Move*) moveList->current->data;
 }
 
-void destroyUndoRedo(UndoRedoList* move_list) {
-    destroyList(&(move_list->list));
-    free(move_list);
+void destroyUndoRedo(UndoRedoList* moveList) {
+    destroyList(&(moveList->list));
+    free(moveList);
 }

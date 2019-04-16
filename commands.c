@@ -1006,8 +1006,7 @@ checked - in solve mode fixed cells cannot be set etc.*/
 int performSetCommand(State* state, Command* command) {
 	int prevValue;
 	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
-	prevValue = setPuzzleCell(state, setArguments->row, setArguments->col, setArguments->value);
-	/*Make move?*/
+	prevValue = setPuzzleCellMove(state, setArguments->row, setArguments->col, setArguments->value);
 	return ERROR_SUCCESS;
 }
 

@@ -379,7 +379,23 @@ int setPuzzleCell(State* state, int row, int col, int value) {
 	}
 	setCellValue(&(state->gameState->puzzle), row, col, value);
 	findErroneousCells(&(state->gameState->puzzle));
+	
 	return prevValue;
+}
+
+/* returns false upon memory allocation error  */
+bool setPuzzleCellMove(State* state, int value, int row, int col) {
+	int prevVal;
+	Move* move = (Move*) malloc(sizeof(Move));
+	if (move == NULL) { return false; }
+	prevVal = setPuzzleCell(state, row, col, value);
+	if (addSingleCellMoveToMove(move, prevVal, value, col, row)) {
+		return addNewMoveToList(&(state->gameState->moveList), move);
+	}
+	else {
+		free(move);
+		return false;
+	}
 }
 
 

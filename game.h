@@ -122,6 +122,9 @@ bool findErroneousCells(Board* board);
 
 bool exportBoard(GameState* gameState, Board* boardInOut);
 
+/* Should this be in the .h file? */
 int setPuzzleCell(State* state, int row, int col, int value);
+
+bool setPuzzleCellMove(State* state, int value, int row, int col);
 
 #endif /* GAME_H_ */

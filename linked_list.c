@@ -26,7 +26,6 @@ Node* createNewNode(void* new_data) {
     return new_node;
 }
 
-/* returns true on success, i.e. no malloc issue */
 bool push(List* list, void* new_data) {
     Node* new_node = createNewNode(new_data);
     if (new_node == NULL) { return false; }
@@ -48,7 +47,7 @@ void* pop(List* list) {
     void* data;
     Node* old_head = NULL;
 
-    if (isEmpty(list)) { /* list is empty */
+    if (isEmpty(list)) { 
         return NULL;
     }
 
@@ -68,7 +67,7 @@ void* pop(List* list) {
     return data;   
 }
 
-bool pushBack(List* list, void* new_data) { /* CR: symmetrical comments to 'push''s */
+bool pushBack(List* list, void* new_data) { 
     Node* new_node = createNewNode(new_data);
     if (new_node == NULL) { return false; }
 
@@ -85,7 +84,7 @@ bool pushBack(List* list, void* new_data) { /* CR: symmetrical comments to 'push
     return true;
 }
 
-void* popBack(List* list) { /* CR: symmetrical comments to 'pop''s */
+void* popBack(List* list) { 
     void* data;
     Node* old_tail = NULL;
 
