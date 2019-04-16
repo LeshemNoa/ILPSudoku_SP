@@ -1006,7 +1006,7 @@ checked - in solve mode fixed cells cannot be set etc.*/
 int performSetCommand(State* state, Command* command) {
 	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
 	setPuzzleCell(state, setArguments->row, setArguments->col, setArguments->value);
-	return 1; /* for now, wasn't sure what to return as int is expected */
+	return ERROR_SUCCESS;
 }
 
 int performCommand(State* state, Command* command) {
@@ -1022,9 +1022,9 @@ int performCommand(State* state, Command* command) {
 			return performEditCommand(state, command);
 		case COMMAND_TYPE_MARK_ERRORS:
 			return performMarkErrorsCommand(state, command);
-		/*case COMMAND_TYPE_SET:
+		case COMMAND_TYPE_SET:
 			return performSetCommand(state, command);
-		case COMMAND_TYPE_VALIDATE:
+		/*case COMMAND_TYPE_VALIDATE:
 			return performValidateCommand(state, command);
 		case COMMAND_TYPE_GUESS:
 			return performGuessCommand(state, command);

@@ -27,6 +27,22 @@ int getNumEmptyCells(GameState* gameState) {
 	return gameState->numEmpty;
 }
 
+int getNumEmptyBoardCells(Board* board) {
+	int i, j;
+	int numEmpty = 0;
+	int MN = board->numColumnsInBlock_N * board->numRowsInBlock_M;
+	for (i = 0; i < MN; i++) {
+		for (j = 0; j < MN; j++) {
+			Cell* curr = getBoardCellByRow(board, i, j);
+			if (curr->value == EMPTY_CELL_VALUE) {
+				numEmpty++;
+			}
+		}
+	}
+	return numEmpty;
+}
+
+
 int getNumColumnsInBlock_N(GameState* gameState) {
 	return gameState->puzzle.numColumnsInBlock_N;
 }
@@ -215,6 +231,7 @@ GameState* createGameState(State* state, int numRowsInBlock_M, int numColumnsInB
 		} else {
 			gameState->puzzle = *board; /* Note: we copy the struct, hence the pre-allocation Cells** within the given board is retained */
 			gameState->numErroneous = getNumErroneousCells(board);
+			gameState->numEmpty = getNumEmptyBoardCells(board);
 			state->gameState = gameState;
 			return gameState;
 		}
