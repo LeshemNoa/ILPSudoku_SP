@@ -1,10 +1,10 @@
 CC = gcc
-OBJS = linked_list.o undo_redo_list.o main.o main_aux.o commands.o parser.o game.o
+OBJS = linked_list.o undo_redo_list.o main_aux.o commands.o parser.o game.o
 EXEC = game
 COMP_FLAG = -ansi -Wall -Wextra -pedantic-errors -g -c
 
-$(EXEC): $(OBJS)
-	$(CC) $(OBJS) -o $@
+$(EXEC): main.o $(OBJS)
+	$(CC) main.o $(OBJS) -o $@
 test: test.o $(OBJS)
 	$(CC) test.o $(OBJS) -o test
 

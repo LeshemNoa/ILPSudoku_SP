@@ -4,12 +4,25 @@
 #include "game.h"
 
 typedef struct {
-    List* list; /* CR: do you need this to be a pointer? Maybe not. Consider and decide for yourself */
+    List list; 
     Node* current;
     int numUndos;
 } UndoRedoList;
 
-UndoRedoList* createNewUndoRedo();
+typedef struct {
+	int row;
+	int col;
+	int prevVal;
+	int newVal;
+} singleCellMove;
+
+typedef struct {
+	List singleCellMoves;
+} Move;
+
+singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row);
+bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int col, int row);
+void initUndoRedo(UndoRedoList* move_list);
 bool makeMove(UndoRedoList* move_list, Move* new_move);
 bool undo(UndoRedoList* move_list); /* should this pass out move to undo? */
 bool redo(UndoRedoList* move_list);

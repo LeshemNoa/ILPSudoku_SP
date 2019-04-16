@@ -1,38 +1,48 @@
 #include "undo_redo_list.h"
 #include <stdlib.h>
 
-/* can be empty - right after load or new game setup*/
-UndoRedoList* createNewUndoRedo() { /* CR: depending on what you decide, this function could in principle be removed */
-    UndoRedoList* move_list;
-    List* list = createNewList();
-    if (list == NULL) { return NULL; }
-    
-    move_list = (UndoRedoList*) malloc(sizeof(UndoRedoList));
+/* Lists are not dynamically allocated anymore. Nodes and their data still are */
+
+void initUndoRedo(UndoRedoList* move_list) { 
     if (move_list != NULL) {
-        move_list->list = list;
-        move_list->current = list->head;
+        initList(&(move_list->list));
+        move_list->current = move_list->list.head;
         move_list->numUndos = 0;
     }
-    else {
-        destroyList(list); /* allocating List succeeded, allocating UndoRedo failed*/
-    }
-    return move_list;
+}
+
+void initMove(Move* move) {
+    initList(&(move->singleCellMoves));
+}
+
+singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row){
+    singleCellMove* scMove = (singleCellMove*) malloc(sizeof(singleCellMove));
+    if (scMove == NULL) { return NULL; }
+    scMove->col = col;
+    scMove->row = row;
+    scMove->prevVal = prevVal;
+    scMove->newVal = newVal;
+}
+
+bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int col, int row) {
+    singleCellMove* scMove = createSingleCellMove(prevVal, newVal, col, row);
+    return push(&(move->singleCellMoves), scMove);
 }
 
 /* returns true on success, i.e. push was successful */
 bool makeMove(UndoRedoList* move_list, Move* new_move) {
-    while (move_list->list->head != move_list->current) {
-        void* data = pop(move_list->list);
+    while (move_list->list.head != move_list->current) {
+        void* data = pop(&(move_list->list));
         free(data);
     }
-    if (!push(move_list->list, new_move)) { return false; }
-    move_list->current = move_list->list->head;
+    if (!push(&(move_list->list), new_move)) { return false; }
+    move_list->current = move_list->list.head;
     return true;
 }
 
 /* return true iff something's actually changed */
 bool undo(UndoRedoList* move_list) { /* CR: this name suggests that the undoing will happen here, which is wrong. This function will probably be returning the 'Move' to be undone.. */
-    if (move_list->current == move_list->list->tail) {
+    if (move_list->current == move_list->list.tail) {
         return false; /* cannot move current back anymore */
     }
     move_list->current = move_list->current->next;
@@ -42,7 +52,7 @@ bool undo(UndoRedoList* move_list) { /* CR: this name suggests that the undoing 
 
 /* return true iff something's actually changed */
 bool redo(UndoRedoList* move_list) {
-    if (move_list->current == move_list->list->head) {
+    if (move_list->current == move_list->list.head) {
         return false; /* cannot advance current further */
     }
     move_list->current = move_list->current->prev;
@@ -63,6 +73,6 @@ void* getCurrent(UndoRedoList* move_list) {
 }
 
 void destroyUndoRedo(UndoRedoList* move_list) {
-    destroyList(move_list->list);
+    destroyList(&(move_list->list));
     free(move_list);
 }

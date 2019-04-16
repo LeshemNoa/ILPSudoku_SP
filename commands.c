@@ -1004,8 +1004,10 @@ PerformMarkErrorsCommandErrorCode performMarkErrorsCommand(State* state, Command
 /* Assuming that upon call to this functions all conditions have been
 checked - in solve mode fixed cells cannot be set etc.*/
 int performSetCommand(State* state, Command* command) {
+	int prevValue;
 	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
-	setPuzzleCell(state, setArguments->row, setArguments->col, setArguments->value);
+	prevValue = setPuzzleCell(state, setArguments->row, setArguments->col, setArguments->value);
+	/*Make move?*/
 	return ERROR_SUCCESS;
 }
 

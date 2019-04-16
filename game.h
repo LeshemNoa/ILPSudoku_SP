@@ -31,16 +31,6 @@
  */
 #define EMPTY_CELL_VALUE (0)
 
-typedef struct {
-	int row;
-	int col;
-	int prevVal;
-	int newVal;
-} singleCellMove;
-
-typedef struct {
-	List* singleCellMoves;
-} Move;
 
 /**
  * Cell struct represents one cell of a sudoku puzzle board. It contains the value
@@ -132,6 +122,6 @@ bool findErroneousCells(Board* board);
 
 bool exportBoard(GameState* gameState, Board* boardInOut);
 
-void setPuzzleCell(State* state, int row, int col, int value);
+int setPuzzleCell(State* state, int row, int col, int value);
 
 #endif /* GAME_H_ */

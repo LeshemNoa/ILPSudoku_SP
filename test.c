@@ -4,8 +4,8 @@
 #include "undo_redo_list.h"
 
 void test_list() {
-    List* list = createNewList();
-    int i;
+    /*List* list = createNewList();*/
+    /*int i;
     for (i = 0; i < 5; i++) {
         int* ip = malloc(sizeof(int));
         *ip = i;
@@ -22,10 +22,24 @@ void test_list() {
         *ip = i;
         push(list, (void*) ip);
     }
-    destroyList(list);
+    destroyList(list);*/
+    List list;
+    int i;
+    initList(&list);
+    for (i = 0; i < 5; i++) {
+        int* ip = malloc(sizeof(int));
+        *ip = i;
+        push(&list, (void*) ip);
+    }
+    while (list.head != NULL) {
+        int* ip = (int*) pop(&list);
+        printf("%d\n", *ip);
+        free(ip);
+    }
+    destroyList(&list);
 }
 
-void test_undoRedo() {
+/*void test_undoRedo() {
     int i;
     UndoRedoList* move_list;
     int* start = malloc(sizeof(int));
@@ -46,8 +60,8 @@ void test_undoRedo() {
     printf("After reset, current = %d\n", *((int*)getCurrent(move_list)));
 
     destroyUndoRedo(move_list);
-}
+}*/
 
 int main() {
-    test_undoRedo();
+    test_list();
 }

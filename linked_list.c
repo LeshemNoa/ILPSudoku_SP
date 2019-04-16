@@ -1,14 +1,14 @@
 #include <stdlib.h>
 #include "linked_list.h"
 
-List* createNewList() { /* CR: it needs to be considered: we don't necessarily need this function. Any one who wishes to use a list could create a local List struct of their own, no? I'm just presenting this option - you decide */
-    List* list = malloc(sizeof(List));
+/* Nodes and data are dynamically allocated while lists aren't */
+
+void initList(List* list) { 
     if (list != NULL) {
         list->head = NULL;
         list->tail = NULL;
         list->size = 0;
     }
-    return list;
 }
 
 bool isEmpty(List* list) {
@@ -54,7 +54,7 @@ void* pop(List* list) {
 
     old_head = list->head;
     data = old_head->data;
-    if (old_head->next == NULL) { /* list has 1 element */
+    if (list->size == 1) {
         list->head = NULL;
         list->tail = NULL;
     } 
@@ -109,13 +109,13 @@ void* popBack(List* list) { /* CR: symmetrical comments to 'pop''s */
     return data;   
 }
 
+/* Data is dynamically allocated always */ 
 void destroyList(List* list) {
     void* data;
     while (!isEmpty(list)) {
         data = pop(list);
-        free(data); /* CR: This is different behaviour when compared to pop's. It assumes that data inserted to the list will have been dynamically allocated. This either needs to be documented (in which case a TODO has to proclaim this here) or else taken care of in some other fashion (for example, this function could return a list of pointers to the user, or the user can indicate when inserting some data whether it was or wasn't dynamically allocated) */
+        free(data); 
     }
-    free(list); /* CR: if we don't use createNewList, this would become unnecessary */
 }
 
 

@@ -20,28 +20,12 @@ struct GameState {
 	int numEmpty;
 	int numErroneous;
 	bool shouldMarkErrors; /* TODO: default value of this field needs to be 'true'. Maybe change its name to shouldHideErrors, so default initialisation with {0} will work seamlessly? */
-	UndoRedoList* moveList;
+	UndoRedoList moveList;
 };
 
 int getNumEmptyCells(GameState* gameState) {
 	return gameState->numEmpty;
 }
-
-int getNumEmptyBoardCells(Board* board) {
-	int i, j;
-	int numEmpty = 0;
-	int MN = board->numColumnsInBlock_N * board->numRowsInBlock_M;
-	for (i = 0; i < MN; i++) {
-		for (j = 0; j < MN; j++) {
-			Cell* curr = getBoardCellByRow(board, i, j);
-			if (curr->value == EMPTY_CELL_VALUE) {
-				numEmpty++;
-			}
-		}
-	}
-	return numEmpty;
-}
-
 
 int getNumColumnsInBlock_N(GameState* gameState) {
 	return gameState->puzzle.numColumnsInBlock_N;
@@ -98,6 +82,22 @@ Cell* getBoardCellByBlock(Board* board, int block, int index) { /* Note: not to 
 	int col = colInBlocksMatrix * board->numColumnsInBlock_N + colInBlock;
 
 	return getBoardCellByRow(board, row, col);
+}
+
+int getNumEmptyBoardCells(Board* board) {
+	int i, j;
+	int numEmpty = 0;
+	Cell* curr;
+	int MN = board->numColumnsInBlock_N * board->numRowsInBlock_M;
+	for (i = 0; i < MN; i++) {
+		for (j = 0; j < MN; j++) {
+			 curr = getBoardCellByRow(board, i, j);
+			if (curr->value == EMPTY_CELL_VALUE) {
+				numEmpty++;
+			}
+		}
+	}
+	return numEmpty;
 }
 
 bool isBoardCellFixed(Cell* cell) {
@@ -232,6 +232,7 @@ GameState* createGameState(State* state, int numRowsInBlock_M, int numColumnsInB
 			gameState->puzzle = *board; /* Note: we copy the struct, hence the pre-allocation Cells** within the given board is retained */
 			gameState->numErroneous = getNumErroneousCells(board);
 			gameState->numEmpty = getNumEmptyBoardCells(board);
+			initUndoRedo(&(gameState->moveList));
 			state->gameState = gameState;
 			return gameState;
 		}
@@ -366,8 +367,10 @@ void setCellValue(Board* board, int row, int col, int value) {
 }
 
 /* Maintaining the invariant: at all times, all erroneous cells are marked
-correctly after each change in the board */
-void setPuzzleCell(State* state, int row, int col, int value) {
+correctly after each change in the board. Returning the previous value
+of that cell */
+int setPuzzleCell(State* state, int row, int col, int value) {
+	int prevValue = getCellValue(state->gameState, row, col);
 	if (isCellEmpty(state->gameState, row, col)) {
 		state->gameState->numEmpty--;
 	}
@@ -376,6 +379,7 @@ void setPuzzleCell(State* state, int row, int col, int value) {
 	}
 	setCellValue(&(state->gameState->puzzle), row, col, value);
 	findErroneousCells(&(state->gameState->puzzle));
+	return prevValue;
 }
 
 
