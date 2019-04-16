@@ -261,7 +261,7 @@ void runGame() {
 
 	performCommandLoop(&state);
 
-	cleanupGameState(&state);
+	cleanupGameState(state.gameState); state.gameState = NULL;
 
 	printf("Exiting...\n");
 }

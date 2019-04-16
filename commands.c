@@ -820,7 +820,8 @@ LoadBoardFromFileErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) 
 				retVal = LOAD_BOARD_FROM_FILE_DIMENSION_ARE_NOT_POSITIVE;
 			} else {
 				Board tempBoard = {0};
-				if (createBoard(&tempBoard, m, n) == NULL) {
+				tempBoard.numRowsInBlock_M = m; tempBoard.numColumnsInBlock_N = n;
+				if (!createBoard(&tempBoard)) {
 					retVal = PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
 				} else {
 					if (!readCellsFromFileToBoard(file, &tempBoard)) {
@@ -832,7 +833,6 @@ LoadBoardFromFileErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) 
 							if (!areCellValuesInRange(&tempBoard)) {
 								retVal = LOAD_BOARD_FROM_FILE_CELL_VALUE_NOT_IN_RANGE;
 							} else {
-								findErroneousCells(&tempBoard);
 								*boardInOut = tempBoard;
 							}
 						}
@@ -849,27 +849,30 @@ LoadBoardFromFileErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) 
 
 PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 	EditCommandArguments* editArguments = (EditCommandArguments*)(command->arguments);
+	Board board = {0};
+	GameState* newGameState = NULL;
 
 	if (command->argumentsNum == 0) { /* Start editing an empty 9x9 board */
-		cleanupGameState(state);
-
-		 if (createGameState(state, DEFAULT_M, DEFAULT_N, NULL) == NULL) {
-			 return PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
-		 }
-
-	} else { /* Open from file */
-		Board board;
+		board.numRowsInBlock_M = DEFAULT_M;
+		board.numColumnsInBlock_N = DEFAULT_N;
+	} else { 						  /* Open from file */
 		PerformEditCommandErrorCode retVal = ERROR_SUCCESS;
 		retVal = loadBoardFromFile(editArguments->filePath, &board);
 		if (retVal != ERROR_SUCCESS)
 			return PERFORM_EDIT_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE + retVal;
-		if (createGameState(state, 0, 0, &board) == NULL) {
-			cleanupBoard(&board);
-			return PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
-		}
-		markAllCellsAsNotFixed(state->gameState);
 	}
 
+	newGameState = createGameState(&board);
+	if (newGameState == NULL) {
+		cleanupBoard(&board);
+		return PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	 }
+
+	markAllCellsAsNotFixed(newGameState);
+
+	cleanupGameState(state->gameState); state->gameState = NULL;
+
+	state->gameState = newGameState;
 	state->gameMode = GAME_MODE_EDIT;
 	return ERROR_SUCCESS;
 }
@@ -881,21 +884,27 @@ typedef enum {
 
 PerformSolveCommandErrorCode performSolveCommand(State* state, Command* command) {
 	SolveCommandArguments* solveArguments = (SolveCommandArguments*)(command->arguments);
+	GameState* newGameState = NULL;
 
-	Board board;
+	Board board = {0};
 	PerformSolveCommandErrorCode retVal = ERROR_SUCCESS;
 	retVal = loadBoardFromFile(solveArguments->filePath, &board); /* Note: any superficially legitimate board may be
-	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   loaded for solving, even one that's inherently
-	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   unsolvable (i.e.: two fixed cells that are
-	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   neighbours and share the same value). */
-																  /* TODO: move this note to function's documentation in due time */
+		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   loaded for solving, even one that's inherently
+		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   unsolvable (i.e.: two fixed cells that are
+		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   neighbours and share the same value). */
+																	  /* TODO: move this note to function's documentation in due time */
 	if (retVal != ERROR_SUCCESS)
 		return PERFORM_SOLVE_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE + retVal;
-	if (createGameState(state, 0, 0, &board) == NULL) {
+
+	newGameState = createGameState(&board);
+	if (newGameState == NULL) {
 		cleanupBoard(&board);
 		return PERFORM_SOLVE_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
+	cleanupGameState(state->gameState); state->gameState = NULL;
+
+	state->gameState = newGameState;
 	state->gameMode = GAME_MODE_SOLVE;
 	return ERROR_SUCCESS;
 }

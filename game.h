@@ -111,15 +111,15 @@ void cleanupBoard(Board* boardInOut);
 
 void cleanupBoard(Board* boardInOut);
 
-Board* createBoard(Board* boardInOut, int numRowsInBlock_M, int numColumnsInBlock_N);
+bool createBoard(Board* boardInOut);
 
-GameState* createGameState(State* state, int numRowsInBlock_M, int numColumnsInBlock_N, Board* board);
+GameState* createGameState(Board* board);
 
-void cleanupGameState(State* state);
+void cleanupGameState(GameState* state);
 
 void markAllCellsAsNotFixed(GameState* gameState);
 
-bool findErroneousCells(Board* board);
+/*bool findErroneousCells(Board* board);*/
 
 bool exportBoard(GameState* gameState, Board* boardInOut);
 
