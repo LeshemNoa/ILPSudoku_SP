@@ -1001,12 +1001,30 @@ PerformMarkErrorsCommandErrorCode performMarkErrorsCommand(State* state, Command
 }
 
 
+typedef enum {
+	PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
+} PerformSetCommandErrorCode;
+
 /* Assuming that upon call to this functions all conditions have been
-checked - in solve mode fixed cells cannot be set etc.*/
-int performSetCommand(State* state, Command* command) {
-	int prevValue;
+checked - in solve mode fixed cells cannot be set etc. This is consistent
+with the command loop flow */
+PerformSetCommandErrorCode performSetCommand(State* state, Command* command) {
 	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
-	prevValue = setPuzzleCellMove(state, setArguments->row, setArguments->col, setArguments->value);
+	if(!setPuzzleCellMove(state, setArguments->value, setArguments->row, setArguments->col)){
+		return PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	}
+	else {return ERROR_SUCCESS; }
+}
+
+int performUndoCommand(State* state, Command* command) {
+	UNUSED(command);
+	undoMove(state);
+	return ERROR_SUCCESS;
+}
+
+int performRedoCommand(State* state, Command* command) {
+	UNUSED(command);
+	redoMove(state);
 	return ERROR_SUCCESS;
 }
 
@@ -1030,11 +1048,11 @@ int performCommand(State* state, Command* command) {
 		case COMMAND_TYPE_GUESS:
 			return performGuessCommand(state, command);
 		case COMMAND_TYPE_GENERATE:
-			return performGenerateCommand(state, command);
+			return performGenerateCommand(state, command);*/
 		case COMMAND_TYPE_UNDO:
 			return performUndoCommand(state, command);
 		case COMMAND_TYPE_REDO:
-			return performRedoCommand(state, command);*/
+			return performRedoCommand(state, command);
 		case COMMAND_TYPE_SAVE:
 			return performSaveCommand(state, command);
 		/*case COMMAND_TYPE_HINT:

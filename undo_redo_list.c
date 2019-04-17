@@ -22,6 +22,7 @@ singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row){
     scMove->row = row;
     scMove->prevVal = prevVal;
     scMove->newVal = newVal;
+    return scMove;
 }
 
 /* false is returned on memory allocation error */
@@ -45,29 +46,36 @@ bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
 
 Move* undoInList(UndoRedoList* moveList) {
     Move* moveToUndo;
-    if (moveList->current == moveList->list.tail) {
+    if (moveList->numUndos == moveList->list.size) {
         return NULL; /* no more moves to undo */
     }
     moveToUndo = getCurrent(moveList);
-    moveList->current = moveList->current->next;
+    if (moveList->current->next != NULL) {
+        moveList->current = moveList->current->next;
+    }
     moveList->numUndos++;
     return moveToUndo;
 }
 
 Move* redoInList(UndoRedoList* moveList) {
     Move* moveToRedo;
-    if (moveList->current == moveList->list.head) {
-        return false; /* cannot advance current further */
+    if (moveList->numUndos == 0) {
+        return NULL; /* cannot advance current further */
     }
-    moveToRedo = getCurrent(moveList);
-    moveList->current = moveList->current->prev;
-    return true;
+    if (moveList->numUndos == moveList->list.size) {
+        moveToRedo = getCurrent(moveList);
+    } else {
+        moveList->current = moveList->current->prev;
+        moveToRedo = getCurrent(moveList);
+    }
+    moveList->numUndos--;
+    return moveToRedo;
 }
 
 /* return true iff something's actually changed */
 bool reset(UndoRedoList* moveList) { /* CR response: I'm leaving this here for now, I'll use it later */
     bool changed = false;
-    while (undo(moveList)) {
+    while (undoInList(moveList)) {
         changed = true;
     }
     return changed;

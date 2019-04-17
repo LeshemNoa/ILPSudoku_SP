@@ -68,6 +68,8 @@ typedef struct {
 
 int getNumEmptyCells(GameState* gameState);
 
+int getNumFilledBoardCells(Board* board);
+
 int getNumColumnsInBlock_N(GameState* gameState);
 
 int getNumRowsInBlock_M(GameState* gameState);
@@ -126,5 +128,9 @@ bool exportBoard(GameState* gameState, Board* boardInOut);
 int setPuzzleCell(State* state, int row, int col, int value);
 
 bool setPuzzleCellMove(State* state, int value, int row, int col);
+
+void undoMove(State* state);
+
+void redoMove(State* state);
 
 #endif /* GAME_H_ */

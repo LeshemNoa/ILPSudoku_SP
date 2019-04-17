@@ -17,14 +17,14 @@ typedef Cell* (*getCellsByCategoryFunc)(Board* board, int categoryNo, int indexI
  */
 struct GameState {
 	Board puzzle;
-	int numEmpty;
+	int numFilled;
 	int numErroneous;
 	bool shouldMarkErrors; /* TODO: default value of this field needs to be 'true'. Maybe change its name to shouldHideErrors, so default initialisation with {0} will work seamlessly? */
 	UndoRedoList moveList;
 };
 
 int getNumEmptyCells(GameState* gameState) {
-	return gameState->numEmpty;
+	return getBoardSize_MN2(gameState) - gameState->numFilled;
 }
 
 int getNumColumnsInBlock_N(GameState* gameState) {
@@ -98,6 +98,14 @@ int getNumEmptyBoardCells(Board* board) {
 		}
 	}
 	return numEmpty;
+}
+
+int getNumFilledBoardCells(Board* board) {
+	int N, M, boardSize;
+	N = board->numColumnsInBlock_N;
+	M = board->numRowsInBlock_M;
+	boardSize = N * N * M * M;
+	return boardSize - getNumEmptyBoardCells(board);
 }
 
 bool isBoardCellFixed(Cell* cell) {
@@ -221,6 +229,8 @@ GameState* createGameState(State* state, int numRowsInBlock_M, int numColumnsInB
 
 	gameState = calloc(1, sizeof(GameState));
 	if (gameState != NULL) {
+		initUndoRedo(&(gameState->moveList));
+
 		if (board == NULL) {
 			Board* board = NULL;
 			board = createBoard(&(gameState->puzzle), numRowsInBlock_M, numColumnsInBlock_N);
@@ -231,8 +241,7 @@ GameState* createGameState(State* state, int numRowsInBlock_M, int numColumnsInB
 		} else {
 			gameState->puzzle = *board; /* Note: we copy the struct, hence the pre-allocation Cells** within the given board is retained */
 			gameState->numErroneous = getNumErroneousCells(board);
-			gameState->numEmpty = getNumEmptyBoardCells(board);
-			initUndoRedo(&(gameState->moveList));
+			gameState->numFilled = getNumFilledBoardCells(board);
 			state->gameState = gameState;
 			return gameState;
 		}
@@ -371,24 +380,27 @@ correctly after each change in the board. Returning the previous value
 of that cell */
 int setPuzzleCell(State* state, int row, int col, int value) {
 	int prevValue = getCellValue(state->gameState, row, col);
-	if (isCellEmpty(state->gameState, row, col)) {
-		state->gameState->numEmpty--;
+	if (isCellEmpty(state->gameState, row, col) && value != EMPTY_CELL_VALUE) {
+		state->gameState->numFilled++;
 	}
-	if (value == EMPTY_CELL_VALUE) {
-		state->gameState->numEmpty++;
+	if (!isCellEmpty(state->gameState, row, col) && value == EMPTY_CELL_VALUE) {
+		state->gameState->numFilled--;
 	}
-	setCellValue(&(state->gameState->puzzle), row, col, value);
-	findErroneousCells(&(state->gameState->puzzle));
-	
+	setCellValue(&(state->gameState->puzzle), row, col, value);	
 	return prevValue;
 }
 
-/* returns false upon memory allocation error  */
+/* returns false upon memory allocation error. This function also
+causes the change in the board to be reflected in the undo-redo list  */
 bool setPuzzleCellMove(State* state, int value, int row, int col) {
 	int prevVal;
 	Move* move = (Move*) malloc(sizeof(Move));
 	if (move == NULL) { return false; }
+	initList(&move->singleCellMoves);
+
 	prevVal = setPuzzleCell(state, row, col, value);
+	findErroneousCells(&(state->gameState->puzzle));
+
 	if (addSingleCellMoveToMove(move, prevVal, value, col, row)) {
 		return addNewMoveToList(&(state->gameState->moveList), move);
 	}
@@ -397,5 +409,40 @@ bool setPuzzleCellMove(State* state, int value, int row, int col) {
 		return false;
 	}
 }
+
+void undoMove(State* state) {
+	singleCellMove* scMove;
+	Node* currNode;
+	Move* moveToUndo = undoInList(&(state->gameState->moveList));
+	if (moveToUndo == NULL) {
+		return; /* nothing to undo */
+	}
+	currNode = moveToUndo->singleCellMoves.head;
+	while (currNode != NULL) {
+		scMove = (singleCellMove*) currNode->data;
+		setPuzzleCell(state, scMove->row, scMove->col, scMove->prevVal);
+		currNode = currNode->next;
+	}
+	findErroneousCells(&(state->gameState->puzzle));
+}
+
+void redoMove(State* state) {
+	singleCellMove* scMove;
+	Node* currNode;
+	Move* moveToRedo = redoInList(&(state->gameState->moveList));
+	if (moveToRedo == NULL) {
+		return; /* nothing to redo */
+	}
+	currNode = moveToRedo->singleCellMoves.head;
+	while (currNode != NULL) {
+		scMove = (singleCellMove*) currNode->data;
+		setPuzzleCell(state, scMove->row, scMove->col, scMove->newVal);
+		currNode = currNode->next;
+	}
+	findErroneousCells(&(state->gameState->puzzle));
+}
+
+
+
 
 
