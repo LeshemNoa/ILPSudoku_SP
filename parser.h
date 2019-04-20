@@ -22,7 +22,7 @@ bool parseBooleanIntArg(char* arg, bool* dst);
 
 bool parseStringArg(char* arg, char** dst);
 
-bool parseFloatArg(char* arg, float* dst);
+bool parseDoubleArg(char* arg, double* dst);
 
 /**
  * Reserved for future use.

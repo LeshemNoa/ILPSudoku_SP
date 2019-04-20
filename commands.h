@@ -162,7 +162,7 @@ typedef struct { /* Note: order of row and col is reverse to that provided by us
 } SetCommandArguments;
 
 typedef struct {
-	float threshold; /* TODO: perhaps should be double? */
+	double threshold; /* TODO: perhaps should be float? */
 } GuessCommandArguments;
 
 typedef struct {
@@ -179,10 +179,16 @@ typedef struct { /* Note: order of row and col is reverse to that provided by us
 	int row;
 	int col;
 	int guessedValueOut;
-} HintCommandArguments, GuessHintCommandArguments;
+} HintCommandArguments;
+
+typedef struct { /* Note: order of row and col is reverse to that provided by user */
+	int row;
+	int col;
+	double* valuesScoresOut; /* TODO: will require freeing (aka: cleaner) */
+} GuessHintCommandArguments;
 
 typedef struct {
-	void* movesListOut;
+	void* movesListOut; /* TODO: will require freeing (aka: cleaner) */
 } UndoCommandArguments, RedoCommandArguments;
 
 typedef struct {
@@ -235,7 +241,7 @@ typedef struct {
 	CommandType type;
 	int argumentsNum;
 	void* arguments;
-	/*har arguments[COMMAND_ARGUMENTS_MAX_SIZE];*/
+	/*char arguments[COMMAND_ARGUMENTS_MAX_SIZE];*/
 
 } Command;
 

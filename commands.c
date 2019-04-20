@@ -362,7 +362,7 @@ bool guessArgsParser(char* arg, int argNo, void* arguments) {
 	GuessCommandArguments* guessArguments = (GuessCommandArguments*)arguments;
 	switch (argNo) {
 	case 1:
-		return parseFloatArg(arg, &(guessArguments->threshold));
+		return parseDoubleArg(arg, &(guessArguments->threshold));
 	}
 	return false;
 }
@@ -1038,11 +1038,14 @@ PerformValidateCommandErrorCode performValidateCommand(State* state, Command* co
 	Board board = {0};
 	Board boardSolution = {0};
 
-	exportBoard(state->gameState, &board);
+	if (!exportBoard(state->gameState, &board)) {
+		retVal = PERFORM_VALIDATE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		return retVal;
+	}
 
 	/* TODO: should perform 'while(changed) autofill(board)' so that ILP will have an easier time solving the board */
 
-	switch (solveBoardUsingIntegerLinearProgramming(&board, &boardSolution)) {
+	switch (solveBoardUsingLinearProgramming(SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SOLVING_MODE_ILP, &board, &boardSolution, NULL)) {
 	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
 		validateArguments->isSolvableOut = true;
 		break;
@@ -1065,6 +1068,7 @@ PerformValidateCommandErrorCode performValidateCommand(State* state, Command* co
 
 typedef enum {
 	PERFORM_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
+	PERFORM_HINT_COMMAND_COULD_NOT_SOLVE_BOARD,
 	PERFORM_HINT_COMMAND_GUROBI_ERROR
 } PerformHintCommandErrorCode;
 PerformHintCommandErrorCode performHintCommand(State* state, Command* command) {
@@ -1075,11 +1079,14 @@ PerformHintCommandErrorCode performHintCommand(State* state, Command* command) {
 	Board board = {0};
 	Board boardSolution = {0};
 
-	exportBoard(state->gameState, &board);
+	if (!exportBoard(state->gameState, &board)) {
+		retVal = PERFORM_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		return retVal;
+	}
 
 	/* TODO: should perform 'while(changed) autofill(board)' so that ILP will have an easier time solving the board */
 
-	switch (solveBoardUsingIntegerLinearProgramming(&board, &boardSolution)) {
+	switch (solveBoardUsingLinearProgramming(SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SOLVING_MODE_ILP, &board, &boardSolution, NULL)) {
 	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
 		hintArguments->guessedValueOut = getBoardCellValue(getBoardCellByRow(&boardSolution, hintArguments->row, hintArguments->col));
 		break;
@@ -1087,7 +1094,7 @@ PerformHintCommandErrorCode performHintCommand(State* state, Command* command) {
 		retVal = PERFORM_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE;
 		break;
 	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_BOARD_ISNT_SOLVABLE:
-		hintArguments->guessedValueOut = -1;
+		retVal = PERFORM_HINT_COMMAND_COULD_NOT_SOLVE_BOARD;
 		break;
 	default:
 		retVal = PERFORM_HINT_COMMAND_GUROBI_ERROR;
@@ -1246,7 +1253,7 @@ PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* co
 
 				/* TODO: should perform 'while(changed) autofill(board)' so that ILP will have an easier time solving the board */
 
-				switch (solveBoardUsingIntegerLinearProgramming(&board, &boardSolution)) {
+				switch (solveBoardUsingLinearProgramming(SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SOLVING_MODE_ILP, &board, &boardSolution, NULL)) {
 				case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
 					randomlyClearYCells(&boardSolution, generateArguments->numCellsToClear);
 					/* TODO: save boardSolution to state... and document all changes for redo-undo list... */
@@ -1267,6 +1274,65 @@ PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* co
 		}
 	}
 	return PERFORM_GENERATE_COMMAND_COULD_NOT_GENERATE_REQUESTED_BOARD;
+}
+
+typedef enum {
+	PERFORM_GUESS_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
+	PERFORM_GUESS_HINT_COMMAND_COULD_NOT_SOLVE_BOARD,
+	PERFORM_GUESS_HINT_COMMAND_GUROBI_ERROR
+} PerformGuessHintCommandErrorCode;
+PerformGuessHintCommandErrorCode performGuessHintCommand(State* state, Command* command) {
+	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)(command->arguments);
+
+	PerformGuessHintCommandErrorCode retVal = ERROR_SUCCESS;
+
+	Board board = {0};
+	double*** valuesScores = NULL;
+	int MN = 0;
+
+	if (!exportBoard(state->gameState, &board)) {
+		retVal = PERFORM_GUESS_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		return retVal;
+	}
+
+	MN = board.numRowsInBlock_M * board.numColumnsInBlock_N;
+
+	if (!allocateValuesScoresArr(&valuesScores, &board)) {
+		retVal = PERFORM_GUESS_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		cleanupBoard(&board);
+		return retVal;
+	}
+
+	/* TODO: should perform 'while(changed) autofill(board)' so that LP will have an easier time solving the board */
+	/* TODO: could autofill render the board unsolvable (ILP/LP will fail?)? say, can ILP/LP handle full boards? */
+
+	switch (solveBoardUsingLinearProgramming(SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SOLVING_MODE_LP, &board, NULL, valuesScores)) {
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
+		guessHintArguments->valuesScoresOut = calloc(MN + 1, sizeof(double));
+		if (guessHintArguments->valuesScoresOut == NULL)
+			retVal = PERFORM_GUESS_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		else {
+			int value = 1;
+			for (value = 1; value <= MN; value++)
+				guessHintArguments->valuesScoresOut[value] = valuesScores[guessHintArguments->row][guessHintArguments->col][value];
+			/* TODO: output */
+		}
+		break;
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_MEMORY_ALLOCATION_FAILURE:
+		retVal = PERFORM_GUESS_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		break;
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_BOARD_ISNT_SOLVABLE:
+		retVal = PERFORM_GUESS_HINT_COMMAND_COULD_NOT_SOLVE_BOARD;
+		break;
+	default:
+		retVal = PERFORM_GUESS_HINT_COMMAND_GUROBI_ERROR;
+		break;
+	}
+
+	freeValuesScoresArr(valuesScores, &board);
+	cleanupBoard(&board);
+
+	return retVal;
 }
 
 int performCommand(State* state, Command* command) {
@@ -1298,9 +1364,9 @@ int performCommand(State* state, Command* command) {
 			return performSaveCommand(state, command);
 		case COMMAND_TYPE_HINT:
 			return performHintCommand(state, command);
-		/*case COMMAND_TYPE_GUESS_HINT:
+		case COMMAND_TYPE_GUESS_HINT:
 			return performGuessHintCommand(state, command);
-		case COMMAND_TYPE_NUM_SOLUTIONS:
+		/*case COMMAND_TYPE_NUM_SOLUTIONS:
 			return performNumSolutionsCommand(state, command);
 		case COMMAND_TYPE_AUTOFILL:
 			return performAutofillCommand(state, command);
@@ -1398,8 +1464,18 @@ ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* comma
 	return processCommandArguments(state, commandStrTokens, commandOut, problematicArgNo);
 }
 
+void guessHintCommandArgsCleaner(void* arguments) {
+	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)(arguments);
+	if (guessHintArguments->valuesScoresOut != NULL) {
+		free(guessHintArguments->valuesScoresOut);
+		guessHintArguments->valuesScoresOut = NULL;
+	}
+}
+
 commandArgsCleaner getCommandArgsCleaner(CommandType commandType) {
 	switch (commandType) {
+	case COMMAND_TYPE_GUESS_HINT:
+		return guessHintCommandArgsCleaner;
 	case COMMAND_TYPE_SOLVE:
 	case COMMAND_TYPE_EDIT:
 	case COMMAND_TYPE_MARK_ERRORS:
@@ -1412,7 +1488,6 @@ commandArgsCleaner getCommandArgsCleaner(CommandType commandType) {
 	case COMMAND_TYPE_REDO:
 	case COMMAND_TYPE_SAVE:
 	case COMMAND_TYPE_HINT:
-	case COMMAND_TYPE_GUESS_HINT:
 	case COMMAND_TYPE_NUM_SOLUTIONS:
 	case COMMAND_TYPE_AUTOFILL:
 	case COMMAND_TYPE_RESET:

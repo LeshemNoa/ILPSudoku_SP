@@ -22,6 +22,15 @@ typedef enum {
 	SOLVE_BOARD_USING_LINEAR_PROGRAMMING_GRB_ERROR_OTHER_FAILURE
 } solveBoardUsingLinearProgrammingErrorCode;
 
-solveBoardUsingLinearProgrammingErrorCode solveBoardUsingIntegerLinearProgramming(Board* board, Board* boardSolution);
+typedef enum {
+	SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SOLVING_MODE_ILP,
+	SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SOLVING_MODE_LP
+} solveBoardUsingLinearProgrammingSolvingMode;
+
+solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solveBoardUsingLinearProgrammingSolvingMode solvingMode, Board* board, Board* boardSolution, double*** allCellsValuesScores);
+
+void freeValuesScoresArr(double*** valuesScores, Board* board);
+
+bool allocateValuesScoresArr(double**** valuesScoresOut, Board* board);
 
 #endif /* ILP_SOLVER_H_ */

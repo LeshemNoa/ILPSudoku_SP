@@ -4,18 +4,6 @@
 
 #define COMMAND_DELIMITERS " \t\r\n"
 
-/* 
-* Reserved for future use. 
-*
-* function pointer to a concrete implementation of a command cleaner of a specific
-* command type.
-* 
-* @params argGameState	a generic pointer to the concrete command argument struct
-* 
-*
-*/
-typedef void (*commandArgsCleaner)(void* argsGameState);
-
 /**
  * parseIntArg parses a string representing an integer into an integer, then
  * assigns it to the provided integer pointer. 
@@ -60,8 +48,8 @@ bool parseStringArg(char* arg, char** dst) {
 	return true;
 }
 
-bool parseFloatArg(char* arg, float* dst) {
-	int sscanfRetVal = sscanf(arg, "%f", dst);
+bool parseDoubleArg(char* arg, double* dst) {
+	int sscanfRetVal = sscanf(arg, "%lf", dst);
 	return (sscanfRetVal == 1);
 }
 
