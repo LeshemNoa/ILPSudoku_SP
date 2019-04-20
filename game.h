@@ -66,6 +66,12 @@ typedef struct {
 	bool shouldHideErrors;
 	GameState* gameState;} State;
 
+typedef struct {
+	int numLegalValues;
+    bool* legalValues;} CellLegalValues;
+
+typedef void (*getRowBasedIDByCategoryBasedIDFunc)(Board* board, int categoryNo, int indexInCategory, int* row, int* indexInRow);
+
 
 int getNumEmptyCells(GameState* gameState);
 
@@ -82,6 +88,14 @@ bool isIndexInRange(GameState* gameState, int index);
 bool isCellValueInRange(GameState* gameState, int value);
 
 char* getCurModeString(State* state);
+
+Cell* getBoardCellByRow(Board* board, int row, int index);
+
+void getRowBasedIDGivenRowBasedID(Board* board, int rowIn, int indexInRowIn, int* row, int* indexInRow);
+
+void getRowBasedIDGivenBlockBasedID(Board* board, int block, int indexInBlock, int* row, int* indexInRow);
+
+void getRowBasedIDGivenColumnBasedID(Board* board, int column, int indexInColumn, int* row, int* indexInRow);
 
 bool isBoardCellFixed(Cell* cell);
 
@@ -121,6 +135,12 @@ void markAllCellsAsNotFixed(GameState* gameState);
 
 /*bool findErroneousCells(Board* board);*/
 
+bool copyBoard(Board* boardIn, Board* boardOut);
+
 bool exportBoard(GameState* gameState, Board* boardInOut);
+
+void freeCellsLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues** cellsLegalValuesOut);
+
+bool getSuperficiallyLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues*** cellsLegalValuesOut);
 
 #endif /* GAME_H_ */

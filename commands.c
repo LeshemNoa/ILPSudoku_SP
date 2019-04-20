@@ -1022,6 +1022,42 @@ PerformMarkErrorsCommandErrorCode performMarkErrorsCommand(State* state, Command
 	return ERROR_SUCCESS;
 }
 
+typedef enum {
+	PERFORM_VALIDATE_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
+	PERFORM_VALIDATE_COMMAND_GUROBI_ERROR
+} PerformValidateCommandErrorCode;
+PerformValidateCommandErrorCode performValidateCommand(State* state, Command* command) {
+	ValidateCommandArguments* validateArguments = (ValidateCommandArguments*)(command->arguments);
+
+	PerformValidateCommandErrorCode retVal = ERROR_SUCCESS;
+
+	Board board = {0};
+	Board boardSolution = {0};
+
+	UNUSED(validateArguments);
+	exportBoard(state->gameState, &board);
+
+	switch (solveBoardUsingIntegerLinearProgramming(&board, &boardSolution)) {
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
+		validateArguments->isSolvableOut = true;
+		break;
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_MEMORY_ALLOCATION_FAILURE:
+		retVal = PERFORM_VALIDATE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		break;
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_BOARD_ISNT_SOLVABLE:
+		validateArguments->isSolvableOut = false;
+		break;
+	default:
+		retVal = PERFORM_VALIDATE_COMMAND_GUROBI_ERROR;
+		break;
+	}
+
+	cleanupBoard(&board);
+	cleanupBoard(&boardSolution);
+
+	return retVal;
+}
+
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
 
@@ -1036,10 +1072,10 @@ int performCommand(State* state, Command* command) {
 		case COMMAND_TYPE_MARK_ERRORS:
 			return performMarkErrorsCommand(state, command);
 		/*case COMMAND_TYPE_SET:
-			return performSetCommand(state, command);
+			return performSetCommand(state, command);*/
 		case COMMAND_TYPE_VALIDATE:
 			return performValidateCommand(state, command);
-		case COMMAND_TYPE_GUESS:
+		/*case COMMAND_TYPE_GUESS:
 			return performGuessCommand(state, command);
 		case COMMAND_TYPE_GENERATE:
 			return performGenerateCommand(state, command);

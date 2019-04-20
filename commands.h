@@ -9,6 +9,7 @@
 
 #include "parser.h"
 #include "game.h"
+#include "ILP_solver.h"
 
 
 #define ERROR_SUCCESS (0)

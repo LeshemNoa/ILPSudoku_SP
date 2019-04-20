@@ -64,28 +64,44 @@ char* getCurModeString(State* state) {
 	return NULL;
 }
 
+void getRowBasedIDGivenRowBasedID(Board* board, int rowIn, int indexInRowIn, int* row, int* indexInRow) {
+	UNUSED(board);
+
+	*row = rowIn;
+	*indexInRow = indexInRowIn;
+}
+
 Cell* getBoardCellByRow(Board* board, int row, int index) { /* Note: not to be exported */
 	return &(board->cells[row][index]);
 }
 
-Cell* getBoardCellByColumn(Board* board, int column, int index) { /* Note: not to be exported */
-	return getBoardCellByRow(board, index, column);
+void getRowBasedIDGivenColumnBasedID(Board* board, int column, int indexInColumn, int* row, int* indexInRow) {
+	UNUSED(board);
+
+	*row = indexInColumn;
+	*indexInRow = column;
 }
 
-void getRowColByBlockAndIndex(Board* board, int block, int index, int* row, int* col) {
+Cell* getBoardCellByColumn(Board* board, int column, int index) { /* Note: not to be exported */
+	int row = 0, indexInRow = 0;
+	getRowBasedIDGivenColumnBasedID(board, column, index, &row, &indexInRow);
+	return getBoardCellByRow(board, row, indexInRow);
+}
+
+void getRowBasedIDGivenBlockBasedID(Board* board, int block, int indexInBlock, int* row, int* indexInRow) {
 	int colInBlocksMatrix = block % board->numRowsInBlock_M;
 	int rowInBlocksMatrix = block / board->numRowsInBlock_M;
-	int colInBlock = index % board->numColumnsInBlock_N;
-	int rowInBlock = index / board->numColumnsInBlock_N;
+	int colInBlock = indexInBlock % board->numColumnsInBlock_N;
+	int rowInBlock = indexInBlock / board->numColumnsInBlock_N;
 
 	*row = rowInBlocksMatrix * board->numRowsInBlock_M + rowInBlock;
-	*col = colInBlocksMatrix * board->numColumnsInBlock_N + colInBlock;
+	*indexInRow = colInBlocksMatrix * board->numColumnsInBlock_N + colInBlock;
 }
 
-Cell* getBoardCellByBlock(Board* board, int block, int index) { /* Note: not to be exported */
-	int row = 0, col = 0;
-	getRowColByBlockAndIndex(board, block, index, &row, &col);
-	return getBoardCellByRow(board, row, col);
+Cell* getBoardCellByBlock(Board* board, int block, int index) { /* Note: not to be exported (TODO: figure out why I wrote this)*/
+	int row = 0, indexInRow = 0;
+	getRowBasedIDGivenBlockBasedID(board, block, index, &row, &indexInRow);
+	return getBoardCellByRow(board, row, indexInRow);
 }
 
 int whichBlock(Board* board, int row, int col) {
@@ -227,8 +243,9 @@ int countNumEmptyCells(Board* board) {
 	return numEmptyCells;
 }
 
-void freeSpecificCellsValuesCounters(int** cellValuesCounters, int MN) {
+void freeSpecificCellsValuesCounters(int** cellValuesCounters, Board* board) { /* TODO: reconsider...: function needs only MN but I decided to have a Board parameter for symmetry's sake (with respect to the creating func) */
 	int i = 0;
+	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
 
 	if (cellValuesCounters == NULL)
 		return;
@@ -242,8 +259,9 @@ void freeSpecificCellsValuesCounters(int** cellValuesCounters, int MN) {
 	free(cellValuesCounters);
 }
 
-int** allocateNewSpecificCellsValuesCounters(int MN) {
+int** allocateNewSpecificCellsValuesCounters(Board* board) {
 	int** cellsValuesCounters = NULL;
+	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
 
 	cellsValuesCounters = calloc(MN, sizeof(int*));
 	if (cellsValuesCounters != NULL) {
@@ -258,7 +276,7 @@ int** allocateNewSpecificCellsValuesCounters(int MN) {
 		}
 
 		if (!success) {
-			freeSpecificCellsValuesCounters(cellsValuesCounters, MN);
+			freeSpecificCellsValuesCounters(cellsValuesCounters, board);
 			cellsValuesCounters = NULL;
 		}
 	}
@@ -267,28 +285,24 @@ int** allocateNewSpecificCellsValuesCounters(int MN) {
 }
 
 void freeCellsValuesCounters(GameState* gameState) {
-	int MN = gameState->puzzle.numRowsInBlock_M * gameState->puzzle.numColumnsInBlock_N;
-
 	if (gameState->rowsCellsValuesCounters != NULL) {
-		freeSpecificCellsValuesCounters(gameState->rowsCellsValuesCounters, MN);
+		freeSpecificCellsValuesCounters(gameState->rowsCellsValuesCounters, &(gameState->puzzle));
 		gameState->rowsCellsValuesCounters = NULL;
 	}
 	if (gameState->columnsCellsValuesCounters != NULL) {
-		freeSpecificCellsValuesCounters(gameState->columnsCellsValuesCounters, MN);
+		freeSpecificCellsValuesCounters(gameState->columnsCellsValuesCounters, &(gameState->puzzle));
 		gameState->columnsCellsValuesCounters = NULL;
 	}
 	if (gameState->blocksCellsValuesCounters != NULL) {
-		freeSpecificCellsValuesCounters(gameState->blocksCellsValuesCounters, MN);
+		freeSpecificCellsValuesCounters(gameState->blocksCellsValuesCounters, &(gameState->puzzle));
 		gameState->blocksCellsValuesCounters = NULL;
 	}
 }
 
-bool allocateCellsValuesCounters(GameState* gameState) {
-	int MN = gameState->puzzle.numRowsInBlock_M * gameState->puzzle.numColumnsInBlock_N;
-
-	gameState->rowsCellsValuesCounters = allocateNewSpecificCellsValuesCounters(MN);
-	gameState->columnsCellsValuesCounters = allocateNewSpecificCellsValuesCounters(MN);
-	gameState->blocksCellsValuesCounters = allocateNewSpecificCellsValuesCounters(MN);
+/*bool allocateCellsValuesCounters(GameState* gameState) {
+	gameState->rowsCellsValuesCounters = allocateNewSpecificCellsValuesCounters(&(gameState->puzzle));
+	gameState->columnsCellsValuesCounters = allocateNewSpecificCellsValuesCounters(&(gameState->puzzle));
+	gameState->blocksCellsValuesCounters = allocateNewSpecificCellsValuesCounters(&(gameState->puzzle));
 
 	if ((gameState->rowsCellsValuesCounters == NULL) ||
 		(gameState->columnsCellsValuesCounters == NULL) ||
@@ -298,7 +312,7 @@ bool allocateCellsValuesCounters(GameState* gameState) {
 	}
 
 	return true;
-}
+}*/
 
 void updateCellsValuesCountersInCategory(int* categoryNoCellsValuesCounters, Board* board, int categoryNo, getCellsByCategoryFunc getCellFunc) {
 	int NM = board->numColumnsInBlock_N * board->numRowsInBlock_M;
@@ -321,11 +335,11 @@ void updateCellsValuesCountersByCategory(int** categoryCellsValuesCounters, Boar
 		updateCellsValuesCountersInCategory(categoryCellsValuesCounters[categoryIndex], board, categoryIndex, getCellFunc);
 }
 
-void updateCellsValuesCounters(GameState* gameState) {
+/*void updateCellsValuesCounters(GameState* gameState) {
 	updateCellsValuesCountersByCategory(gameState->rowsCellsValuesCounters, &(gameState->puzzle), getBoardCellByRow);
 	updateCellsValuesCountersByCategory(gameState->columnsCellsValuesCounters, &(gameState->puzzle), getBoardCellByColumn);
 	updateCellsValuesCountersByCategory(gameState->blocksCellsValuesCounters, &(gameState->puzzle), getBoardCellByBlock);
-}
+}*/
 
 void updateCellErroneousness(GameState* gameState, int row, int col) {
 	Cell* cell = getBoardCellByRow(&(gameState->puzzle), row, col);
@@ -370,7 +384,7 @@ void updateCellErroneousnessInBlock(GameState* gameState, int block) { /* TODO: 
 	int i = 0;
 	for (i = 0; i < NM; i++) {
 		int row = 0, col = 0;
-		getRowColByBlockAndIndex(&(gameState->puzzle), block, i, &row, &col);
+		getRowBasedIDGivenBlockBasedID(&(gameState->puzzle), block, i, &row, &col);
 		updateCellErroneousness(gameState, row, col);
 	}
 
@@ -383,6 +397,32 @@ void updateCellsErroneousness(GameState* gameState) {
 	for (row = 0; row < NM; row++)
 		for (col = 0; col < NM; col++)
 			updateCellErroneousness(gameState, row, col);
+}
+
+int** createCellsValuesCountersByCategory(Board* board, getCellsByCategoryFunc getCellFunc) {
+	int** cellsValuesCounters = NULL;
+
+	cellsValuesCounters = allocateNewSpecificCellsValuesCounters(board);
+	if (cellsValuesCounters != NULL) {
+		updateCellsValuesCountersByCategory(cellsValuesCounters, board, getCellFunc);
+	}
+
+	return cellsValuesCounters;
+}
+
+bool createCellsValuesCounters(GameState* gameState) {
+	gameState->rowsCellsValuesCounters = createCellsValuesCountersByCategory(&(gameState->puzzle), getBoardCellByRow);
+	gameState->columnsCellsValuesCounters = createCellsValuesCountersByCategory(&(gameState->puzzle), getBoardCellByColumn);
+	gameState->blocksCellsValuesCounters = createCellsValuesCountersByCategory(&(gameState->puzzle), getBoardCellByBlock);
+
+	if ((gameState->rowsCellsValuesCounters != NULL) &&
+		(gameState->columnsCellsValuesCounters != NULL) &&
+		(gameState->blocksCellsValuesCounters != NULL)) {
+		return true;
+	}
+
+	freeCellsValuesCounters(gameState);
+	return false;
 }
 
 GameState* createGameState(Board* board) {
@@ -398,12 +438,11 @@ GameState* createGameState(Board* board) {
 					success = false;
 		}
 
-		if (!allocateCellsValuesCounters(gameState))
+		if (!createCellsValuesCounters(gameState))
 			success = false;
 
 		if (success) {
 			gameState->numEmpty = countNumEmptyCells(&(gameState->puzzle));
-			updateCellsValuesCounters(gameState);
 			updateCellsErroneousness(gameState);
 			gameState->numErroneous = countNumErroneousCells(&(gameState->puzzle));
 
@@ -503,22 +542,189 @@ bool findErroneousCells(Board* board) {
 	return true;
 }
 
-bool exportBoard(GameState* gameState, Board* boardInOut) {
+bool copyBoard(Board* boardIn, Board* boardOut) {
 	int row = 0;
 	int col = 0;
 	int nm = 0;
 
-	boardInOut->numRowsInBlock_M = gameState->puzzle.numRowsInBlock_M;
-	boardInOut->numColumnsInBlock_N = gameState->puzzle.numColumnsInBlock_N;
-	if (!createBoard(boardInOut)) {
+	boardOut->numRowsInBlock_M = boardIn->numRowsInBlock_M;
+	boardOut->numColumnsInBlock_N = boardIn->numColumnsInBlock_N;
+	if (!createBoard(boardOut)) {
 		return false;
 	}
 
-	nm = boardInOut->numColumnsInBlock_N * boardInOut->numRowsInBlock_M;
+	nm = boardOut->numColumnsInBlock_N * boardOut->numRowsInBlock_M;
 
 	for (row = 0; row < nm; row++)
-		for (col = 0; col < nm; col++)
-			*(getBoardCellByRow(boardInOut, row, col)) = *(getBoardCellByRow(&(gameState->puzzle), row, col));
+		for (col = 0; col < nm; col++) {
+			Cell* cellOut = getBoardCellByRow(boardOut, row, col);
+			Cell* cellIn = getBoardCellByRow(boardIn, row, col);
+			*cellOut = *cellIn;
+		}
 
 	return true;
+}
+
+bool exportBoard(GameState* gameState, Board* boardInOut) {
+	return copyBoard(&(gameState->puzzle), boardInOut);
+}
+
+void cleanupCellLegalValuesStruct(CellLegalValues* cellLegalValuesInOut) {
+	if (cellLegalValuesInOut == NULL)
+		return;
+
+	if (cellLegalValuesInOut->legalValues != NULL) {
+		free(cellLegalValuesInOut->legalValues);
+		cellLegalValuesInOut->legalValues = NULL;
+	}
+
+	cellLegalValuesInOut->numLegalValues = 0;
+}
+
+bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegalValues* cellLegalValuesInOut) {
+	int MN = gameState->puzzle.numRowsInBlock_M * gameState->puzzle.numColumnsInBlock_N;
+	int value = 0;
+
+	cellLegalValuesInOut->numLegalValues = 0;
+	cellLegalValuesInOut->legalValues = calloc(MN + 1, sizeof(bool));
+	if (cellLegalValuesInOut->legalValues == NULL)
+		return false;
+
+	for (value = 1; value <= MN; value++) {
+		int block = whichBlock(&(gameState->puzzle), row, col);
+		bool isValueLegal = (gameState->rowsCellsValuesCounters[row][value] == 0) &&
+							(gameState->columnsCellsValuesCounters[col][value] == 0) &&
+							(gameState->blocksCellsValuesCounters[block][value] == 0);
+		if (isValueLegal) {
+			cellLegalValuesInOut->legalValues[value] = true;
+			cellLegalValuesInOut->numLegalValues++;
+		}
+	}
+	return true;
+}
+
+bool getSuperficiallyLegalValuesForCell(GameState* gameStateIn, Board* boardIn, int row, int col, CellLegalValues* cellLegalValuesInOut) {
+	bool retValue = true;
+
+	GameState* gameState = NULL;
+	bool shouldCleanUpGameState = false;
+
+	if ((gameStateIn != NULL) && (boardIn == NULL)) {
+		shouldCleanUpGameState = false;
+		gameState = gameStateIn;
+	} else if ((gameStateIn == NULL) && (boardIn != NULL)) {
+		Board board = {0};
+		shouldCleanUpGameState = true;
+		if (copyBoard(boardIn, &board)) {
+			gameState = createGameState(&board);
+			if (gameState == NULL)
+				return false;
+		} else {
+			return false;
+		}
+	} else {
+		return false;
+	}
+
+	if (!fillCellLegalValuesStruct(gameState, row, col, cellLegalValuesInOut)) {
+		cleanupCellLegalValuesStruct(cellLegalValuesInOut);
+		retValue = false;
+	}
+
+	if (shouldCleanUpGameState)
+		cleanupGameState(gameState);
+
+	return retValue;
+}
+
+void freeCellsLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues** cellsLegalValuesOut) {
+	int MN = 0;
+	int row = 0, col = 0;
+
+	Board* board = NULL;
+
+	if ((gameStateIn != NULL) && (boardIn == NULL)) {
+		board = &(gameStateIn->puzzle);
+	} else if ((gameStateIn == NULL) && (boardIn != NULL)) {
+		board = boardIn;
+	} else {
+		return;
+	}
+
+	MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+
+	if (cellsLegalValuesOut == NULL)
+		return;
+
+	for (row = 0; row < MN; row++)
+		if (cellsLegalValuesOut[row] != NULL) {
+			for (col = 0; col < MN; col++)
+				cleanupCellLegalValuesStruct(&(cellsLegalValuesOut[row][col]));
+			free(cellsLegalValuesOut[row]);
+			cellsLegalValuesOut[row] = NULL;
+		}
+
+	free(cellsLegalValuesOut);
+}
+
+bool getSuperficiallyLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues*** cellsLegalValuesOut) {
+	bool retValue = true;
+	CellLegalValues** cellsLegalValues = NULL;
+
+	int MN = 0;
+
+	GameState* gameState = NULL;
+	bool shouldCleanUpGameState = false;
+
+	if ((gameStateIn != NULL) && (boardIn == NULL)) {
+		shouldCleanUpGameState = false;
+		gameState = gameStateIn;
+	} else if ((gameStateIn == NULL) && (boardIn != NULL)) {
+		Board board = {0};
+		shouldCleanUpGameState = true;
+		if (copyBoard(boardIn, &board)) {
+			gameState = createGameState(&board);
+			if (gameState == NULL)
+				return false;
+		} else {
+			return false;
+		}
+	} else {
+		return false;
+	}
+
+	MN = gameState->puzzle.numRowsInBlock_M * gameState->puzzle.numColumnsInBlock_N;
+
+	cellsLegalValues = calloc(MN, sizeof(CellLegalValues*));
+	if (cellsLegalValues == NULL)
+		retValue = false;
+	else {
+		int row = 0;
+		for (row = 0; row < MN; row++) {
+			cellsLegalValues[row] = calloc(MN, sizeof(CellLegalValues));
+			if (cellsLegalValues[row] == NULL) {
+				retValue = false;
+				break;
+			} else {
+				int col = 0;
+				for (col = 0; col < MN; col++)
+					if (!getSuperficiallyLegalValuesForCell(gameState, NULL, row, col, &(cellsLegalValues[row][col]))) {
+						retValue = false;
+						break;
+					}
+				if (!retValue)
+					break;
+			}
+		}
+	}
+
+	if (!retValue)
+		freeCellsLegalValuesForAllCells(gameState, NULL, cellsLegalValues);
+	else
+		*cellsLegalValuesOut = cellsLegalValues;
+
+	if (shouldCleanUpGameState)
+		cleanupGameState(gameState);
+
+	return retValue;
 }
