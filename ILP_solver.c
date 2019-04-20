@@ -2,7 +2,7 @@
 
 #define UNUSED(x) (void)(x)
 
-/* TODO: get rid of all printfs here (and with stdio.o include in header) */
+/* TODO: get rid of all printfs here (and of stdio.o include in header) */
 
 void freeIntAndIndexBasedLegalValuesForAllCells(Board* board, int*** cellLegalValuesIntBased) {
 	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;

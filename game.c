@@ -127,6 +127,10 @@ bool isBoardCellEmpty(Cell* cell) {
 	return getBoardCellValue(cell) == EMPTY_CELL_VALUE;
 }
 
+void emptyBoardCell(Cell* cell) {
+	cell->value = EMPTY_CELL_VALUE;
+}
+
 void setBoardCellFixedness(Cell* cell, bool isFixed) {
 	cell->isFixed = isFixed;
 }
@@ -211,7 +215,7 @@ void cleanupBoard(Board* boardInOut) {
 	}
 }
 
-bool createBoard(Board* boardInOut) {
+bool createEmptyBoard(Board* boardInOut) {
 	int MN = boardInOut->numRowsInBlock_M * boardInOut->numColumnsInBlock_N;
 	boardInOut->cells = calloc(MN, sizeof(Cell*));
 	if (boardInOut->cells != NULL) {
@@ -431,15 +435,18 @@ GameState* createGameState(Board* board) {
 
 	gameState = calloc(1, sizeof(GameState));
 	if (gameState != NULL) {
-		gameState->puzzle = *board;
-
 		if (board->cells == NULL) {
-			if (!createBoard(&(gameState->puzzle)))
-					success = false;
+			gameState->puzzle = *board;
+			if (!createEmptyBoard(&(gameState->puzzle)))
+				success = false;
+		} else {
+			if (!copyBoard(board, &(gameState->puzzle)))
+				success = false;
 		}
 
-		if (!createCellsValuesCounters(gameState))
-			success = false;
+		if (success)
+			if (!createCellsValuesCounters(gameState))
+				success = false;
 
 		if (success) {
 			gameState->numEmpty = countNumEmptyCells(&(gameState->puzzle));
@@ -549,7 +556,7 @@ bool copyBoard(Board* boardIn, Board* boardOut) {
 
 	boardOut->numRowsInBlock_M = boardIn->numRowsInBlock_M;
 	boardOut->numColumnsInBlock_N = boardIn->numColumnsInBlock_N;
-	if (!createBoard(boardOut)) {
+	if (!createEmptyBoard(boardOut)) {
 		return false;
 	}
 
@@ -613,15 +620,11 @@ bool getSuperficiallyLegalValuesForCell(GameState* gameStateIn, Board* boardIn, 
 		shouldCleanUpGameState = false;
 		gameState = gameStateIn;
 	} else if ((gameStateIn == NULL) && (boardIn != NULL)) {
-		Board board = {0};
 		shouldCleanUpGameState = true;
-		if (copyBoard(boardIn, &board)) {
-			gameState = createGameState(&board);
-			if (gameState == NULL)
-				return false;
-		} else {
+		gameState = createGameState(boardIn);
+		if (gameState == NULL)
 			return false;
-		}
+
 	} else {
 		return false;
 	}
@@ -680,15 +683,10 @@ bool getSuperficiallyLegalValuesForAllCells(GameState* gameStateIn, Board* board
 		shouldCleanUpGameState = false;
 		gameState = gameStateIn;
 	} else if ((gameStateIn == NULL) && (boardIn != NULL)) {
-		Board board = {0};
 		shouldCleanUpGameState = true;
-		if (copyBoard(boardIn, &board)) {
-			gameState = createGameState(&board);
-			if (gameState == NULL)
-				return false;
-		} else {
+		gameState = createGameState(boardIn);
+		if (gameState == NULL)
 			return false;
-		}
 	} else {
 		return false;
 	}
@@ -727,4 +725,24 @@ bool getSuperficiallyLegalValuesForAllCells(GameState* gameStateIn, Board* board
 		cleanupGameState(gameState);
 
 	return retValue;
+}
+
+void setTempFunc(GameState* gameState, int row, int indexInRow, int value) { /* TODO: will be replaced with actual set func from other branch */
+	Cell* cell = getBoardCellByRow(&(gameState->puzzle), row, indexInRow);
+
+	if (!isBoardCellEmpty(cell)) {
+		int oldValue = cell->value;
+		gameState->rowsCellsValuesCounters[row][oldValue]--;
+		gameState->columnsCellsValuesCounters[row][oldValue]--;
+		gameState->blocksCellsValuesCounters[whichBlock(&(gameState->puzzle), row, indexInRow)][oldValue]--;
+	} else {
+		gameState->numEmpty--;
+	}
+
+	cell->value = value;
+	gameState->rowsCellsValuesCounters[row][value]++;
+	gameState->columnsCellsValuesCounters[row][value]++;
+	gameState->blocksCellsValuesCounters[whichBlock(&(gameState->puzzle), row, indexInRow)][value]++;
+
+	updateCellsErroneousness(gameState); /* TODO: could do something more efficient (going over just one row, col and block) */
 }

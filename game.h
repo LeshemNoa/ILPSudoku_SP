@@ -99,7 +99,11 @@ void getRowBasedIDGivenColumnBasedID(Board* board, int column, int indexInColumn
 
 bool isBoardCellFixed(Cell* cell);
 
+int getBoardCellValue(Cell* cell);
+
 bool isBoardCellEmpty(Cell* cell);
+
+void emptyBoardCell(Cell* cell);
 
 bool isBoardErroneous(GameState* gameState);
 
@@ -125,7 +129,7 @@ void cleanupBoard(Board* boardInOut);
 
 void cleanupBoard(Board* boardInOut);
 
-bool createBoard(Board* boardInOut);
+bool createEmptyBoard(Board* boardInOut);
 
 GameState* createGameState(Board* board);
 
@@ -139,8 +143,14 @@ bool copyBoard(Board* boardIn, Board* boardOut);
 
 bool exportBoard(GameState* gameState, Board* boardInOut);
 
+void cleanupCellLegalValuesStruct(CellLegalValues* cellLegalValuesInOut);
+
+bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegalValues* cellLegalValuesInOut);
+
 void freeCellsLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues** cellsLegalValuesOut);
 
 bool getSuperficiallyLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues*** cellsLegalValuesOut);
+
+void setTempFunc(GameState* gameState, int row, int indexInRow, int value);
 
 #endif /* GAME_H_ */

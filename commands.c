@@ -8,6 +8,8 @@
 #define FIXED_CELL_MARKER_IN_FILE ('.')
 #define EMPTY_CELL_VALUE_IN_FILE (0)
 
+#define GENERATE_COMMAND_MAX_NUM_TRIES (1000)
+
 /* TODO: check necessity of IGNORE in all of the below */
 
 bool isCommandAllowed(GameMode gameMode, CommandType commandType) {
@@ -821,7 +823,7 @@ LoadBoardFromFileErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) 
 			} else {
 				Board tempBoard = {0};
 				tempBoard.numRowsInBlock_M = m; tempBoard.numColumnsInBlock_N = n;
-				if (!createBoard(&tempBoard)) {
+				if (!createEmptyBoard(&tempBoard)) {
 					retVal = PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
 				} else {
 					if (!readCellsFromFileToBoard(file, &tempBoard)) {
@@ -867,6 +869,7 @@ PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 		cleanupBoard(&board);
 		return PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	 }
+	cleanupBoard(&board);
 
 	markAllCellsAsNotFixed(newGameState);
 
@@ -901,6 +904,7 @@ PerformSolveCommandErrorCode performSolveCommand(State* state, Command* command)
 		cleanupBoard(&board);
 		return PERFORM_SOLVE_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
+	cleanupBoard(&board);
 
 	cleanupGameState(state->gameState); state->gameState = NULL;
 
@@ -1034,8 +1038,9 @@ PerformValidateCommandErrorCode performValidateCommand(State* state, Command* co
 	Board board = {0};
 	Board boardSolution = {0};
 
-	UNUSED(validateArguments);
 	exportBoard(state->gameState, &board);
+
+	/* TODO: should perform 'while(changed) autofill(board)' so that ILP will have an easier time solving the board */
 
 	switch (solveBoardUsingIntegerLinearProgramming(&board, &boardSolution)) {
 	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
@@ -1058,6 +1063,211 @@ PerformValidateCommandErrorCode performValidateCommand(State* state, Command* co
 	return retVal;
 }
 
+typedef enum {
+	PERFORM_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
+	PERFORM_HINT_COMMAND_GUROBI_ERROR
+} PerformHintCommandErrorCode;
+PerformHintCommandErrorCode performHintCommand(State* state, Command* command) {
+	HintCommandArguments* hintArguments = (HintCommandArguments*)(command->arguments);
+
+	PerformHintCommandErrorCode retVal = ERROR_SUCCESS;
+
+	Board board = {0};
+	Board boardSolution = {0};
+
+	exportBoard(state->gameState, &board);
+
+	/* TODO: should perform 'while(changed) autofill(board)' so that ILP will have an easier time solving the board */
+
+	switch (solveBoardUsingIntegerLinearProgramming(&board, &boardSolution)) {
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
+		hintArguments->guessedValueOut = getBoardCellValue(getBoardCellByRow(&boardSolution, hintArguments->row, hintArguments->col));
+		break;
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_MEMORY_ALLOCATION_FAILURE:
+		retVal = PERFORM_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		break;
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_BOARD_ISNT_SOLVABLE:
+		hintArguments->guessedValueOut = -1;
+		break;
+	default:
+		retVal = PERFORM_HINT_COMMAND_GUROBI_ERROR;
+		break;
+	}
+
+	cleanupBoard(&board);
+	cleanupBoard(&boardSolution);
+
+	return retVal;
+}
+
+typedef enum {
+	RANDOMLY_FILL_EMPTY_SUCCESS,
+	RANDOMLY_FILL_EMPTY_CELL_MEMORY_ALLOCATION_FAILURE,
+	RANDOMLY_FILL_EMPTY_CELL_NO_LEGAL_VALUE
+} randomlyFillEmptyCellErrorCode;
+randomlyFillEmptyCellErrorCode randomlyFillEmptyCell(GameState* gameState, int row, int col) {
+	randomlyFillEmptyCellErrorCode retVal = RANDOMLY_FILL_EMPTY_SUCCESS;
+	CellLegalValues cellLegalValues;
+
+	if (!fillCellLegalValuesStruct(gameState, row, col, &cellLegalValues)) {
+		retVal = RANDOMLY_FILL_EMPTY_CELL_MEMORY_ALLOCATION_FAILURE;
+		return retVal;
+	}
+
+	if (cellLegalValues.numLegalValues == 0) {
+		retVal = RANDOMLY_FILL_EMPTY_CELL_NO_LEGAL_VALUE;
+	} else {
+		while (true) {
+			int MN = getBlockSize_MN(gameState);
+			int value = (rand() % MN) + 1;
+			if (cellLegalValues.legalValues[value]) {
+				setTempFunc(gameState, row, col, value);
+				break;
+			}
+		}
+	}
+
+	cleanupCellLegalValuesStruct(&cellLegalValues);
+	return retVal;
+}
+
+void findEmptyCellInBoard(Board* board, int* rowOut, int* colOut) { /* Note: we assume the board has at least one empty cell */
+	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int row = 0, col = 0;
+	while (true) {
+		col = rand() % MN;
+		row = rand() % MN;
+		if (isBoardCellEmpty(getBoardCellByRow(board, row, col))) {
+			*rowOut = row;
+			*colOut = col;
+			return;
+		}
+	}
+}
+
+typedef enum {
+	RANDOMLY_FILL_X_EMPTY_CELLS_SUCCESS,
+	RANDOMLY_FILL_X_EMPTY_CELLS_MEMORY_ALLOCATION_FAILURE,
+	RANDOMLY_FILL_X_EMPTY_CELLS_CHOSEN_CELL_HAS_NO_LEGAL_VALUE
+} randomlyFillXEmptyCellsErrorCode;
+randomlyFillXEmptyCellsErrorCode randomlyFillXEmptyCells(GameState* gameState, int numEmptyCellsToFill) { /* Note: we assume the board has at least numEmptyCellsToFill empty cells */
+	int numEmptyCellsFilled = 0;
+	for (numEmptyCellsFilled = 0; numEmptyCellsFilled < numEmptyCellsToFill; numEmptyCellsFilled++) {
+		Board board = {0};
+		int row = 0, col = 0;
+
+		if (!exportBoard(gameState, &board)) {
+			return RANDOMLY_FILL_X_EMPTY_CELLS_MEMORY_ALLOCATION_FAILURE;
+		}
+		findEmptyCellInBoard(&board, &row, &col);
+		cleanupBoard(&board);
+
+		switch (randomlyFillEmptyCell(gameState, row, col)) {
+		case RANDOMLY_FILL_EMPTY_SUCCESS:
+			continue;
+		case RANDOMLY_FILL_EMPTY_CELL_MEMORY_ALLOCATION_FAILURE:
+			return RANDOMLY_FILL_X_EMPTY_CELLS_MEMORY_ALLOCATION_FAILURE;
+		case RANDOMLY_FILL_EMPTY_CELL_NO_LEGAL_VALUE:
+			return RANDOMLY_FILL_X_EMPTY_CELLS_CHOSEN_CELL_HAS_NO_LEGAL_VALUE;
+		}
+	}
+	return RANDOMLY_FILL_X_EMPTY_CELLS_SUCCESS;
+}
+
+void findNonEmptyCellInBoard(Board* board, int* rowOut, int* colOut) { /* Note: we assume the board has at least one non-empty cell */
+	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int row = 0, col = 0;
+	while (true) {
+		col = rand() % MN;
+		row = rand() % MN;
+		if (!isBoardCellEmpty(getBoardCellByRow(board, row, col))) {
+			*rowOut = row;
+			*colOut = col;
+			return;
+		}
+	}
+}
+
+void randomlyClearYCells(Board* board, int numCellsToClear) {
+	int numCellsCleared = 0;
+	for (numCellsCleared = 0; numCellsCleared < numCellsToClear; numCellsCleared++) {
+		Cell* cell = NULL;
+
+		int row = 0, col = 0;
+		findNonEmptyCellInBoard(board, &row, &col);
+
+		cell = getBoardCellByRow(board, row, col);
+		emptyBoardCell(cell);
+	}
+}
+
+typedef enum {
+	PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
+	PERFORM_GENERATE_COMMAND_COULD_NOT_GENERATE_REQUESTED_BOARD
+} PerformGenerateCommandErrorCode;
+PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* command) { /* TODO: change of board needs to be documented in undo-redo list */
+	GenerateCommandArguments* generateArguments = (GenerateCommandArguments*)(command->arguments);
+
+	PerformGenerateCommandErrorCode retVal = ERROR_SUCCESS;
+
+	int numTries = 0;
+
+	UNUSED(retVal);
+
+	for (numTries = 0; numTries < GENERATE_COMMAND_MAX_NUM_TRIES; numTries++) {
+		GameState* tmpGameState = NULL;
+
+		Board board = {0};
+		if (!exportBoard(state->gameState, &board)) {
+			return PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		}
+		tmpGameState = createGameState(&board);
+		cleanupBoard(&board);
+		if (tmpGameState != NULL) {
+
+			switch (randomlyFillXEmptyCells(tmpGameState, generateArguments->numEmptyCellsToFill)) {
+			case RANDOMLY_FILL_X_EMPTY_CELLS_SUCCESS:
+				break;
+			case RANDOMLY_FILL_X_EMPTY_CELLS_MEMORY_ALLOCATION_FAILURE:
+				cleanupGameState(tmpGameState);
+				return PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+			case RANDOMLY_FILL_X_EMPTY_CELLS_CHOSEN_CELL_HAS_NO_LEGAL_VALUE:
+				cleanupGameState(tmpGameState);
+				continue;
+			}
+
+			if (!exportBoard(tmpGameState, &board)) {
+				cleanupGameState(tmpGameState);
+				return PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+			} else {
+				Board boardSolution = {0};
+
+				cleanupGameState(tmpGameState);
+
+				/* TODO: should perform 'while(changed) autofill(board)' so that ILP will have an easier time solving the board */
+
+				switch (solveBoardUsingIntegerLinearProgramming(&board, &boardSolution)) {
+				case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
+					randomlyClearYCells(&boardSolution, generateArguments->numCellsToClear);
+					/* TODO: save boardSolution to state... and document all changes for redo-undo list... */
+
+					return ERROR_SUCCESS;
+				case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_MEMORY_ALLOCATION_FAILURE:
+					cleanupBoard(&board);
+					cleanupBoard(&boardSolution);
+					return PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+				case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_BOARD_ISNT_SOLVABLE:
+				default:
+					cleanupBoard(&board);
+					cleanupBoard(&boardSolution);
+					continue;
+				}
+			}
+		}
+	}
+	return PERFORM_GENERATE_COMMAND_COULD_NOT_GENERATE_REQUESTED_BOARD;
+}
+
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
 
@@ -1076,18 +1286,18 @@ int performCommand(State* state, Command* command) {
 		case COMMAND_TYPE_VALIDATE:
 			return performValidateCommand(state, command);
 		/*case COMMAND_TYPE_GUESS:
-			return performGuessCommand(state, command);
+			return performGuessCommand(state, command);*/
 		case COMMAND_TYPE_GENERATE:
 			return performGenerateCommand(state, command);
-		case COMMAND_TYPE_UNDO:
+		/*case COMMAND_TYPE_UNDO:
 			return performUndoCommand(state, command);
 		case COMMAND_TYPE_REDO:
 			return performRedoCommand(state, command);*/
 		case COMMAND_TYPE_SAVE:
 			return performSaveCommand(state, command);
-		/*case COMMAND_TYPE_HINT:
+		case COMMAND_TYPE_HINT:
 			return performHintCommand(state, command);
-		case COMMAND_TYPE_GUESS_HINT:
+		/*case COMMAND_TYPE_GUESS_HINT:
 			return performGuessHintCommand(state, command);
 		case COMMAND_TYPE_NUM_SOLUTIONS:
 			return performNumSolutionsCommand(state, command);
