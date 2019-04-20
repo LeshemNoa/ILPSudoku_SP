@@ -133,4 +133,6 @@ void undoMove(State* state);
 
 void redoMove(State* state);
 
+bool calculateNumSolutions(Board* board, int* numSolutions);
+
 #endif /* GAME_H_ */

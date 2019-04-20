@@ -84,8 +84,3 @@ bool reset(UndoRedoList* moveList) { /* CR response: I'm leaving this here for n
 Move* getCurrent(UndoRedoList* moveList) {
     return (Move*) moveList->current->data;
 }
-
-void destroyUndoRedo(UndoRedoList* moveList) {
-    destroyList(&(moveList->list));
-    free(moveList);
-}

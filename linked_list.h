@@ -16,7 +16,6 @@ typedef struct list
 } List;
 
 void initList(List* list);
-void destroyList(List* list);
 bool isEmpty(List* list);
 bool push(List* list, void* new_data);
 void* pop(List* list);

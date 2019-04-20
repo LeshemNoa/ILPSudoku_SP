@@ -21,8 +21,7 @@ void test_list() {
         int* ip = malloc(sizeof(int));
         *ip = i;
         push(list, (void*) ip);
-    }
-    destroyList(list);*/
+    }*/
     List list;
     int i;
     initList(&list);
@@ -36,7 +35,6 @@ void test_list() {
         printf("%d\n", *ip);
         free(ip);
     }
-    destroyList(&list);
 }
 
 /*void test_undoRedo() {
@@ -58,8 +56,6 @@ void test_list() {
     printf("After redo, current = %d\n", *((int*)getCurrent(move_list)));
     reset(move_list);
     printf("After reset, current = %d\n", *((int*)getCurrent(move_list)));
-
-    destroyUndoRedo(move_list);
 }*/
 
 int main() {

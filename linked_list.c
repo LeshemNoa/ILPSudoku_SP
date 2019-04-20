@@ -108,13 +108,4 @@ void* popBack(List* list) {
     return data;   
 }
 
-/* Data is dynamically allocated always */ 
-void destroyList(List* list) {
-    void* data;
-    while (!isEmpty(list)) {
-        data = pop(list);
-        free(data); 
-    }
-}
-
 

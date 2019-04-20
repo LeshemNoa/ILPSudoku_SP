@@ -1028,6 +1028,29 @@ int performRedoCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
+
+typedef enum {
+	PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
+} PerformNumSoltionsCommandErrorCode;
+
+PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Command* command) {	
+	Board board;
+	int numSolutions, i, j;
+
+	UNUSED(command);
+
+	if (!exportBoard(state->gameState, &board)) {
+		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	}
+
+	if (!calculateNumSolutions(&board, &numSolutions)) {
+		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	}
+
+	printf("Number of possible solutions: %d\n", numSolutions);
+	return ERROR_SUCCESS;
+}
+
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
 
@@ -1058,10 +1081,10 @@ int performCommand(State* state, Command* command) {
 		/*case COMMAND_TYPE_HINT:
 			return performHintCommand(state, command);
 		case COMMAND_TYPE_GUESS_HINT:
-			return performGuessHintCommand(state, command);
+			return performGuessHintCommand(state, command);*/
 		case COMMAND_TYPE_NUM_SOLUTIONS:
 			return performNumSolutionsCommand(state, command);
-		case COMMAND_TYPE_AUTOFILL:
+		/*case COMMAND_TYPE_AUTOFILL:
 			return performAutofillCommand(state, command);
 		case COMMAND_TYPE_RESET:
 			return performResetCommand(state, command);*/

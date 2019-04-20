@@ -1,5 +1,5 @@
 CC = gcc
-OBJS = linked_list.o undo_redo_list.o main_aux.o commands.o parser.o game.o
+OBJS = rec_stack.o linked_list.o undo_redo_list.o main_aux.o commands.o parser.o game.o
 EXEC = game
 COMP_FLAG = -ansi -Wall -Wextra -pedantic-errors -g -c
 
@@ -15,6 +15,8 @@ game.o: game.c game.h
 parser.o: parser.c parser.h
 	$(CC) $(COMP_FLAG) $*.c
 commands.o: commands.c commands.h
+	$(CC) $(COMP_FLAG) $*.c
+rec_stack.o: rec_stack.c rec_stack.h linked_list.h
 	$(CC) $(COMP_FLAG) $*.c
 main_aux.o: main_aux.c main_aux.h game.h parser.h commands.h
 	$(CC) $(COMP_FLAG) $*.c
