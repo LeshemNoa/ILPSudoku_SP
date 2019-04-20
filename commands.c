@@ -1250,7 +1250,8 @@ PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* co
 				case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
 					randomlyClearYCells(&boardSolution, generateArguments->numCellsToClear);
 					/* TODO: save boardSolution to state... and document all changes for redo-undo list... */
-
+					cleanupBoard(&board);
+					cleanupBoard(&boardSolution);
 					return ERROR_SUCCESS;
 				case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_MEMORY_ALLOCATION_FAILURE:
 					cleanupBoard(&board);
