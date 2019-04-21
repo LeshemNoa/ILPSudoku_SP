@@ -21,7 +21,7 @@ bool parseIntArg(char* arg, int* dst) {
 
 bool parseIntArgOffset(char* arg, int* dst, int offset) {
 	if (parseIntArg(arg, dst)) {
-		*dst += offset
+		*dst += offset;
 		return true;
 	}
 	return false;
