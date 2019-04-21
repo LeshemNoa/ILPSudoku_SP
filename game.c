@@ -588,6 +588,13 @@ void cleanupCellLegalValuesStruct(CellLegalValues* cellLegalValuesInOut) {
 	cellLegalValuesInOut->numLegalValues = 0;
 }
 
+bool isValueLegalForCell(GameState* gameState, int row, int col, int value) {
+	int block = whichBlock(&(gameState->puzzle), row, col);
+	return (gameState->rowsCellsValuesCounters[row][value] == 0) &&
+		   (gameState->columnsCellsValuesCounters[col][value] == 0) &&
+		   (gameState->blocksCellsValuesCounters[block][value] == 0);
+}
+
 bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegalValues* cellLegalValuesInOut) {
 	int MN = gameState->puzzle.numRowsInBlock_M * gameState->puzzle.numColumnsInBlock_N;
 	int value = 0;
@@ -598,11 +605,7 @@ bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegal
 		return false;
 
 	for (value = 1; value <= MN; value++) {
-		int block = whichBlock(&(gameState->puzzle), row, col);
-		bool isValueLegal = (gameState->rowsCellsValuesCounters[row][value] == 0) &&
-							(gameState->columnsCellsValuesCounters[col][value] == 0) &&
-							(gameState->blocksCellsValuesCounters[block][value] == 0);
-		if (isValueLegal) {
+		if (isValueLegalForCell(gameState, row, col, value)) {
 			cellLegalValuesInOut->legalValues[value] = true;
 			cellLegalValuesInOut->numLegalValues++;
 		}
@@ -733,7 +736,7 @@ void setTempFunc(GameState* gameState, int row, int indexInRow, int value) { /* 
 	if (!isBoardCellEmpty(cell)) {
 		int oldValue = cell->value;
 		gameState->rowsCellsValuesCounters[row][oldValue]--;
-		gameState->columnsCellsValuesCounters[row][oldValue]--;
+		gameState->columnsCellsValuesCounters[indexInRow][oldValue]--;
 		gameState->blocksCellsValuesCounters[whichBlock(&(gameState->puzzle), row, indexInRow)][oldValue]--;
 	} else {
 		gameState->numEmpty--;
@@ -741,7 +744,7 @@ void setTempFunc(GameState* gameState, int row, int indexInRow, int value) { /* 
 
 	cell->value = value;
 	gameState->rowsCellsValuesCounters[row][value]++;
-	gameState->columnsCellsValuesCounters[row][value]++;
+	gameState->columnsCellsValuesCounters[indexInRow][value]++;
 	gameState->blocksCellsValuesCounters[whichBlock(&(gameState->puzzle), row, indexInRow)][value]++;
 
 	updateCellsErroneousness(gameState); /* TODO: could do something more efficient (going over just one row, col and block) */

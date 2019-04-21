@@ -10,6 +10,9 @@
 
 #define GENERATE_COMMAND_MAX_NUM_TRIES (1000)
 
+#define GUESS_THRESHOLD_MIN_VALUE (0.0)
+#define GUESS_THRESHOLD_MAX_VALUE (1.0)
+
 /* TODO: check necessity of IGNORE in all of the below */
 
 bool isCommandAllowed(GameMode gameMode, CommandType commandType) {
@@ -304,7 +307,7 @@ bool editArgsParser(char* arg, int argNo, void* arguments) {
 	EditCommandArguments* editArguments = (EditCommandArguments*)arguments;
 	switch (argNo) {
 	case 1:
-		return parseStringArg(arg, &(editArguments->filePath)); /* TODO: what happens in case of quotes sign? (i.e., folder name with a space) */
+		return parseStringArg(arg, &(editArguments->filePath)); /* TODO: perhaps document that we were instructed that paths do not contains spaces */
 	}
 	return false;
 }
@@ -367,7 +370,18 @@ bool guessArgsParser(char* arg, int argNo, void* arguments) {
 	return false;
 }
 
-/* TODO: is guess's threshold limited in its range? */
+bool guessArgsRangeChecker(void* arguments, int argNo, GameState* gameState) {
+	GuessCommandArguments* guessArguments = (GuessCommandArguments*)arguments;
+
+	UNUSED(gameState);
+
+	switch (argNo) {
+	case 1:
+		return (guessArguments->threshold > GUESS_THRESHOLD_MIN_VALUE) &&
+			   (guessArguments->threshold <= GUESS_THRESHOLD_MAX_VALUE);
+	}
+	return false;
+}
 
 bool generateArgsParser(char* arg, int argNo, void* arguments) {
 	GenerateCommandArguments* generateArguments = (GenerateCommandArguments*)arguments;
@@ -512,12 +526,13 @@ commandArgsRangeChecker getCommandArgsRangeChecker(CommandType commandType) {
 		return hintArgsRangeChecker;
 	case COMMAND_TYPE_GUESS_HINT:
 		return guessHintArgsRangeChecker;
+	case COMMAND_TYPE_GUESS:
+		return guessArgsRangeChecker;
 	case COMMAND_TYPE_SOLVE:
 	case COMMAND_TYPE_EDIT:
 	case COMMAND_TYPE_MARK_ERRORS:
 	case COMMAND_TYPE_PRINT_BOARD:
 	case COMMAND_TYPE_VALIDATE:
-	case COMMAND_TYPE_GUESS:
 	case COMMAND_TYPE_UNDO:
 	case COMMAND_TYPE_REDO:
 	case COMMAND_TYPE_SAVE:
@@ -1335,6 +1350,120 @@ PerformGuessHintCommandErrorCode performGuessHintCommand(State* state, Command* 
 	return retVal;
 }
 
+double getRealRand(double min, double max) {
+	double range = (max - min);
+	double div = RAND_MAX / range;
+	return min + (rand() / div);
+}
+
+typedef enum {
+	PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
+	PERFORM_GUESS_COMMAND_COULD_NOT_SOLVE_BOARD,
+	PERFORM_GUESS_COMMAND_GUROBI_ERROR
+} PerformGuessCommandErrorCode;
+PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command) {
+	GuessCommandArguments* guessArguments = (GuessCommandArguments*)(command->arguments);
+
+	PerformGuessCommandErrorCode retVal = ERROR_SUCCESS;
+
+	Board board = {0};
+	double*** valuesScores = NULL;
+	int MN = 0;
+	GameState* tmpGameState = NULL;
+
+	if (!exportBoard(state->gameState, &board)) {
+		retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		return retVal;
+	}
+
+	MN = board.numRowsInBlock_M * board.numColumnsInBlock_N;
+
+	if (!allocateValuesScoresArr(&valuesScores, &board)) {
+		retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		cleanupBoard(&board);
+		return retVal;
+	}
+
+	/* TODO: should perform 'while(changed) autofill(board)' so that LP will have an easier time solving the board */
+	/* TODO: could autofill render the board unsolvable (ILP/LP will fail?)? say, can ILP/LP handle full boards? */
+
+	switch (solveBoardUsingLinearProgramming(SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SOLVING_MODE_LP, &board, NULL, valuesScores)) {
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS:
+		tmpGameState = createGameState(&board);
+		if (tmpGameState == NULL) {
+			retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		} else {
+			Board newBoard = {0};
+			int row = 0, col = 0;
+			for (row = 0; row < MN; row++)
+				for (col = 0; col < MN; col++) {
+					if (isCellEmpty(tmpGameState, row, col)) {
+						int value = 1;
+						double legalValuesScoresSum = 0.0;
+						double incrementalNormalisedScore = 0.0;
+						double randNum = 0;
+						double minimum = 1.0;
+						int minimumValue = -1;
+
+						for (value = 1; value <= MN; value++) {
+							if ((isValueLegalForCell(tmpGameState, row, col, value)) &&
+								(valuesScores[row][col][value] >= guessArguments->threshold)) {
+									legalValuesScoresSum += valuesScores[row][col][value];
+							}
+							else
+									valuesScores[row][col][value] = 0;
+						}
+
+						if (valuesScores == 0)
+							continue;
+
+						/* Normalise relevant scores: */
+						for (value = 1; value <= MN; value++) {
+							if (valuesScores[row][col][value] > 0) {
+								incrementalNormalisedScore += valuesScores[row][col][value] / legalValuesScoresSum;
+								valuesScores[row][col][value] = incrementalNormalisedScore;
+							}
+						}
+						/* Randomise one of the legal values: */
+						randNum = getRealRand(0.0, 1.0);
+						for (value = 1; value <= MN; value++) {
+							if (valuesScores[row][col][value] >= randNum)
+								if (valuesScores[row][col][value] <= minimum) {
+									minimum = valuesScores[row][col][value];
+									minimumValue = value;
+								}
+						}
+						if (minimumValue != -1)
+							setTempFunc(tmpGameState, row, col, minimumValue);
+					}
+				}
+			if (exportBoard(tmpGameState, &newBoard)) {
+				/* TODO: save boardSolution to state... and document all changes for redo-undo list... */
+
+				cleanupBoard(&newBoard);
+			} else
+				retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+
+			cleanupGameState(tmpGameState);
+		}
+		break;
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_MEMORY_ALLOCATION_FAILURE:
+		retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		break;
+	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_BOARD_ISNT_SOLVABLE:
+		retVal = PERFORM_GUESS_COMMAND_COULD_NOT_SOLVE_BOARD;
+		break;
+	default:
+		retVal = PERFORM_GUESS_COMMAND_GUROBI_ERROR;
+		break;
+	}
+
+	freeValuesScoresArr(valuesScores, &board);
+	cleanupBoard(&board);
+
+	return retVal;
+}
+
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
 
@@ -1352,8 +1481,8 @@ int performCommand(State* state, Command* command) {
 			return performSetCommand(state, command);*/
 		case COMMAND_TYPE_VALIDATE:
 			return performValidateCommand(state, command);
-		/*case COMMAND_TYPE_GUESS:
-			return performGuessCommand(state, command);*/
+		case COMMAND_TYPE_GUESS:
+			return performGuessCommand(state, command);
 		case COMMAND_TYPE_GENERATE:
 			return performGenerateCommand(state, command);
 		/*case COMMAND_TYPE_UNDO:

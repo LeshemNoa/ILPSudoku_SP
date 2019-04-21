@@ -145,6 +145,8 @@ bool exportBoard(GameState* gameState, Board* boardInOut);
 
 void cleanupCellLegalValuesStruct(CellLegalValues* cellLegalValuesInOut);
 
+bool isValueLegalForCell(GameState* gameState, int row, int col, int value);
+
 bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegalValues* cellLegalValuesInOut);
 
 void freeCellsLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues** cellsLegalValuesOut);
