@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "gurobi_c.h"
+
 #include "game.h"
 
 #define ERROR_SUCCESS (0)

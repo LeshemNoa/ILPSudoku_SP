@@ -1,5 +1,4 @@
 #include "ILP_solver.h"
-#include "gurobi_c.h"
 
 #define UNUSED(x) (void)(x)
 

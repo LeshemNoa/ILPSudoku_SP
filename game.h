@@ -24,7 +24,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+
 #include "linked_list.h" 
+#include "undo_redo_list.h"
+#include "rec_stack.h"
 
 /**
  * The value defined in this constant would mark an empty cell in the sudoku board.

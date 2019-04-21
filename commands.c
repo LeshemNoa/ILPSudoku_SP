@@ -1,5 +1,4 @@
 #include "commands.h"
-#include "game.h"
 
 #define UNUSED(x) (void)(x)
 

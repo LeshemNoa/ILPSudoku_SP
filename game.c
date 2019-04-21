@@ -1,6 +1,4 @@
 #include "game.h"
-#include "undo_redo_list.h"
-#include "rec_stack.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -48,7 +46,7 @@ int getBoardSize_MN2(GameState* gameState) {
 }
 
 bool isIndexInRange(GameState* gameState, int index) {
-	return index >= 0 && index <= getBlockSize_MN(gameState) - 1;
+	return index >= 0 && index < getBlockSize_MN(gameState);
 }
 
 bool isCellValueInRange(GameState* gameState, int value) {
