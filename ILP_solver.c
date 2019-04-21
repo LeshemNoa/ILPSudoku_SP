@@ -215,9 +215,9 @@ addVariablesAndObjectiveFunctionToModelErrorCode addVariablesAndObjectiveFunctio
 
 	}
 
-	if (obj == NULL)
+	if (obj != NULL)
 		free(obj);
-	if (vtype == NULL)
+	if (vtype != NULL)
 		free(vtype);
 
 	return retVal;
