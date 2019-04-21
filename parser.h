@@ -18,6 +18,8 @@
 
 bool parseIntArg(char* arg, int* dst);
 
+bool parseIntArgOffset(char* arg, int* dst, int offset);
+
 bool parseBooleanIntArg(char* arg, bool* dst);
 
 bool parseStringArg(char* arg, char** dst);

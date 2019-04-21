@@ -1,4 +1,5 @@
 #include "commands.h"
+#include "game.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -335,13 +336,14 @@ bool markErrorsArgsParser(char* arg, int argNo, void* arguments) {
  * @return true 		iff parseIntArg successfully parsed and set a valid integer
  * @return false 		iff the parsing failed
  */
+
 bool setArgsParser(char* arg, int argNo, void* arguments) {
 	SetCommandArguments* setArguments = (SetCommandArguments*)arguments;
 	switch (argNo) {
 	case 1:
-		return parseIntArg(arg, &(setArguments->col));
+		return parseIntArgOffset(arg, &(setArguments->col), -1);
 	case 2:
-		return parseIntArg(arg, &(setArguments->row));
+		return parseIntArgOffset(arg, &(setArguments->row), -1);
 	case 3:
 		return parseIntArg(arg, &(setArguments->value));
 	}
@@ -442,9 +444,9 @@ bool hintArgsParser(char* arg, int argNo, void* arguments) {
 	HintCommandArguments* hintArguments = (HintCommandArguments*)arguments;
 	switch (argNo) {
 	case 1:
-		return parseIntArg(arg, &(hintArguments->col));
+		return parseIntArgOffset(arg, &(hintArguments->col), -1);
 	case 2:
-		return parseIntArg(arg, &(hintArguments->row));
+		return parseIntArgOffset(arg, &(hintArguments->row), -1);
 	}
 	return false;
 }
@@ -464,9 +466,9 @@ bool guessHintArgsParser(char* arg, int argNo, void* arguments) {
 	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)arguments;
 	switch (argNo) {
 	case 1:
-		return parseIntArg(arg, &(guessHintArguments->col));
+		return parseIntArgOffset(arg, &(guessHintArguments->col), -1);
 	case 2:
-		return parseIntArg(arg, &(guessHintArguments->row));
+		return parseIntArgOffset(arg, &(guessHintArguments->row), -1);
 	}
 	return false;
 }
@@ -839,7 +841,7 @@ LoadBoardFromFileErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) 
 				Board tempBoard = {0};
 				tempBoard.numRowsInBlock_M = m; tempBoard.numColumnsInBlock_N = n;
 				if (!createEmptyBoard(&tempBoard)) {
-					retVal = PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+					retVal = (LoadBoardFromFileErrorCode)PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
 				} else {
 					if (!readCellsFromFileToBoard(file, &tempBoard)) {
 						retVal = LOAD_BOARD_FROM_FILE_BAD_FORMAT_FAILED_TO_READ_A_CELL;
@@ -874,7 +876,7 @@ PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 		board.numColumnsInBlock_N = DEFAULT_N;
 	} else { 						  /* Open from file */
 		PerformEditCommandErrorCode retVal = ERROR_SUCCESS;
-		retVal = loadBoardFromFile(editArguments->filePath, &board);
+		retVal = (PerformEditCommandErrorCode)loadBoardFromFile(editArguments->filePath, &board);
 		if (retVal != ERROR_SUCCESS)
 			return PERFORM_EDIT_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE + retVal;
 	}
@@ -906,7 +908,7 @@ PerformSolveCommandErrorCode performSolveCommand(State* state, Command* command)
 
 	Board board = {0};
 	PerformSolveCommandErrorCode retVal = ERROR_SUCCESS;
-	retVal = loadBoardFromFile(solveArguments->filePath, &board); /* Note: any superficially legitimate board may be
+	retVal = (PerformSolveCommandErrorCode)loadBoardFromFile(solveArguments->filePath, &board); /* Note: any superficially legitimate board may be
 		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   loaded for solving, even one that's inherently
 		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   unsolvable (i.e.: two fixed cells that are
 		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	   neighbours and share the same value). */
@@ -943,6 +945,8 @@ typedef enum {
 	WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_FIXED,
 	WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_NOT_EMPTY
 } writeCellFromBoardToFileFixednessCriterion;
+
+
 
 bool writeCellFromBoardToFile(FILE* file, Cell* cell, writeCellFromBoardToFileFixednessCriterion fixednessCriterion, bool isLastInRow) {
 	int fprintfRetVal = 0;
@@ -1018,7 +1022,7 @@ PerformSaveCommandErrorCode performSaveCommand(State* state, Command* command) {
 		return PERFORM_SAVE_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
-	retVal = saveBoardToFile(saveArguments->filePath, &exportedBoard, fixednessCriteria);
+	retVal = (PerformSaveCommandErrorCode)saveBoardToFile(saveArguments->filePath, &exportedBoard, fixednessCriteria);
 	cleanupBoard(&exportedBoard);
 	if (retVal != ERROR_SUCCESS)
 		return PERFORM_SAVE_COMMAND_ERROR_IN_SAVE_BOARD_TO_FILE + retVal;
@@ -1464,6 +1468,56 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 	return retVal;
 }
 
+typedef enum {
+	PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
+} PerformSetCommandErrorCode;
+
+/* Assuming that upon call to this functions all conditions have been
+checked - in solve mode fixed cells cannot be set etc. This is consistent
+with the command loop flow */
+PerformSetCommandErrorCode performSetCommand(State* state, Command* command) {
+	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
+	if(!setPuzzleCellMove(state, setArguments->value, setArguments->row, setArguments->col)){
+		return PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	}
+	else {return ERROR_SUCCESS; }
+}
+
+int performUndoCommand(State* state, Command* command) {
+	UNUSED(command);
+	undoMove(state);
+	return ERROR_SUCCESS;
+}
+
+int performRedoCommand(State* state, Command* command) {
+	UNUSED(command);
+	redoMove(state);
+	return ERROR_SUCCESS;
+}
+
+
+typedef enum {
+	PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
+} PerformNumSoltionsCommandErrorCode;
+
+PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Command* command) {	
+	Board board;
+	int numSolutions;
+
+	UNUSED(command);
+
+	if (!exportBoard(state->gameState, &board)) {
+		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	}
+
+	if (!calculateNumSolutions(&board, &numSolutions)) {
+		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	}
+
+	printf("Number of possible solutions: %d\n", numSolutions);
+	return ERROR_SUCCESS;
+}
+
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
 
@@ -1477,27 +1531,27 @@ int performCommand(State* state, Command* command) {
 			return performEditCommand(state, command);
 		case COMMAND_TYPE_MARK_ERRORS:
 			return performMarkErrorsCommand(state, command);
-		/*case COMMAND_TYPE_SET:
-			return performSetCommand(state, command);*/
+		case COMMAND_TYPE_SET:
+			return performSetCommand(state, command);
 		case COMMAND_TYPE_VALIDATE:
 			return performValidateCommand(state, command);
 		case COMMAND_TYPE_GUESS:
 			return performGuessCommand(state, command);
 		case COMMAND_TYPE_GENERATE:
 			return performGenerateCommand(state, command);
-		/*case COMMAND_TYPE_UNDO:
+		case COMMAND_TYPE_UNDO:
 			return performUndoCommand(state, command);
 		case COMMAND_TYPE_REDO:
-			return performRedoCommand(state, command);*/
+			return performRedoCommand(state, command);
 		case COMMAND_TYPE_SAVE:
 			return performSaveCommand(state, command);
 		case COMMAND_TYPE_HINT:
 			return performHintCommand(state, command);
 		case COMMAND_TYPE_GUESS_HINT:
 			return performGuessHintCommand(state, command);
-		/*case COMMAND_TYPE_NUM_SOLUTIONS:
+		case COMMAND_TYPE_NUM_SOLUTIONS:
 			return performNumSolutionsCommand(state, command);
-		case COMMAND_TYPE_AUTOFILL:
+		/*case COMMAND_TYPE_AUTOFILL:
 			return performAutofillCommand(state, command);
 		case COMMAND_TYPE_RESET:
 			return performResetCommand(state, command);*/

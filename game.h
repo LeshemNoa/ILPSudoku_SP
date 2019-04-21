@@ -24,6 +24,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "linked_list.h" 
 
 /**
  * The value defined in this constant would mark an empty cell in the sudoku board.
@@ -74,6 +75,8 @@ typedef void (*getRowBasedIDByCategoryBasedIDFunc)(Board* board, int categoryNo,
 
 
 int getNumEmptyCells(GameState* gameState);
+
+int getNumFilledBoardCells(Board* board);
 
 int getNumColumnsInBlock_N(GameState* gameState);
 
@@ -154,5 +157,15 @@ void freeCellsLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, Cel
 bool getSuperficiallyLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues*** cellsLegalValuesOut);
 
 void setTempFunc(GameState* gameState, int row, int indexInRow, int value);
+/* Should this be in the .h file? */
+int setPuzzleCell(State* state, int row, int col, int value);
+
+bool setPuzzleCellMove(State* state, int value, int row, int col);
+
+void undoMove(State* state);
+
+void redoMove(State* state);
+
+bool calculateNumSolutions(Board* board, int* numSolutions);
 
 #endif /* GAME_H_ */

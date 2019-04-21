@@ -1,4 +1,6 @@
 #include "game.h"
+#include "undo_redo_list.h"
+#include "rec_stack.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -21,6 +23,7 @@ struct GameState {
 	int** rowsCellsValuesCounters;
 	int** columnsCellsValuesCounters;
 	int** blocksCellsValuesCounters;
+	UndoRedoList moveList;
 };
 
 int getNumEmptyCells(GameState* gameState) {
@@ -45,7 +48,7 @@ int getBoardSize_MN2(GameState* gameState) {
 }
 
 bool isIndexInRange(GameState* gameState, int index) {
-	return index >= 1 && index <= getBlockSize_MN(gameState);
+	return index >= 0 && index <= getBlockSize_MN(gameState) - 1;
 }
 
 bool isCellValueInRange(GameState* gameState, int value) {
@@ -109,6 +112,59 @@ int whichBlock(Board* board, int row, int col) {
 	int rowInBlocksMatrix = row / board->numRowsInBlock_M;
 
 	return rowInBlocksMatrix * board->numRowsInBlock_M + colInBlocksMatrix;
+}
+
+int getBlockNumberByCell(Board* board, int row, int col) {
+	return ((row / board->numRowsInBlock_M) * board->numRowsInBlock_M) +
+			(col / board->numColumnsInBlock_N);
+}
+
+bool getNextEmptyBoardCell(Board* board, int row, int col, int* outRow, int* outCol) {
+	Cell* curr;
+	int MN = board->numColumnsInBlock_N * board->numRowsInBlock_M;
+
+	while (row < MN) {
+		curr = getBoardCellByRow(board, row, col);
+		if (curr->value == EMPTY_CELL_VALUE) {
+			*outRow = row;
+			*outCol = col;
+			return true;
+		}
+
+		if (col == MN - 1) {
+			row = row + 1;
+			col = 0;
+		} else {
+			/* row = row; */
+			col = col + 1;
+		}
+	}
+
+	return false;
+}
+
+int getNumEmptyBoardCells(Board* board) {
+	int i, j;
+	int numEmpty = 0;
+	Cell* curr;
+	int MN = board->numColumnsInBlock_N * board->numRowsInBlock_M;
+	for (i = 0; i < MN; i++) {
+		for (j = 0; j < MN; j++) {
+			 curr = getBoardCellByRow(board, i, j);
+			if (curr->value == EMPTY_CELL_VALUE) {
+				numEmpty++;
+			}
+		}
+	}
+	return numEmpty;
+}
+
+int getNumFilledBoardCells(Board* board) {
+	int N, M, boardSize;
+	N = board->numColumnsInBlock_N;
+	M = board->numRowsInBlock_M;
+	boardSize = N * N * M * M;
+	return boardSize - getNumEmptyBoardCells(board);
 }
 
 bool isBoardCellFixed(Cell* cell) {
@@ -452,6 +508,7 @@ GameState* createGameState(Board* board) {
 			gameState->numEmpty = countNumEmptyCells(&(gameState->puzzle));
 			updateCellsErroneousness(gameState);
 			gameState->numErroneous = countNumErroneousCells(&(gameState->puzzle));
+			initUndoRedo(&(gameState->moveList));
 
 			return gameState;
 		}
@@ -494,6 +551,70 @@ void zeroArray(int* arr, int size) {
 	int i = 0;
 	for (i = 0; i < size; i++)
 		arr[i] = 0;
+}
+
+bool checkErroneousCellsInCategory(Board* board, int categoryNo, getCellsByCategoryFunc getCellFunc, bool* outErroneous) {
+	int NM = board->numColumnsInBlock_N * board->numRowsInBlock_M;
+	int index = 0;
+
+	int* valuesCounters = calloc(NM + 1, sizeof(int));
+	if (valuesCounters == NULL)
+		return false;
+
+	*outErroneous = false;
+	for (index = 0; index < NM; index++) {
+		Cell* cell = getCellFunc(board, categoryNo, index);
+		if (!isBoardCellEmpty(cell)) {
+			int value = getBoardCellValue(cell);
+			valuesCounters[value]++;
+		}
+	}
+
+	for (index = 0; index < NM; index++) {
+		Cell* cell = getCellFunc(board, categoryNo, index);
+		if (!isBoardCellEmpty(cell)) {
+			int value = getBoardCellValue(cell);
+			if (valuesCounters[value] > 1) {
+				*outErroneous = true;
+				break;
+			}
+		}
+	}
+
+	free(valuesCounters);
+	return true;
+}
+
+bool checkErroneousCellsByCategory(Board* board, getCellsByCategoryFunc getCellFunc, bool* outErroneous) {
+	int numCategories = board->numColumnsInBlock_N * board->numRowsInBlock_M;
+	int index = 0;
+
+	for (index = 0; index < numCategories; index++)
+		if (!checkErroneousCellsInCategory(board, index, getCellFunc, outErroneous))
+			return false;
+
+	return true;
+}
+
+bool checkErroneousCells(Board* board, bool* outErroneous) {
+	if (!checkErroneousCellsByCategory(board, getBoardCellByRow, outErroneous))
+		return false;
+	
+	if (outErroneous) {
+		return true;
+	}
+
+	if (!checkErroneousCellsByCategory(board, getBoardCellByColumn, outErroneous))
+			return false;
+
+	if (outErroneous) {
+		return true;
+	}
+
+	if (!checkErroneousCellsByCategory(board, getBoardCellByBlock, outErroneous))
+			return false;
+
+	return true;
 }
 
 bool findErroneousCellsInCategory(Board* board, int categoryNo, getCellsByCategoryFunc getCellFunc) {
@@ -746,6 +867,169 @@ void setTempFunc(GameState* gameState, int row, int indexInRow, int value) { /* 
 	gameState->rowsCellsValuesCounters[row][value]++;
 	gameState->columnsCellsValuesCounters[indexInRow][value]++;
 	gameState->blocksCellsValuesCounters[whichBlock(&(gameState->puzzle), row, indexInRow)][value]++;
-
-	updateCellsErroneousness(gameState); /* TODO: could do something more efficient (going over just one row, col and block) */
+	updateCellsErroneousness(gameState); /* TODO: could do something more efficient (going over just one row, col and block) */	
 }
+
+/****** From here on - Noa's additions *******/
+
+void setCellValue(Board* board, int row, int col, int value) {
+	board->cells[row][col].value = value;
+}
+
+/* Maintaining the invariant: at all times, all erroneous cells are marked
+correctly after each change in the board. Returning the previous value
+of that cell */
+int setPuzzleCell(State* state, int row, int col, int value) {
+	int prevValue = getCellValue(state->gameState, row, col);
+	if (isCellEmpty(state->gameState, row, col) && value != EMPTY_CELL_VALUE) {
+		state->gameState->numEmpty--;
+	}
+	if (!isCellEmpty(state->gameState, row, col) && value == EMPTY_CELL_VALUE) {
+		state->gameState->numEmpty++;
+	}
+	setCellValue(&(state->gameState->puzzle), row, col, value);	
+	return prevValue;
+}
+
+/* returns false upon memory allocation error. This function also
+causes the change in the board to be reflected in the undo-redo list  */
+bool setPuzzleCellMove(State* state, int value, int row, int col) {
+	int prevVal;
+	Move* move = (Move*) malloc(sizeof(Move));
+	if (move == NULL) { return false; }
+	initList(&move->singleCellMoves);
+
+	prevVal = setPuzzleCell(state, row, col, value);
+	findErroneousCells(&(state->gameState->puzzle));
+
+	if (addSingleCellMoveToMove(move, prevVal, value, col, row)) {
+		return addNewMoveToList(&(state->gameState->moveList), move);
+	}
+	else {
+		free(move);
+		return false;
+	}
+}
+
+void undoMove(State* state) {
+	singleCellMove* scMove;
+	Node* currNode;
+	Move* moveToUndo = undoInList(&(state->gameState->moveList));
+	if (moveToUndo == NULL) {
+		return; /* nothing to undo */
+	}
+	currNode = moveToUndo->singleCellMoves.head;
+	while (currNode != NULL) {
+		scMove = (singleCellMove*) currNode->data;
+		setPuzzleCell(state, scMove->row, scMove->col, scMove->prevVal);
+		currNode = currNode->next;
+	}
+	findErroneousCells(&(state->gameState->puzzle));
+}
+
+void redoMove(State* state) {
+	singleCellMove* scMove;
+	Node* currNode;
+	Move* moveToRedo = redoInList(&(state->gameState->moveList));
+	if (moveToRedo == NULL) {
+		return; /* nothing to redo */
+	}
+	currNode = moveToRedo->singleCellMoves.head;
+	while (currNode != NULL) {
+		scMove = (singleCellMove*) currNode->data;
+		setPuzzleCell(state, scMove->row, scMove->col, scMove->newVal);
+		currNode = currNode->next;
+	}
+	findErroneousCells(&(state->gameState->puzzle));
+}
+
+bool calculateNumSolutions(Board* board, int* numSolutions) {
+	Stack stack;
+	bool erroneous;
+	int curCol, curRow;
+	int sum = 0;
+	int MN = board->numColumnsInBlock_N * board->numRowsInBlock_M;
+	initStack(&stack);
+
+	/* check if board has any errors to begin with */
+	if (!checkErroneousCells(board, &erroneous)) {
+		return false;
+	}
+
+	if (erroneous) {
+		/* board has errors, no possible solutions */
+		*numSolutions = 0;
+		return true;
+	}
+
+	if (!getNextEmptyBoardCell(board, 0, 0, &curRow, &curCol)) {
+		*numSolutions = 0;
+		return true;
+	}
+
+	/* push initial cell */
+	if (!pushStack(&stack, curRow, curCol)) {
+		/* memory error */
+		return false;
+	}
+
+	while (peekStack(&stack, &curRow, &curCol)) {
+		Cell* cell;
+		int nextRow = 0, nextCol = 0;
+
+		cell = getBoardCellByRow(board, curRow, curCol);
+		if (getBoardCellValue(cell) == MN) { /* max value */
+			/* back track */
+			setCellValue(board, curRow, curCol, EMPTY_CELL_VALUE);
+			popStack(&stack);
+			continue;
+		}
+
+		/* increment value, not assuming EMPTY_CELL_VALUE == 0 */
+		if (isBoardCellEmpty(cell)) {
+			setCellValue(board, curRow, curCol, 1);
+		} else {
+			setCellValue(board, curRow, curCol, cell->value + 1);
+		}
+
+		/* check if board is still valid after incrementing value*/
+		if (
+			!checkErroneousCellsInCategory(board, curRow, getBoardCellByRow, &erroneous) ||	erroneous ||
+			!checkErroneousCellsInCategory(board, curCol, getBoardCellByColumn, &erroneous) || erroneous ||
+			!checkErroneousCellsInCategory(
+				board, 
+				getBlockNumberByCell(board, curRow, curCol), 
+				getBoardCellByBlock,
+				&erroneous) || erroneous)
+		{
+			if (erroneous) {
+				continue;
+			} else {
+				/* memory error */
+				while(popStack(&stack)) {
+					/* empty the stack */
+				}
+				return false;	
+			}
+		}
+
+		if (!getNextEmptyBoardCell(board, curRow, curCol, &nextRow, &nextCol)) {
+			/* no more empty cells, count as solved */
+			sum++;
+			continue;
+		}
+
+		/* count solutions for next empty cell given current board */
+		if (!pushStack(&stack, nextRow, nextCol)) {
+			/* memory error */
+			while(popStack(&stack)) {
+				/* empty the stack */
+			}
+			return false;
+		}
+	}
+
+	*numSolutions = sum;
+	return true;
+}
+
