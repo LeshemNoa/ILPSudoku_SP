@@ -32,13 +32,10 @@
 #define EXIT_COMMAND_TYPE_STRING ("exit")
 #define IGNORE_COMMAND_TYPE_STRING ("ignore")
 
-/* TODO: consider replacing this with a function that builds these strings of the above Defines */
 #define INIT_MODE_LIST_OF_ALLOWED_COMMANDS ("solve, edit, exit")
 #define EDIT_MODE_LIST_OF_ALLOWED_COMMANDS ("solve, edit, print_board, set, validate, generate, undo, redo, save, num_solutions, reset, exit")
 #define SOLVE_MODE_LIST_OF_ALLOWED_COMMANDS ("solve, edit, mark_errors, print_board, set, validate, guess, undo, redo, save, hint, guess_hint, num_solutions, autofill, reset, exit")
 
-/* TODO: consider replacing this with a function that builds these strings of the above Defines
- * 		 Or maybe eliminate all the repetitions */
 #define SOLVE_COMMAND_LIST_OF_ALLOWING_STATES ("Init, Edit, Solve")
 #define EDIT_COMMAND_LIST_OF_ALLOWING_STATES ("Init, Edit, Solve")
 #define MARK_ERRORS_COMMAND_LIST_OF_ALLOWING_STATES ("Solve")

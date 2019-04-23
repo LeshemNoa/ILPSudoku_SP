@@ -109,7 +109,7 @@ void getRowBasedIDGivenBlockBasedID(Board* board, int block, int indexInBlock, i
 	*indexInRow = colInBlocksMatrix * board->numColumnsInBlock_N + colInBlock;
 }
 
-Cell* getBoardCellByBlock(Board* board, int block, int index) { /* Note: not to be exported (TODO: figure out why I wrote this)*/
+Cell* getBoardCellByBlock(Board* board, int block, int index) {
 	int row = 0, indexInRow = 0;
 	getRowBasedIDGivenBlockBasedID(board, block, index, &row, &indexInRow);
 	return getBoardCellByRow(board, row, indexInRow);
@@ -315,7 +315,7 @@ int countNumEmptyCells(Board* board) {
 	return numEmptyCells;
 }
 
-void freeSpecificCellsValuesCounters(int** cellValuesCounters, Board* board) { /* TODO: reconsider...: function needs only MN but I decided to have a Board parameter for symmetry's sake (with respect to the creating func) */
+void freeSpecificCellsValuesCounters(int** cellValuesCounters, Board* board) {
 	int i = 0;
 	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
 

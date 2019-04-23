@@ -2686,7 +2686,7 @@ bool shouldPrintBoardPostCommand(CommandType commandType) {
 	case COMMAND_TYPE_EDIT:
 	case COMMAND_TYPE_PRINT_BOARD:
 	case COMMAND_TYPE_SET:
-	case COMMAND_TYPE_GUESS: /* TODO: check! this is contrary to instructions, but seems legit (?) */
+	case COMMAND_TYPE_GUESS:
 	case COMMAND_TYPE_GENERATE:
 	case COMMAND_TYPE_UNDO:
 	case COMMAND_TYPE_REDO:
