@@ -1147,7 +1147,7 @@ randomlyFillEmptyCellErrorCode randomlyFillEmptyCell(GameState* gameState, int r
 			int MN = getBlockSize_MN(gameState);
 			int value = (rand() % MN) + 1;
 			if (cellLegalValues.legalValues[value]) {
-				setTempFunc(gameState, row, col, value);
+				setPuzzleCell(gameState, row, col, value);
 				break;
 			}
 		}
@@ -1438,7 +1438,7 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 								}
 						}
 						if (minimumValue != -1)
-							setTempFunc(tmpGameState, row, col, minimumValue);
+							setPuzzleCell(tmpGameState, row, col, minimumValue);
 					}
 				}
 			if (exportBoard(tmpGameState, &newBoard)) {
@@ -1501,16 +1501,11 @@ typedef enum {
 } PerformNumSoltionsCommandErrorCode;
 
 PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Command* command) {	
-	Board board;
 	int numSolutions;
 
 	UNUSED(command);
 
-	if (!exportBoard(state->gameState, &board)) {
-		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
-	}
-
-	if (!calculateNumSolutions(&board, &numSolutions)) {
+	if (!calculateNumSolutions(state->gameState, &numSolutions)) {
 		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 

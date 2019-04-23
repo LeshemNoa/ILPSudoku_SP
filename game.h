@@ -156,9 +156,7 @@ void freeCellsLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, Cel
 
 bool getSuperficiallyLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues*** cellsLegalValuesOut);
 
-void setTempFunc(GameState* gameState, int row, int indexInRow, int value);
-/* Should this be in the .h file? */
-int setPuzzleCell(State* state, int row, int col, int value);
+int setPuzzleCell(GameState* gameState, int row, int indexInRow, int value);
 
 bool setPuzzleCellMove(State* state, int value, int row, int col);
 
@@ -166,6 +164,6 @@ void undoMove(State* state);
 
 void redoMove(State* state);
 
-bool calculateNumSolutions(Board* board, int* numSolutions);
+bool calculateNumSolutions(GameState* state, int* numSolutions);
 
 #endif /* GAME_H_ */
