@@ -1,10 +1,16 @@
+#include <stdlib.h>
+
 #include "game.h"
+
+#include "undo_redo_list.h"
+#include "rec_stack.h"
 
 #define UNUSED(x) (void)(x)
 
 #define GAME_MODE_INIT_STRING ("INIT")
 #define GAME_MODE_EDIT_STRING ("EDIT")
 #define GAME_MODE_SOLVE_STRING ("SOLVE")
+
 
 typedef Cell* (*getCellsByCategoryFunc)(Board* board, int categoryNo, int indexInCategory);
 
@@ -26,6 +32,10 @@ struct GameState {
 
 int getNumEmptyCells(GameState* gameState) {
 	return gameState->numEmpty;
+}
+
+int getNumErroneousCells(GameState* gameState) {
+	return gameState->numErroneous;
 }
 
 int getNumColumnsInBlock_N(GameState* gameState) {
@@ -193,7 +203,7 @@ void setBoardCellErroneousness(Cell* cell, bool isErroneous) {
 	cell->isErroneous = isErroneous;
 }
 
-int countNumErroneousCells(Board* board) {
+/*int countNumErroneousCells(Board* board) {
 	int numErroneous = 0;
 	int NM = board->numColumnsInBlock_N * board->numRowsInBlock_M;
 	int row = 0;
@@ -205,13 +215,17 @@ int countNumErroneousCells(Board* board) {
 				numErroneous++;
 
 	return numErroneous;
+}*/
+
+bool isBoardFilled(GameState* gameState) {
+	return (gameState->numEmpty == 0);
 }
 
 bool isBoardErroneous(GameState* gameState) {
 	return (gameState->numErroneous > 0);
 }
 
-bool isBoardSolvable(GameState* gameState) {
+bool isBoardSolvable(GameState* gameState) { /* TODO: this func */
 	UNUSED(gameState);
 
 	return true;
@@ -401,26 +415,32 @@ void updateCellsValuesCountersByCategory(int** categoryCellsValuesCounters, Boar
 
 void updateCellErroneousness(GameState* gameState, int row, int col) {
 	Cell* cell = getBoardCellByRow(&(gameState->puzzle), row, col);
-	if (!isBoardCellEmpty(cell)) {
-		int oldErroneousness = isBoardCellErroneous(cell);
-		int deltaInNumErroneous = 0;
+
+	int oldErroneousness = isBoardCellErroneous(cell);
+	bool newErroneousness = false;
+	int deltaInNumErroneous = 0;
+
+	if (isBoardCellEmpty(cell)) {
+		newErroneousness = false;
+
+		if (oldErroneousness == true)
+			deltaInNumErroneous = -1;
+	} else {
 
 		int block = whichBlock(&(gameState->puzzle), row, col);
 		int value = getBoardCellValue(cell);
-		bool erroneousness = (gameState->rowsCellsValuesCounters[row][value] > 1) ||
-							 (gameState->columnsCellsValuesCounters[col][value] > 1) ||
-							 (gameState->blocksCellsValuesCounters[block][value] > 1);
+		newErroneousness = (gameState->rowsCellsValuesCounters[row][value] > 1) ||
+						   (gameState->columnsCellsValuesCounters[col][value] > 1) ||
+						   (gameState->blocksCellsValuesCounters[block][value] > 1);
 
-		setBoardCellErroneousness(cell, erroneousness);
-
-		if ((oldErroneousness == true) && (erroneousness == false))
+		if ((oldErroneousness == true) && (newErroneousness == false))
 			deltaInNumErroneous = -1;
-		else if ((oldErroneousness == false) && (erroneousness == true))
+		else if ((oldErroneousness == false) && (newErroneousness == true))
 			deltaInNumErroneous = +1;
-
-		gameState->numErroneous += deltaInNumErroneous;
 	}
 
+	setBoardCellErroneousness(cell, newErroneousness);
+	gameState->numErroneous += deltaInNumErroneous;
 }
 
 void updateCellErroneousnessInRow(GameState* gameState, int row) { /* TODO: should be called by, for example, set (erroneousness of cells in the row might have changed) */
@@ -504,9 +524,9 @@ GameState* createGameState(Board* board) {
 
 		if (success) {
 			gameState->numEmpty = countNumEmptyCells(&(gameState->puzzle));
+			gameState->numErroneous = 0;
 			updateCellsErroneousness(gameState);
-			gameState->numErroneous = countNumErroneousCells(&(gameState->puzzle));
-			initUndoRedo(&(gameState->moveList));
+			initUndoRedo(&(gameState->moveList)); /* TODO: have this freed at cleanupGameState */
 
 			return gameState;
 		}
@@ -879,13 +899,27 @@ correctly after each change in the board. Returning the previous value
 of that cell */
 int setPuzzleCell(State* state, int row, int col, int value) {
 	int prevValue = getCellValue(state->gameState, row, col);
+
+	if (prevValue != EMPTY_CELL_VALUE) {
+		state->gameState->rowsCellsValuesCounters[row][prevValue]--;
+		state->gameState->columnsCellsValuesCounters[col][prevValue]--;
+		state->gameState->blocksCellsValuesCounters[whichBlock(&(state->gameState->puzzle), row, col)][prevValue]--;
+	}
+
+	if (value != EMPTY_CELL_VALUE) {
+		state->gameState->rowsCellsValuesCounters[row][value]++;
+		state->gameState->columnsCellsValuesCounters[col][value]++;
+		state->gameState->blocksCellsValuesCounters[whichBlock(&(state->gameState->puzzle), row, col)][value]++;
+	}
+
 	if (isCellEmpty(state->gameState, row, col) && value != EMPTY_CELL_VALUE) {
 		state->gameState->numEmpty--;
 	}
 	if (!isCellEmpty(state->gameState, row, col) && value == EMPTY_CELL_VALUE) {
 		state->gameState->numEmpty++;
 	}
-	setCellValue(&(state->gameState->puzzle), row, col, value);	
+	setCellValue(&(state->gameState->puzzle), row, col, value);
+	updateCellsErroneousness(state->gameState); /* TODO: could do something more efficient (going over just one row, col and block) */
 	return prevValue;
 }
 
@@ -893,12 +927,12 @@ int setPuzzleCell(State* state, int row, int col, int value) {
 causes the change in the board to be reflected in the undo-redo list  */
 bool setPuzzleCellMove(State* state, int value, int row, int col) {
 	int prevVal;
-	Move* move = (Move*) malloc(sizeof(Move));
+	Move* move = (Move*) calloc(1, sizeof(Move));
 	if (move == NULL) { return false; }
 	initList(&move->singleCellMoves);
 
 	prevVal = setPuzzleCell(state, row, col, value);
-	findErroneousCells(&(state->gameState->puzzle));
+	/*findErroneousCells(&(state->gameState->puzzle));*/
 
 	if (addSingleCellMoveToMove(move, prevVal, value, col, row)) {
 		return addNewMoveToList(&(state->gameState->moveList), move);
@@ -943,7 +977,7 @@ void redoMove(State* state) {
 
 bool calculateNumSolutions(Board* board, int* numSolutions) {
 	Stack stack;
-	bool erroneous;
+	bool erroneous = false;
 	int curCol, curRow;
 	int sum = 0;
 	int MN = board->numColumnsInBlock_N * board->numRowsInBlock_M;
@@ -1029,5 +1063,15 @@ bool calculateNumSolutions(Board* board, int* numSolutions) {
 
 	*numSolutions = sum;
 	return true;
+}
+
+bool isSolutionSuccessful(GameState* gameState) {
+	return (isBoardFilled(gameState)) &&
+		   (!isBoardErroneous(gameState));
+}
+
+bool isSolutionFailing(GameState* gameState) {
+	return (isBoardFilled(gameState)) &&
+		   (isBoardErroneous(gameState));
 }
 

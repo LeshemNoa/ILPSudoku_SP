@@ -1,5 +1,8 @@
 #ifndef REC_STACK_H
 #define REC_STACK_H
+
+#include <stdbool.h>
+
 #include "linked_list.h"
 
 typedef struct {

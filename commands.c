@@ -1,4 +1,12 @@
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <stdio.h>
+
 #include "commands.h"
+
+#include "parser.h"
+#include "ILP_solver.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -12,6 +20,14 @@
 
 #define GUESS_THRESHOLD_MIN_VALUE (0.0)
 #define GUESS_THRESHOLD_MAX_VALUE (1.0)
+
+#define COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR ("memory allocation failure\n")
+
+typedef char* (*commandArgsGetExpectedRangeStringFunc)(int argNo, GameState* gameState);
+typedef char* (*getCommandArgsValidatorErrorStringFunc)(int error);
+typedef char* (*getCommandErrorStringFunc)(int error);
+typedef bool (*isCommandErrorRecoverableFunc)(int error);
+typedef char* (*getCommandStrOutputFunc)(Command* command, GameState* gameState);
 
 /* TODO: check necessity of IGNORE in all of the below */
 
@@ -362,6 +378,47 @@ bool setArgsRangeChecker(void* arguments, int argNo, GameState* gameState) {
 	return false;
 }
 
+#define INT_RANGE_FORMAT ("%c%-2d, %2d%c")
+#define INT_RANGE_FORMAT_SIZE (sizeof(INT_RANGE_FORMAT)) /* Note: this is an upper boundary in current implementation */
+
+#define REAL_RANGE_FORMAT ("%c%-4.1f, %4.1f%c")
+#define REAL_RANGE_FORMAT_SIZE (sizeof(REAL_RANGE_FORMAT)) /* Note: this is an upper boundary in current implementation */
+
+#define SET_EMPTY_VALUE_STRING_FOR_EXPECTED_RANGE (", or %2d to clear")
+#define SET_EMPTY_VALUE_STRING_FOR_EXPECTED_RANGE_SIZE (sizeof(SET_EMPTY_VALUE_STRING_FOR_EXPECTED_RANGE)) /* Note: this is an upper boundary in current implementation */
+
+#define INCLUSIVE_OPENER ('[')
+#define INCLUSIVE_CLOSER (']')
+#define EXCLUSIVE_OPENER ('(')
+#define EXCLUSIVE_CLOSER ('(')
+
+char* setArgsGetExpectedRangeString(int argNo, GameState* gameState) {
+	char* str = NULL;
+	char* complexFormat = NULL;
+
+	switch (argNo) {
+	case 1:
+	case 2:
+		str = calloc(INT_RANGE_FORMAT_SIZE, sizeof(char));
+		if (str != NULL)
+			sprintf(str, INT_RANGE_FORMAT, INCLUSIVE_OPENER, 1, getBlockSize_MN(gameState), INCLUSIVE_CLOSER);
+		break;
+	case 3:
+		complexFormat = calloc(INT_RANGE_FORMAT_SIZE + SET_EMPTY_VALUE_STRING_FOR_EXPECTED_RANGE_SIZE, sizeof(char));
+		str = calloc(INT_RANGE_FORMAT_SIZE + SET_EMPTY_VALUE_STRING_FOR_EXPECTED_RANGE_SIZE, sizeof(char));
+		if ((complexFormat != NULL) && (str != NULL)) {
+			strcpy(complexFormat, INT_RANGE_FORMAT);
+			strcat(complexFormat, SET_EMPTY_VALUE_STRING_FOR_EXPECTED_RANGE);
+			sprintf(str, complexFormat, INCLUSIVE_OPENER, 1, getBlockSize_MN(gameState), INCLUSIVE_CLOSER, EMPTY_CELL_VALUE);
+		}
+		if (complexFormat != NULL)
+			free(complexFormat);
+		break;
+	}
+
+	return str;
+}
+
 bool guessArgsParser(char* arg, int argNo, void* arguments) {
 	GuessCommandArguments* guessArguments = (GuessCommandArguments*)arguments;
 	switch (argNo) {
@@ -382,6 +439,22 @@ bool guessArgsRangeChecker(void* arguments, int argNo, GameState* gameState) {
 			   (guessArguments->threshold <= GUESS_THRESHOLD_MAX_VALUE);
 	}
 	return false;
+}
+
+char* guessArgsGetExpectedRangeString(int argNo, GameState* gameState) {
+	char* str = NULL;
+
+	UNUSED(gameState);
+
+	switch (argNo) {
+	case 1:
+		str = calloc(REAL_RANGE_FORMAT_SIZE, sizeof(char));
+		if (str != NULL)
+			sprintf(str, REAL_RANGE_FORMAT, EXCLUSIVE_OPENER, GUESS_THRESHOLD_MIN_VALUE, GUESS_THRESHOLD_MAX_VALUE, INCLUSIVE_CLOSER);
+		break;
+	}
+
+	return str;
 }
 
 bool generateArgsParser(char* arg, int argNo, void* arguments) {
@@ -406,15 +479,49 @@ bool generateArgsRangeChecker(void* arguments, int argNo, GameState* gameState) 
 		return false;
 }
 
-bool generateArgsValidator(void* arguments, int argNo, GameState* gameState) {
+char* generateArgsGetExpectedRangeString(int argNo, GameState* gameState) {
+	char* str = NULL;
+
+	switch (argNo) {
+	case 1:
+	case 2:
+		str = calloc(INT_RANGE_FORMAT_SIZE, sizeof(char));
+		if (str != NULL)
+			sprintf(str, INT_RANGE_FORMAT, INCLUSIVE_OPENER, 0, getBoardSize_MN2(gameState), INCLUSIVE_CLOSER);
+		break;
+	}
+
+	return str;
+}
+
+
+typedef enum {
+	GENERATE_ARGS_VALIDATOR_NOT_ENOUGH_EMPTY_CELLS
+} GenerateArgsValidatorErrorCode;
+bool generateArgsValidator(void* arguments, int argNo, GameState* gameState, int* errorOut) {
 	GenerateCommandArguments* generateArguments = (GenerateCommandArguments*)arguments;
 		switch (argNo) {
 		case 1:
-			return (generateArguments->numEmptyCellsToFill >= 0) && (generateArguments->numEmptyCellsToFill <= getNumEmptyCells(gameState)); 
+			if (generateArguments->numEmptyCellsToFill > getNumEmptyCells(gameState)) {
+				*errorOut = GENERATE_ARGS_VALIDATOR_NOT_ENOUGH_EMPTY_CELLS;
+				return false;
+			}
+			return true;
 		case 2:
 			return true;
 		}
 		return false;
+}
+
+#define GENERATE_COMMAND_ERROR_NOT_ENOUGH_EMPTY_BOARDS_IN_CELL ("there are not enough empty cells in board")
+
+char* getGenerateArgsValidatorErrorString(int error) {
+	GenerateArgsValidatorErrorCode errorCode = error;
+	switch (errorCode) {
+	case GENERATE_ARGS_VALIDATOR_NOT_ENOUGH_EMPTY_CELLS:
+		return GENERATE_COMMAND_ERROR_NOT_ENOUGH_EMPTY_BOARDS_IN_CELL;
+	}
+	return NULL;
 }
 
 bool saveArgsParser(char* arg, int argNo, void* arguments) {
@@ -461,6 +568,21 @@ bool hintArgsRangeChecker(void* arguments, int argNo, GameState* gameState) {
 	return false;
 }
 
+char* hintArgsGetExpectedRangeString(int argNo, GameState* gameState) {
+	char* str = NULL;
+
+	switch (argNo) {
+	case 1:
+	case 2:
+		str = calloc(INT_RANGE_FORMAT_SIZE, sizeof(char));
+		if (str != NULL)
+			sprintf(str, INT_RANGE_FORMAT, INCLUSIVE_OPENER, 1, getBlockSize_MN(gameState), INCLUSIVE_CLOSER);
+		break;
+	}
+
+	return str;
+}
+
 bool guessHintArgsParser(char* arg, int argNo, void* arguments) {
 	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)arguments;
 	switch (argNo) {
@@ -481,6 +603,21 @@ bool guessHintArgsRangeChecker(void* arguments, int argNo, GameState* gameState)
 		return isIndexInRange(gameState, guessHintArguments->row);
 	}
 	return false;
+}
+
+char* guessHintArgsGetExpectedRangeString(int argNo, GameState* gameState) {
+	char* str = NULL;
+
+	switch (argNo) {
+	case 1:
+	case 2:
+		str = calloc(INT_RANGE_FORMAT_SIZE, sizeof(char));
+		if (str != NULL)
+			sprintf(str, INT_RANGE_FORMAT, INCLUSIVE_OPENER, 1, getBlockSize_MN(gameState), INCLUSIVE_CLOSER);
+		break;
+	}
+
+	return str;
 }
 
 commandArgsParser getCommandArgsParser(CommandType commandType) {
@@ -547,10 +684,71 @@ commandArgsRangeChecker getCommandArgsRangeChecker(CommandType commandType) {
 	return NULL;
 }
 
+commandArgsGetExpectedRangeStringFunc getGetCommandArgsExpectedRangeStringFunc(CommandType commandType) {
+	switch (commandType) {
+		case COMMAND_TYPE_SET:
+			return setArgsGetExpectedRangeString;
+		case COMMAND_TYPE_GENERATE:
+			return generateArgsGetExpectedRangeString;
+		case COMMAND_TYPE_HINT:
+			return hintArgsGetExpectedRangeString;
+		case COMMAND_TYPE_GUESS_HINT:
+			return guessHintArgsGetExpectedRangeString;
+		case COMMAND_TYPE_GUESS:
+			return guessArgsGetExpectedRangeString;
+		case COMMAND_TYPE_SOLVE:
+		case COMMAND_TYPE_EDIT:
+		case COMMAND_TYPE_MARK_ERRORS:
+		case COMMAND_TYPE_PRINT_BOARD:
+		case COMMAND_TYPE_VALIDATE:
+		case COMMAND_TYPE_UNDO:
+		case COMMAND_TYPE_REDO:
+		case COMMAND_TYPE_SAVE:
+		case COMMAND_TYPE_NUM_SOLUTIONS:
+		case COMMAND_TYPE_AUTOFILL:
+		case COMMAND_TYPE_RESET:
+		case COMMAND_TYPE_EXIT:
+		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+			return NULL;
+	}
+	return NULL;
+}
+
+char* getCommandArgsExpectedRangeString(CommandType commandType, int argNo, GameState* gameState) {
+	commandArgsGetExpectedRangeStringFunc func = getGetCommandArgsExpectedRangeStringFunc(commandType);
+	return func(argNo, gameState);
+}
+
 commandArgsValidator getCommandArgsValidator(CommandType commandType) {
 	switch (commandType) {
 	case COMMAND_TYPE_GENERATE:
 		return generateArgsValidator;
+	case COMMAND_TYPE_SET:
+	case COMMAND_TYPE_SOLVE:
+	case COMMAND_TYPE_EDIT:
+	case COMMAND_TYPE_MARK_ERRORS:
+	case COMMAND_TYPE_PRINT_BOARD:
+	case COMMAND_TYPE_VALIDATE:
+	case COMMAND_TYPE_GUESS:
+	case COMMAND_TYPE_UNDO:
+	case COMMAND_TYPE_REDO:
+	case COMMAND_TYPE_SAVE:
+	case COMMAND_TYPE_HINT:
+	case COMMAND_TYPE_GUESS_HINT:
+	case COMMAND_TYPE_NUM_SOLUTIONS:
+	case COMMAND_TYPE_AUTOFILL:
+	case COMMAND_TYPE_RESET:
+	case COMMAND_TYPE_EXIT:
+	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		return NULL;
+	}
+	return NULL;
+}
+
+getCommandArgsValidatorErrorStringFunc getGetCommandArgsValidatorErrorString(CommandType commandType) {
+	switch (commandType) {
+	case COMMAND_TYPE_GENERATE:
+		return getGenerateArgsValidatorErrorString;
 	case COMMAND_TYPE_SET:
 	case COMMAND_TYPE_SOLVE:
 	case COMMAND_TYPE_EDIT:
@@ -616,30 +814,6 @@ IsBoardValidForCommandErrorCode isBoardValidForGenerateCommand(State* state, Com
 
 	if (isBoardErroneous(state->gameState)) {
 		return IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS;
-	}
-
-	return ERROR_SUCCESS;
-}
-
-IsBoardValidForCommandErrorCode isBoardValidForUndoCommand(State* state, Command* command) {
-	UndoCommandArguments* args = (UndoCommandArguments*)command->arguments;
-
-	UNUSED(args);
-
-	if (isThereMoveToUndo(state->gameState)) {
-		return IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_UNDO;
-	}
-
-	return ERROR_SUCCESS;
-}
-
-IsBoardValidForCommandErrorCode isBoardValidForRedoCommand(State* state, Command* command) {
-	RedoCommandArguments* args = (RedoCommandArguments*)command->arguments;
-
-	UNUSED(args);
-
-	if (isThereMoveToRedo(state->gameState)) {
-		return IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_REDO;
 	}
 
 	return ERROR_SUCCESS;
@@ -728,10 +902,6 @@ IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* co
 			return isBoardValidForGuessCommand(state, command);
 		case COMMAND_TYPE_GENERATE:
 			return isBoardValidForGenerateCommand(state, command);
-		case COMMAND_TYPE_UNDO:
-			return isBoardValidForUndoCommand(state, command);
-		case COMMAND_TYPE_REDO:
-			return isBoardValidForRedoCommand(state, command);
 		case COMMAND_TYPE_SAVE:
 			return isBoardValidForSaveCommand(state, command);
 		case COMMAND_TYPE_HINT:
@@ -746,12 +916,55 @@ IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* co
 		case COMMAND_TYPE_EDIT:
 		case COMMAND_TYPE_MARK_ERRORS:
 		case COMMAND_TYPE_PRINT_BOARD:
+		case COMMAND_TYPE_UNDO:
+		case COMMAND_TYPE_REDO:
 		case COMMAND_TYPE_RESET:
 		case COMMAND_TYPE_EXIT:
 		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
 			return ERROR_SUCCESS;
 		}
 	return ERROR_SUCCESS;
+}
+
+#define BOARD_INVALID_FOR_COMMAND_FORMAT_STR ("the board is not valid to perform desired command (%s)\n")
+#define BOARD_INVALID_FOR_COMMAND_BOARD_ERRONEOUS ("it is erroneous")
+#define BOARD_INVALID_FOR_COMMAND_BOARD_UNSOLVABLE ("it is unsolvable")
+#define BOARD_INVALID_FOR_COMMAND_CELL_ERRONEOUS ("cell has erroneous value")
+#define BOARD_INVALID_FOR_COMMAND_CELL_FIXED ("cell has a fixed value")
+#define BOARD_INVALID_FOR_COMMAND_CELL_NOT_EMPTY ("cell is not empty")
+
+char* getIsBoardValidForCommandErrorString(IsBoardValidForCommandErrorCode errorCode) {
+	char* str = NULL;
+	size_t requiredSize = 0;
+
+	switch (errorCode) {
+	case IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS:
+		requiredSize = sizeof(BOARD_INVALID_FOR_COMMAND_FORMAT_STR) + sizeof(BOARD_INVALID_FOR_COMMAND_BOARD_ERRONEOUS);
+		str = calloc(requiredSize, sizeof(char));
+		if (str != NULL)
+			sprintf(str, BOARD_INVALID_FOR_COMMAND_FORMAT_STR, BOARD_INVALID_FOR_COMMAND_BOARD_ERRONEOUS);
+		break;
+	case IS_BOARD_VALID_FOR_COMMAND_BOARD_UNSOLVABLE:
+		requiredSize = sizeof(BOARD_INVALID_FOR_COMMAND_FORMAT_STR) + sizeof(BOARD_INVALID_FOR_COMMAND_BOARD_UNSOLVABLE);
+		str = calloc(requiredSize, sizeof(char));
+		if (str != NULL)
+			sprintf(str, BOARD_INVALID_FOR_COMMAND_FORMAT_STR, BOARD_INVALID_FOR_COMMAND_BOARD_UNSOLVABLE);
+		break;
+	case IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_FIXED_VALUE:
+		requiredSize = sizeof(BOARD_INVALID_FOR_COMMAND_FORMAT_STR) + sizeof(BOARD_INVALID_FOR_COMMAND_CELL_FIXED);
+		str = calloc(requiredSize, sizeof(char));
+		if (str != NULL)
+			sprintf(str, BOARD_INVALID_FOR_COMMAND_FORMAT_STR, BOARD_INVALID_FOR_COMMAND_CELL_FIXED);
+		break;
+	case IS_BOARD_VALID_FOR_COMMAND_CELL_IS_NOT_EMPTY:
+		requiredSize = sizeof(BOARD_INVALID_FOR_COMMAND_FORMAT_STR) + sizeof(BOARD_INVALID_FOR_COMMAND_CELL_NOT_EMPTY);
+		str = calloc(requiredSize, sizeof(char));
+		if (str != NULL)
+			sprintf(str, BOARD_INVALID_FOR_COMMAND_FORMAT_STR, BOARD_INVALID_FOR_COMMAND_CELL_NOT_EMPTY);
+		break;
+	}
+
+	return str;
 }
 
 typedef enum {
@@ -765,8 +978,71 @@ typedef enum {
 	LOAD_BOARD_FROM_FILE_DIMENSION_ARE_NOT_POSITIVE,
 	LOAD_BOARD_FROM_FILE_BAD_FORMAT_FAILED_TO_READ_A_CELL,
 	LOAD_BOARD_FROM_FILE_BAD_FORMAT_FILE_CONTAINS_TOO_MUCH_CONTENT,
-	LOAD_BOARD_FROM_FILE_CELL_VALUE_NOT_IN_RANGE
+	LOAD_BOARD_FROM_FILE_CELL_VALUE_NOT_IN_RANGE,
+	LOAD_BOARD_FROM_FILE_MEMORY_ALLOCATION_FAILURE
 } LoadBoardFromFileErrorCode;
+
+#define FILES_COMMANDS_ERROR_FILE_COULD_NOT_BE_OPENED_STR ("file could not be opened\n");
+
+#define FILES_COMMANDS_ERROR_BAD_FORMAT_COULD_NOT_PARSE_DIMENSIONS_FROM_FILE_STR ("could not parse board dimensions\n")
+#define FILES_COMMANDS_ERROR_BAD_FORMAT_DIMENSIONS_NOT_POSITIVE_STR ("board dimensions aren't positive numbers\n")
+#define FILES_COMMANDS_ERROR_BAD_FORMAT_CELL_NOT_PARSED_STR ("could not parse one of the cells\n")
+#define FILES_COMMANDS_ERROR_BAD_FORMAT_TOO_MUCH_CONTENT_STR ("file contains too much content\n")
+#define FILES_COMMANDS_ERROR_BAD_FORMAT_CELL_VALUE_NOT_IN_RANGE_STR ("the value of one of the cells is not in the appropriate range\n")
+
+/* TODO: perhaps these can be specific to saveCommand? */
+#define FILES_COMMANDS_ERROR_WRITING_DIMENSIONS_ERROR_STR ("could not write board dimensions\n")
+#define FILES_COMMANDS_ERROR_WRITING_CELL_ERROR_STR ("could not write a cell\n")
+
+char* getEditCommandErrorString(int error) {
+	PerformEditCommandErrorCode errorCode = (PerformEditCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	default:
+	{
+		LoadBoardFromFileErrorCode errorCode = (LoadBoardFromFileErrorCode)(error - PERFORM_EDIT_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE);
+		switch (errorCode) {
+		case LOAD_BOARD_FROM_FILE_FILE_COULD_NOT_BE_OPENED:
+			return FILES_COMMANDS_ERROR_FILE_COULD_NOT_BE_OPENED_STR;
+		case LOAD_BOARD_FROM_FILE_COULD_NOT_PARSE_BOARD_DIMENSIONS:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_COULD_NOT_PARSE_DIMENSIONS_FROM_FILE_STR;
+		case LOAD_BOARD_FROM_FILE_DIMENSION_ARE_NOT_POSITIVE:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_DIMENSIONS_NOT_POSITIVE_STR;
+		case LOAD_BOARD_FROM_FILE_BAD_FORMAT_FAILED_TO_READ_A_CELL:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_CELL_NOT_PARSED_STR;
+		case LOAD_BOARD_FROM_FILE_BAD_FORMAT_FILE_CONTAINS_TOO_MUCH_CONTENT:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_TOO_MUCH_CONTENT_STR;
+		case LOAD_BOARD_FROM_FILE_CELL_VALUE_NOT_IN_RANGE:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_CELL_VALUE_NOT_IN_RANGE_STR;
+		case LOAD_BOARD_FROM_FILE_MEMORY_ALLOCATION_FAILURE:
+			return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+		}
+	}
+	}
+
+	return NULL;
+}
+
+bool isEditCommandErrorRecoverable(int error) {
+	PerformEditCommandErrorCode errorCode = (PerformEditCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+	{
+		LoadBoardFromFileErrorCode errorCode = (LoadBoardFromFileErrorCode)(error - PERFORM_EDIT_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE);
+		switch (errorCode) {
+		case LOAD_BOARD_FROM_FILE_MEMORY_ALLOCATION_FAILURE:
+			return false;
+		default:
+			return true;
+		}
+	}
+	}
+}
 
 bool isFileEmpty(FILE* file) {
 	char chr = '\0';
@@ -840,7 +1116,7 @@ LoadBoardFromFileErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) 
 				Board tempBoard = {0};
 				tempBoard.numRowsInBlock_M = m; tempBoard.numColumnsInBlock_N = n;
 				if (!createEmptyBoard(&tempBoard)) {
-					retVal = (LoadBoardFromFileErrorCode)PERFORM_EDIT_COMMAND_MEMORY_ALLOCATION_FAILURE;
+					retVal = LOAD_BOARD_FROM_FILE_MEMORY_ALLOCATION_FAILURE;
 				} else {
 					if (!readCellsFromFileToBoard(file, &tempBoard)) {
 						retVal = LOAD_BOARD_FROM_FILE_BAD_FORMAT_FAILED_TO_READ_A_CELL;
@@ -896,10 +1172,76 @@ PerformEditCommandErrorCode performEditCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
+char* getEditCommandStrOutput(Command* command, GameState* gameState) {
+	EditCommandArguments* editArguments = (EditCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(editArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
 typedef enum {
 	PERFORM_SOLVE_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
 	PERFORM_SOLVE_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE
 } PerformSolveCommandErrorCode;
+
+char* getSolveCommandErrorString(int error) {
+	PerformSolveCommandErrorCode errorCode = (PerformSolveCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_SOLVE_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	default:
+	{
+		LoadBoardFromFileErrorCode errorCode = (LoadBoardFromFileErrorCode)(error - PERFORM_SOLVE_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE);
+		switch (errorCode) {
+		case LOAD_BOARD_FROM_FILE_FILE_COULD_NOT_BE_OPENED:
+			return FILES_COMMANDS_ERROR_FILE_COULD_NOT_BE_OPENED_STR;
+		case LOAD_BOARD_FROM_FILE_COULD_NOT_PARSE_BOARD_DIMENSIONS:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_COULD_NOT_PARSE_DIMENSIONS_FROM_FILE_STR;
+		case LOAD_BOARD_FROM_FILE_DIMENSION_ARE_NOT_POSITIVE:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_DIMENSIONS_NOT_POSITIVE_STR;
+		case LOAD_BOARD_FROM_FILE_BAD_FORMAT_FAILED_TO_READ_A_CELL:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_CELL_NOT_PARSED_STR;
+		case LOAD_BOARD_FROM_FILE_BAD_FORMAT_FILE_CONTAINS_TOO_MUCH_CONTENT:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_TOO_MUCH_CONTENT_STR;
+		case LOAD_BOARD_FROM_FILE_CELL_VALUE_NOT_IN_RANGE:
+			return FILES_COMMANDS_ERROR_BAD_FORMAT_CELL_VALUE_NOT_IN_RANGE_STR;
+		case LOAD_BOARD_FROM_FILE_MEMORY_ALLOCATION_FAILURE:
+			return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+		}
+	}
+	}
+
+	return NULL;
+}
+
+bool isSolveCommandErrorRecoverable(int error) {
+	PerformSolveCommandErrorCode errorCode = (PerformSolveCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_SOLVE_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+	{
+		LoadBoardFromFileErrorCode errorCode = (LoadBoardFromFileErrorCode)(error - PERFORM_SOLVE_COMMAND_ERROR_IN_LOAD_BOARD_FROM_FILE);
+		switch (errorCode) {
+		case LOAD_BOARD_FROM_FILE_MEMORY_ALLOCATION_FAILURE:
+			return false;
+		default:
+			return true;
+		}
+	}
+	}
+}
 
 PerformSolveCommandErrorCode performSolveCommand(State* state, Command* command) {
 	SolveCommandArguments* solveArguments = (SolveCommandArguments*)(command->arguments);
@@ -929,6 +1271,22 @@ PerformSolveCommandErrorCode performSolveCommand(State* state, Command* command)
 	return ERROR_SUCCESS;
 }
 
+char* getSolveCommandStrOutput(Command* command, GameState* gameState) {
+	SolveCommandArguments* solveArguments = (SolveCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(solveArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
 typedef enum {
 	PERFORM_SAVE_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
 	PERFORM_SAVE_COMMAND_ERROR_IN_SAVE_BOARD_TO_FILE
@@ -939,6 +1297,40 @@ typedef enum {
 	SAVE_BOARD_TO_FILE_DIMENSIONS_COULD_NOT_BE_WRITTEN,
 	SAVE_BOARD_TO_FILE_FAILED_TO_WRITE_A_CELL
 } SaveBoardToFileErrorCode;
+
+char* getSaveCommandErrorString(int error) {
+	PerformSaveCommandErrorCode errorCode = (PerformSaveCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_SAVE_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	default:
+	{
+		SaveBoardToFileErrorCode errorCode = (SaveBoardToFileErrorCode)(error - PERFORM_SAVE_COMMAND_ERROR_IN_SAVE_BOARD_TO_FILE);
+		switch (errorCode) {
+		case SAVE_BOARD_TO_FILE_FILE_COULD_NOT_BE_OPENED:
+			return FILES_COMMANDS_ERROR_FILE_COULD_NOT_BE_OPENED_STR;
+		case SAVE_BOARD_TO_FILE_DIMENSIONS_COULD_NOT_BE_WRITTEN:
+			return FILES_COMMANDS_ERROR_WRITING_DIMENSIONS_ERROR_STR;
+		case SAVE_BOARD_TO_FILE_FAILED_TO_WRITE_A_CELL:
+			return FILES_COMMANDS_ERROR_WRITING_CELL_ERROR_STR;
+		}
+	}
+	}
+
+	return NULL;
+}
+
+bool isSaveCommandErrorRecoverable(int error) {
+	PerformSaveCommandErrorCode errorCode = (PerformSaveCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_SAVE_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+		return true;
+	}
+}
 
 typedef enum {
 	WRITE_CELL_TO_FILE_FIXEDNESS_CRITERION_CELL_IS_FIXED,
@@ -1029,9 +1421,47 @@ PerformSaveCommandErrorCode performSaveCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
+char* getSaveCommandStrOutput(Command* command, GameState* gameState) {
+	SaveCommandArguments* saveArguments = (SaveCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(saveArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
 typedef enum {
 	PERFORM_MARK_ERRORS_COMMAND_NO_CHANGE = 1
 } PerformMarkErrorsCommandErrorCode;
+
+#define MARK_ERRORS_ERROR_NO_CHANGE_STR ("no change has occurred\n")
+
+char* getMarkErrorsCommandErrorString(int error) {
+	PerformMarkErrorsCommandErrorCode errorCode = (PerformMarkErrorsCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_MARK_ERRORS_COMMAND_NO_CHANGE:
+		return MARK_ERRORS_ERROR_NO_CHANGE_STR;
+	}
+
+	return NULL;
+}
+
+bool isMarkErrorsCommandErrorRecoverable(int error) {
+	PerformMarkErrorsCommandErrorCode errorCode = (PerformMarkErrorsCommandErrorCode)error;
+
+	switch (errorCode) {
+	default:
+		return true;
+	}
+}
 
 PerformMarkErrorsCommandErrorCode performMarkErrorsCommand(State* state, Command* command) {
 	MarkErrorsCommandArguments* markErrorsArguments = (MarkErrorsCommandArguments*)(command->arguments);
@@ -1044,10 +1474,53 @@ PerformMarkErrorsCommandErrorCode performMarkErrorsCommand(State* state, Command
 	return ERROR_SUCCESS;
 }
 
+char* getMarkErrorsCommandStrOutput(Command* command, GameState* gameState) {
+	MarkErrorsCommandArguments* markErrorsArguments = (MarkErrorsCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(markErrorsArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
 typedef enum {
 	PERFORM_VALIDATE_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
 	PERFORM_VALIDATE_COMMAND_GUROBI_ERROR
 } PerformValidateCommandErrorCode;
+
+#define LP_COMMAND_ERROR_GUROBI_LIB_ERROR_STR ("Gurobi library error\n")
+
+char* getValidateCommandErrorString(int error) {
+	PerformValidateCommandErrorCode errorCode = (PerformValidateCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_VALIDATE_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	case PERFORM_VALIDATE_COMMAND_GUROBI_ERROR:
+		return LP_COMMAND_ERROR_GUROBI_LIB_ERROR_STR;
+	}
+
+	return NULL;
+}
+
+bool isValidateCommandErrorRecoverable(int error) {
+	PerformValidateCommandErrorCode errorCode = (PerformValidateCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_VALIDATE_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+		return true;
+	}
+}
+
 PerformValidateCommandErrorCode performValidateCommand(State* state, Command* command) {
 	ValidateCommandArguments* validateArguments = (ValidateCommandArguments*)(command->arguments);
 
@@ -1084,11 +1557,67 @@ PerformValidateCommandErrorCode performValidateCommand(State* state, Command* co
 	return retVal;
 }
 
+#define VALIDATE_COMMAND_OUTPUT_BOARD_SOLVABLE ("Board is solvable\n")
+#define VALIDATE_COMMAND_OUTPUT_BOARD_NOT_SOLVABLE ("Board is not solvable\n")
+
+char* getValidateCommandStrOutput(Command* command, GameState* gameState) {
+	ValidateCommandArguments* validateArguments = (ValidateCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* strToCopy = NULL;
+
+	UNUSED(gameState);
+
+	if (validateArguments->isSolvableOut) {
+		strToCopy = VALIDATE_COMMAND_OUTPUT_BOARD_SOLVABLE;
+	} else {
+		strToCopy = VALIDATE_COMMAND_OUTPUT_BOARD_NOT_SOLVABLE;
+	}
+
+	numCharsRequired = strlen(strToCopy) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+	if (str != NULL) {
+		strcpy(str, strToCopy);
+	}
+
+	return str;
+}
+
 typedef enum {
 	PERFORM_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
 	PERFORM_HINT_COMMAND_COULD_NOT_SOLVE_BOARD,
 	PERFORM_HINT_COMMAND_GUROBI_ERROR
 } PerformHintCommandErrorCode;
+
+#define BOARD_SOLVING_COMMANDS_ERROR_COULD_NOT_SOLVE_BOARD_STR ("failed to solve board\n")
+
+char* getHintCommandErrorString(int error) {
+	PerformHintCommandErrorCode errorCode = (PerformHintCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	case PERFORM_HINT_COMMAND_COULD_NOT_SOLVE_BOARD:
+		return BOARD_SOLVING_COMMANDS_ERROR_COULD_NOT_SOLVE_BOARD_STR;
+	case PERFORM_HINT_COMMAND_GUROBI_ERROR:
+		return LP_COMMAND_ERROR_GUROBI_LIB_ERROR_STR;
+	}
+
+	return NULL;
+}
+
+bool isHintCommandErrorRecoverable(int error) {
+	PerformHintCommandErrorCode errorCode = (PerformHintCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+		return true;
+	}
+}
+
 PerformHintCommandErrorCode performHintCommand(State* state, Command* command) {
 	HintCommandArguments* hintArguments = (HintCommandArguments*)(command->arguments);
 
@@ -1123,6 +1652,26 @@ PerformHintCommandErrorCode performHintCommand(State* state, Command* command) {
 	cleanupBoard(&boardSolution);
 
 	return retVal;
+}
+
+#define HINT_COMMAND_OUTPUT_FORMAT ("value: %2d\n")
+
+char* getHintCommandStrOutput(Command* command, GameState* gameState) {
+	HintCommandArguments* hintArguments = (HintCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+
+	UNUSED(gameState);
+
+	numCharsRequired = sizeof(HINT_COMMAND_OUTPUT_FORMAT);
+
+	str = calloc(numCharsRequired, sizeof(char));
+	if (str != NULL) {
+		sprintf(str, HINT_COMMAND_OUTPUT_FORMAT, hintArguments->guessedValueOut);
+	}
+
+	return str;
 }
 
 typedef enum {
@@ -1230,6 +1779,33 @@ typedef enum {
 	PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
 	PERFORM_GENERATE_COMMAND_COULD_NOT_GENERATE_REQUESTED_BOARD
 } PerformGenerateCommandErrorCode;
+
+#define GENERATE_COMMAND_ERROR_FAILED_TO_GENERATE_BOARD_STR ("failed to generate requested board\n")
+
+char* getGenerateCommandErrorString(int error) {
+	PerformGenerateCommandErrorCode errorCode = (PerformGenerateCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	case PERFORM_GENERATE_COMMAND_COULD_NOT_GENERATE_REQUESTED_BOARD:
+		return GENERATE_COMMAND_ERROR_FAILED_TO_GENERATE_BOARD_STR;
+	}
+
+	return NULL;
+}
+
+bool isGenerateCommandErrorRecoverable(int error) {
+	PerformGenerateCommandErrorCode errorCode = (PerformGenerateCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+		return true;
+	}
+}
+
 PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* command) { /* TODO: change of board needs to be documented in undo-redo list */
 	GenerateCommandArguments* generateArguments = (GenerateCommandArguments*)(command->arguments);
 
@@ -1294,11 +1870,56 @@ PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* co
 	return PERFORM_GENERATE_COMMAND_COULD_NOT_GENERATE_REQUESTED_BOARD;
 }
 
+char* getGenerateCommandStrOutput(Command* command, GameState* gameState) {
+	GenerateCommandArguments* generateArguments = (GenerateCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(generateArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
 typedef enum {
 	PERFORM_GUESS_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE = 1,
 	PERFORM_GUESS_HINT_COMMAND_COULD_NOT_SOLVE_BOARD,
 	PERFORM_GUESS_HINT_COMMAND_GUROBI_ERROR
 } PerformGuessHintCommandErrorCode;
+
+#define BOARD_SOLVING_COMMANDS_ERROR_FAILED_TO_SOLVE_STR ("failed to solve board\n")
+
+char* getGuessHintCommandErrorString(int error) {
+	PerformGuessHintCommandErrorCode errorCode = (PerformGuessHintCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_GUESS_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	case PERFORM_GUESS_HINT_COMMAND_COULD_NOT_SOLVE_BOARD:
+		return BOARD_SOLVING_COMMANDS_ERROR_FAILED_TO_SOLVE_STR;
+	case PERFORM_GUESS_HINT_COMMAND_GUROBI_ERROR:
+		return LP_COMMAND_ERROR_GUROBI_LIB_ERROR_STR;
+	}
+
+	return NULL;
+}
+
+bool isGuessHintCommandErrorRecoverable(int error) {
+	PerformGuessHintCommandErrorCode errorCode = (PerformGuessHintCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_GUESS_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+		return true;
+	}
+}
+
 PerformGuessHintCommandErrorCode performGuessHintCommand(State* state, Command* command) {
 	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)(command->arguments);
 
@@ -1333,7 +1954,6 @@ PerformGuessHintCommandErrorCode performGuessHintCommand(State* state, Command* 
 			int value = 1;
 			for (value = 1; value <= MN; value++)
 				guessHintArguments->valuesScoresOut[value] = valuesScores[guessHintArguments->row][guessHintArguments->col][value];
-			/* TODO: output */
 		}
 		break;
 	case SOLVE_BOARD_USING_LINEAR_PROGRAMMING_MEMORY_ALLOCATION_FAILURE:
@@ -1353,6 +1973,48 @@ PerformGuessHintCommandErrorCode performGuessHintCommand(State* state, Command* 
 	return retVal;
 }
 
+#define GUESS_HINT_COMMAND_OUTPUT_FORMAT_PER_VALUE ("value: %2d, score: %.4f\n")
+#define GUESS_HINT_COMMAND_OUTPUT_NO_VALUE_HAS_POSITIVE_SCORE ("no value achieved positive score\n")
+
+char* getGuessHintCommandStrOutput(Command* command, GameState* gameState) {
+	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+
+	int actualNumValues = 0;
+
+	int value = 0;
+	for (value = 1; value <= getBlockSize_MN(gameState); value++) {
+		if (guessHintArguments->valuesScoresOut[value] > 0.0)
+			actualNumValues++;
+	}
+
+	if (actualNumValues > 0) {
+		numCharsRequired = actualNumValues * sizeof(GUESS_HINT_COMMAND_OUTPUT_FORMAT_PER_VALUE); /* Note: upper boundary */
+		str = calloc(numCharsRequired, sizeof(char));
+		if (str != NULL) {
+			int numCharsAlreadyWritten = 0;
+			for (value = 1; value <= getBlockSize_MN(gameState); value++) {
+				if (guessHintArguments->valuesScoresOut[value] > 0.0)
+					numCharsAlreadyWritten += sprintf(str + numCharsAlreadyWritten,
+													  GUESS_HINT_COMMAND_OUTPUT_FORMAT_PER_VALUE,
+													  value,
+													  guessHintArguments->valuesScoresOut[value]);
+				}
+		}
+	} else {
+		char* strToCopy = GUESS_HINT_COMMAND_OUTPUT_NO_VALUE_HAS_POSITIVE_SCORE;
+		numCharsRequired = strlen(strToCopy) + 1;
+		str = calloc(numCharsRequired, sizeof(char));
+		if (str != NULL) {
+			strcpy(str, strToCopy);
+		}
+	}
+
+	return str;
+}
+
 double getRealRand(double min, double max) {
 	double range = (max - min);
 	double div = RAND_MAX / range;
@@ -1364,6 +2026,33 @@ typedef enum {
 	PERFORM_GUESS_COMMAND_COULD_NOT_SOLVE_BOARD,
 	PERFORM_GUESS_COMMAND_GUROBI_ERROR
 } PerformGuessCommandErrorCode;
+
+char* getGuessCommandErrorString(int error) {
+	PerformGuessCommandErrorCode errorCode = (PerformGuessCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	case PERFORM_GUESS_COMMAND_COULD_NOT_SOLVE_BOARD:
+		return BOARD_SOLVING_COMMANDS_ERROR_COULD_NOT_SOLVE_BOARD_STR;
+	case PERFORM_GUESS_COMMAND_GUROBI_ERROR:
+		return LP_COMMAND_ERROR_GUROBI_LIB_ERROR_STR;
+	}
+
+	return NULL;
+}
+
+bool isGuessCommandErrorRecoverable(int error) {
+	PerformGuessCommandErrorCode errorCode = (PerformGuessCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+		return true;
+	}
+}
+
 PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command) {
 	GuessCommandArguments* guessArguments = (GuessCommandArguments*)(command->arguments);
 
@@ -1467,9 +2156,47 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 	return retVal;
 }
 
+char* getGuessCommandStrOutput(Command* command, GameState* gameState) {
+	GuessCommandArguments* guessArguments = (GuessCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(guessArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
 typedef enum {
 	PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
 } PerformSetCommandErrorCode;
+
+char* getSetCommandErrorString(int error) { /* TODO: fill this */
+	PerformSetCommandErrorCode errorCode = (PerformSetCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	}
+
+	return NULL;
+}
+
+bool isSetCommandErrorRecoverable(int error) { /* TODO: fill this */
+	PerformSetCommandErrorCode errorCode = (PerformSetCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+		return true;
+	}
+}
 
 /* Assuming that upon call to this functions all conditions have been
 checked - in solve mode fixed cells cannot be set etc. This is consistent
@@ -1482,10 +2209,90 @@ PerformSetCommandErrorCode performSetCommand(State* state, Command* command) {
 	else {return ERROR_SUCCESS; }
 }
 
+char* getSetCommandStrOutput(Command* command, GameState* gameState) {
+	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(setArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
+char* getUndoCommandErrorString(int error) { /* TODO: fill this */
+	/*PerformUndoCommandErrorCode errorCode = (PerformUndoCommandErrorCode)error;
+
+	switch (errorCode) {
+	case <case>:
+		return <error_string>;
+	}*/
+	UNUSED(error);
+	return NULL;
+}
+
+bool isUndoCommandErrorRecoverable(int error) { /* TODO: fill this */
+	/*PerformUndoCommandErrorCode errorCode = (PerformUndoCommandErrorCode)error;
+
+	switch (errorCode) {
+	case <case>:
+		return false;
+	default:
+		return true;
+	}*/
+	UNUSED(error);
+	return true;
+}
+
 int performUndoCommand(State* state, Command* command) {
 	UNUSED(command);
 	undoMove(state);
 	return ERROR_SUCCESS;
+}
+
+char* getUndoCommandStrOutput(Command* command, GameState* gameState) { /* TODO: fill this */
+	UndoCommandArguments* undoArguments = (UndoCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(undoArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
+char* getRedoCommandErrorString(int error) { /* TODO: fill this */
+	/*PerformRedoCommandErrorCode errorCode = (PerformRedoCommandErrorCode)error;
+
+	switch (errorCode) {
+	case <case>:
+		return <error_string>;
+	}*/
+	UNUSED(error);
+	return NULL;
+}
+
+bool isRedoCommandErrorRecoverable(int error) { /* TODO: fill this */
+	/*PerformRedoCommandErrorCode errorCode = (PerformRedoCommandErrorCode)error;
+
+	switch (errorCode) {
+	case <case>:
+		return false;
+	default:
+		return true;
+	}*/
+	UNUSED(error);
+	return true;
 }
 
 int performRedoCommand(State* state, Command* command) {
@@ -1494,10 +2301,73 @@ int performRedoCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
+char* getRedoCommandStrOutput(Command* command, GameState* gameState) { /* TODO: fill this */
+	RedoCommandArguments* redoArguments = (RedoCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(redoArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
 
 typedef enum {
 	PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
 } PerformNumSoltionsCommandErrorCode;
+
+char* getNumSolutionsCommandErrorString(int error) { /* TODO: fill this */
+	PerformNumSoltionsCommandErrorCode errorCode = (PerformNumSoltionsCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	}
+
+	return NULL;
+}
+
+bool isNumSolutionsCommandErrorRecoverable(int error) { /* TODO: fill this */
+	PerformNumSoltionsCommandErrorCode errorCode = (PerformNumSoltionsCommandErrorCode)error;
+
+	switch (errorCode) {
+	case PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return false;
+	default:
+		return true;
+	}
+}
+
+bool isAutofillCommandErrorRecoverable(int error) { /* TODO: fill this */
+	/*PerformAutofillCommandErrorCode errorCode = (PerformAutofillCommandErrorCode)error;
+
+	switch (errorCode) {
+	case <case>:
+		return false;
+	default:
+		return true;
+	}*/
+	UNUSED(error);
+	return true;
+}
+
+bool isResetCommandErrorRecoverable(int error) { /* TODO: fill this */
+	/*PerformResetCommandErrorCode errorCode = (PerformResetCommandErrorCode)error;
+
+	switch (errorCode) {
+	case <case>:
+		return false;
+	default:
+		return true;
+	}*/
+	UNUSED(error);
+	return true;
+}
 
 PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Command* command) {	
 	Board board;
@@ -1517,11 +2387,34 @@ PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Comm
 	return ERROR_SUCCESS;
 }
 
+int getNumDecDigitsInNumber(int num) { /* Note: assumed to be non-negative */
+	if (num == 0)
+		return 1;
+	return floor(log10(num)) + 1;
+}
+
+#define NUM_SOLUTIONS_OUTPUT_FORMAT ("Number of solutions: %d\n")
+
+char* getNumSolutionsCommandStrOutput(Command* command, GameState* gameState) {
+	NumSolutionsCommandArguments* numSolutionsArguments = (NumSolutionsCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+
+	UNUSED(gameState);
+
+	numCharsRequired = sizeof(NUM_SOLUTIONS_OUTPUT_FORMAT) + getNumDecDigitsInNumber(numSolutionsArguments->numSolutionsOut); /* Note: conservative upper boundary */
+
+	str = calloc(numCharsRequired, sizeof(char));
+	if (str != NULL) {
+		sprintf(str, NUM_SOLUTIONS_OUTPUT_FORMAT, numSolutionsArguments->numSolutionsOut);
+	}
+
+	return str;
+}
+
 int performCommand(State* state, Command* command) {
 	int errorCode = ERROR_SUCCESS;
-
-	UNUSED(state);
-	UNUSED(command);
 
 	switch (command->type) {
 		case COMMAND_TYPE_SOLVE:
@@ -1565,6 +2458,228 @@ int performCommand(State* state, Command* command) {
 	return errorCode;
 }
 
+getCommandErrorStringFunc getGetCommandErrorStringFunc(CommandType type) {
+	switch (type) {
+		case COMMAND_TYPE_SOLVE:
+			return getSolveCommandErrorString;
+		case COMMAND_TYPE_EDIT:
+			return getEditCommandErrorString;
+		case COMMAND_TYPE_MARK_ERRORS:
+			return getMarkErrorsCommandErrorString;
+		case COMMAND_TYPE_SET:
+			return getSetCommandErrorString;
+		case COMMAND_TYPE_VALIDATE:
+			return getValidateCommandErrorString;
+		case COMMAND_TYPE_GUESS:
+			return getGuessCommandErrorString;
+		case COMMAND_TYPE_GENERATE:
+			return getGenerateCommandErrorString;
+		case COMMAND_TYPE_UNDO:
+			return getUndoCommandErrorString;
+		case COMMAND_TYPE_REDO:
+			return getRedoCommandErrorString;
+		case COMMAND_TYPE_SAVE:
+			return getSaveCommandErrorString;
+		case COMMAND_TYPE_HINT:
+			return getHintCommandErrorString;
+		case COMMAND_TYPE_GUESS_HINT:
+			return getGuessHintCommandErrorString;
+		case COMMAND_TYPE_NUM_SOLUTIONS:
+			return getNumSolutionsCommandErrorString;
+		/* TODO: the following */
+		/*case COMMAND_TYPE_AUTOFILL:
+			return getAutoFillCommandErrorString;
+		case COMMAND_TYPE_RESET:
+			return getResetCommandErrorString;(state, command);*/
+		case COMMAND_TYPE_PRINT_BOARD:
+		case COMMAND_TYPE_EXIT:
+		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+			return NULL;
+		default: /* TODO: get rid of this */
+			return NULL;
+		}
+
+	return NULL;
+}
+
+char* getCommandErrorString(CommandType type, int error) {
+	getCommandErrorStringFunc func = getGetCommandErrorStringFunc(type);
+	return func(error);
+}
+
+isCommandErrorRecoverableFunc getIsCommandErrorRecoverableFunc(CommandType type) {
+	switch (type) {
+		case COMMAND_TYPE_SOLVE:
+			return isSolveCommandErrorRecoverable;
+		case COMMAND_TYPE_EDIT:
+			return isEditCommandErrorRecoverable;
+		case COMMAND_TYPE_MARK_ERRORS:
+			return isMarkErrorsCommandErrorRecoverable;
+		case COMMAND_TYPE_SET:
+			return isSetCommandErrorRecoverable;
+		case COMMAND_TYPE_VALIDATE:
+			return isValidateCommandErrorRecoverable;
+		case COMMAND_TYPE_GUESS:
+			return isGuessCommandErrorRecoverable;
+		case COMMAND_TYPE_GENERATE:
+			return isGenerateCommandErrorRecoverable;
+		case COMMAND_TYPE_UNDO:
+			return isUndoCommandErrorRecoverable;
+		case COMMAND_TYPE_REDO:
+			return isRedoCommandErrorRecoverable;
+		case COMMAND_TYPE_SAVE:
+			return isSaveCommandErrorRecoverable;
+		case COMMAND_TYPE_HINT:
+			return isHintCommandErrorRecoverable;
+		case COMMAND_TYPE_GUESS_HINT:
+			return isGuessHintCommandErrorRecoverable;
+		case COMMAND_TYPE_NUM_SOLUTIONS:
+			return isNumSolutionsCommandErrorRecoverable;
+		case COMMAND_TYPE_AUTOFILL:
+			return isAutofillCommandErrorRecoverable;
+		case COMMAND_TYPE_RESET:
+			return isResetCommandErrorRecoverable;
+		case COMMAND_TYPE_PRINT_BOARD:
+		case COMMAND_TYPE_EXIT:
+		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+			return NULL;
+		}
+
+	return NULL;
+}
+
+bool isCommandErrorRecoverable(CommandType type, int error) {
+	isCommandErrorRecoverableFunc func = getIsCommandErrorRecoverableFunc(type);
+	return func(error);
+}
+
+char* getAutofillCommandStrOutput(Command* command, GameState* gameState) {
+	AutofillCommandArguments* autofillArguments = (AutofillCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(autofillArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
+char* getResetCommandStrOutput(Command* command, GameState* gameState) {
+	ResetCommandArguments* resetArguments = (ResetCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(resetArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
+char* getPrintBoardCommandStrOutput(Command* command, GameState* gameState) {
+	PrintBoardCommandArguments* printBoardArguments = (PrintBoardCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(printBoardArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
+char* getExitCommandStrOutput(Command* command, GameState* gameState) {
+	ExitCommandArguments* exitArguments = (ExitCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(exitArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
+char* getIgnoreCommandStrOutput(Command* command, GameState* gameState) { /* TODO: is needed ?? */
+	IgnoreCommandArguments* ignoreArguments = (IgnoreCommandArguments*)(command->arguments);
+
+	char* str = NULL;
+	size_t numCharsRequired = 0;
+	char* emptyString = "";
+
+	UNUSED(ignoreArguments);
+	UNUSED(gameState);
+
+	numCharsRequired = strlen(emptyString) + 1;
+	str = calloc(numCharsRequired, sizeof(char));
+
+	return str;
+}
+
+getCommandStrOutputFunc getGetCommandStrOutputFunc(CommandType type) {
+	switch (type) {
+		case COMMAND_TYPE_SOLVE:
+			return getSolveCommandStrOutput;
+		case COMMAND_TYPE_EDIT:
+			return getEditCommandStrOutput;
+		case COMMAND_TYPE_MARK_ERRORS:
+			return getMarkErrorsCommandStrOutput;
+		case COMMAND_TYPE_SET:
+			return getSetCommandStrOutput;
+		case COMMAND_TYPE_VALIDATE:
+			return getValidateCommandStrOutput;
+		case COMMAND_TYPE_GUESS:
+			return getGuessCommandStrOutput;
+		case COMMAND_TYPE_GENERATE:
+			return getGenerateCommandStrOutput;
+		case COMMAND_TYPE_UNDO:
+			return getUndoCommandStrOutput;
+		case COMMAND_TYPE_REDO:
+			return getRedoCommandStrOutput;
+		case COMMAND_TYPE_SAVE:
+			return getSaveCommandStrOutput;
+		case COMMAND_TYPE_HINT:
+			return getHintCommandStrOutput;
+		case COMMAND_TYPE_GUESS_HINT:
+			return getGuessHintCommandStrOutput;
+		case COMMAND_TYPE_NUM_SOLUTIONS:
+			return getNumSolutionsCommandStrOutput;
+		case COMMAND_TYPE_AUTOFILL:
+			return getAutofillCommandStrOutput;
+		case COMMAND_TYPE_RESET:
+			return getResetCommandStrOutput;
+		case COMMAND_TYPE_PRINT_BOARD:
+			return getPrintBoardCommandStrOutput;
+		case COMMAND_TYPE_EXIT:
+			return getExitCommandStrOutput;
+		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+			return getIgnoreCommandStrOutput;
+		}
+	return NULL;
+}
+
+char* getCommandStrOutput(Command* command, GameState* gameState) {
+	getCommandStrOutputFunc func = getGetCommandStrOutputFunc(command->type);
+	return func(command, gameState);
+}
+
 bool shouldPrintBoardPostCommand(CommandType commandType) {
 	switch (commandType) {
 	case COMMAND_TYPE_SOLVE:
@@ -1591,13 +2706,13 @@ bool shouldPrintBoardPostCommand(CommandType commandType) {
 	return false;
 }
 
-ProcessStringAsCommandErrorCode processCommandArguments(State* state, char* commandStrTokens[], Command* commandOut, int* problematicArgNo) {
+ProcessStringAsCommandErrorCode processCommandArguments(State* state, char* commandStrTokens[], Command* commandOut, int* problematicArgNo, int* argsValidatorError) {
 	int i = 0;
 	commandArgsParser parser = NULL;
 	commandArgsRangeChecker rangeChecker = NULL;
 	commandArgsValidator validator = NULL;
 
-	commandOut->arguments = calloc(1, getSizeofCommandArgsStruct(commandOut->type)); /* TODO: could avoid this using static allocation...! */
+	commandOut->arguments = calloc(1, getSizeofCommandArgsStruct(commandOut->type));
 	if (commandOut->arguments == NULL) {
 		return PROCESS_STRING_AS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILURE;
 	}
@@ -1615,7 +2730,7 @@ ProcessStringAsCommandErrorCode processCommandArguments(State* state, char* comm
 		if (rangeChecker && !rangeChecker(commandOut->arguments, i + 1, state->gameState)) {
 			return PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_IN_RANGE;
 		}
-		if (validator && !validator(commandOut->arguments, i + 1, state->gameState)) {
+		if (validator && !validator(commandOut->arguments, i + 1, state->gameState, argsValidatorError)) {
 			return PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_AGREEING_WITH_BOARD;
 		}
 	}
@@ -1623,7 +2738,7 @@ ProcessStringAsCommandErrorCode processCommandArguments(State* state, char* comm
 
 }
 
-ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* commandStr, Command* commandOut, int* problematicArgNo) {
+ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* commandStr, Command* commandOut, int* problematicArgNo, int* argsValidatorError) {
 	char* commandStrTokens[(COMMAND_MAX_LENGTH + 1)/2 + 1] = {0}; /* A definite upper-boundary on the number of possible tokens */
 	char* commandType = NULL;
 
@@ -1643,7 +2758,106 @@ ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* comma
 		return PROCESS_STRING_AS_COMMAND_INCORRECT_ARGUMENTS_NUM;
 	}
 
-	return processCommandArguments(state, commandStrTokens, commandOut, problematicArgNo);
+	return processCommandArguments(state, commandStrTokens, commandOut, problematicArgNo, argsValidatorError);
+}
+
+#define INVALID_COMMAND_STR ("invalid command (%s)\n")
+#define INVALID_COMMAND_UNKNOWN_STR ("unknown")
+#define INVALID_COMMAND_NOT_ALLOWED_STR ("not allowed in the current mode")
+#define ALLOWED_COMMANDS_IN_CUR_MODE_STR ("Allowed commands in current mode are the following: %s\n")
+#define COMMAND_ALLOWED_IN_FOLLOWING_MODES_STR ("Command '%s' is allowed in the following modes: %s\n")
+#define INCORRECT_NUM_OF_ARGS ("incorrect number of arguments\n")
+#define USAGE_PREFIX_STR ("Usage: %s\n")
+#define MEMORY_ALLOCATION_FAILURE_STR ("Memory allocation failure\n")
+#define ARG_PARSING_ERROR_STR ("failed to parse argument no. %2d (due to wrong type)\n")
+#define ARG_VALUE_NOT_IN_RANGE_STR ("Value of argument no. %2d is out of expected range (%s)\n")
+#define ARG_VALUE_NOT_AGREEING_WITH_BOARD ("Value of argument no. %2d does not agree with the current board state (%s)\n")
+
+char* getProcessStringAsCommandErrorString(ProcessStringAsCommandErrorCode errorCode, int problematicArgNo, State* state, Command* command, char* commandName, int argsValidatorError) {
+	char* str = NULL;
+	char* format = NULL;
+	size_t requiredSize = 0;
+	char* expectedRangeString = NULL;
+
+	switch (errorCode) {
+	case PROCESS_STRING_AS_COMMAND_UNKNOWN_COMMAND:
+		requiredSize = sizeof(INVALID_COMMAND_STR) + sizeof(INVALID_COMMAND_UNKNOWN_STR) +
+					   sizeof(ALLOWED_COMMANDS_IN_CUR_MODE_STR) + (strlen(getAllowedCommandsString(state->gameMode)) + 1);
+		format = calloc(requiredSize, sizeof(char));
+		str = calloc(requiredSize, sizeof(char));
+		if ((format != NULL) && (str != NULL)) {
+			strcpy(format, INVALID_COMMAND_STR);
+			strcat(format, ALLOWED_COMMANDS_IN_CUR_MODE_STR);
+			sprintf(str, format, INVALID_COMMAND_UNKNOWN_STR, getAllowedCommandsString(state->gameMode));
+		}
+		break;
+	case PROCESS_STRING_AS_COMMAND_COMMAND_NOT_ALLOWED_IN_CURRENT_MODE:
+		requiredSize = sizeof(INVALID_COMMAND_STR) + sizeof(INVALID_COMMAND_NOT_ALLOWED_STR) +
+					   sizeof(COMMAND_ALLOWED_IN_FOLLOWING_MODES_STR) + (strlen(commandName) + 1) + (strlen(getAllowingModesString(command->type)) + 1);
+		format = calloc(requiredSize, sizeof(char));
+		str = calloc(requiredSize, sizeof(char));
+		if ((format != NULL) && (str != NULL)) {
+			strcpy(format, INVALID_COMMAND_STR);
+			strcat(format, COMMAND_ALLOWED_IN_FOLLOWING_MODES_STR);
+			sprintf(str, format, INVALID_COMMAND_NOT_ALLOWED_STR, commandName, getAllowingModesString(command->type));
+		}
+		break;
+	case PROCESS_STRING_AS_COMMAND_INCORRECT_ARGUMENTS_NUM:
+		requiredSize = sizeof(INCORRECT_NUM_OF_ARGS) +
+					   sizeof(USAGE_PREFIX_STR) + (strlen(getCommandUsage(command->type)) + 1);
+		format = calloc(requiredSize, sizeof(char));
+		str = calloc(requiredSize, sizeof(char));
+		if ((format != NULL) && (str != NULL)) {
+			strcpy(format, INCORRECT_NUM_OF_ARGS);
+			strcat(format, USAGE_PREFIX_STR);
+			sprintf(str, format, getCommandUsage(command->type));
+		}
+		break;
+	case PROCESS_STRING_AS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILURE:
+		requiredSize = sizeof(MEMORY_ALLOCATION_FAILURE_STR);
+		str = calloc(requiredSize, sizeof(char));
+		if (str != NULL) {
+			strcpy(str, MEMORY_ALLOCATION_FAILURE_STR);
+		}
+		break;
+	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_PARSED:
+		requiredSize = sizeof(ARG_PARSING_ERROR_STR) +
+					   sizeof(USAGE_PREFIX_STR) + (strlen(getCommandUsage(command->type)) + 1);
+		format = calloc(requiredSize, sizeof(char));
+		str = calloc(requiredSize, sizeof(char));
+		if ((format != NULL) && (str != NULL)) {
+			strcpy(format, ARG_PARSING_ERROR_STR);
+			strcat(format, USAGE_PREFIX_STR);
+			sprintf(str, format, problematicArgNo, getCommandUsage(command->type));
+		}
+		break;
+	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_IN_RANGE:
+		expectedRangeString = getCommandArgsExpectedRangeString(command->type, problematicArgNo, state->gameState);
+		if (expectedRangeString != NULL) {
+			requiredSize = sizeof(ARG_VALUE_NOT_IN_RANGE_STR) + (strlen(expectedRangeString) + 1);
+			format = calloc(requiredSize, sizeof(char));
+			str = calloc(requiredSize, sizeof(char));
+			if ((format != NULL) && (str != NULL)) {
+				strcpy(format, ARG_VALUE_NOT_IN_RANGE_STR);
+				sprintf(str, format, problematicArgNo, expectedRangeString);
+			}
+			free(expectedRangeString);
+		}
+		break;
+	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_AGREEING_WITH_BOARD:
+		requiredSize = sizeof(ARG_VALUE_NOT_AGREEING_WITH_BOARD) + (strlen(getGetCommandArgsValidatorErrorString(command->type)(argsValidatorError)) + 1);
+		format = calloc(requiredSize, sizeof(char));
+		str = calloc(requiredSize, sizeof(char));
+		if ((format != NULL) && (str != NULL)) {
+			strcpy(format, ARG_VALUE_NOT_AGREEING_WITH_BOARD);
+			sprintf(str, format, problematicArgNo, getGetCommandArgsValidatorErrorString(command->type)(argsValidatorError));
+		}
+		break;
+	}
+
+	if (format != NULL)
+		free(format);
+	return str;
 }
 
 void guessHintCommandArgsCleaner(void* arguments) {

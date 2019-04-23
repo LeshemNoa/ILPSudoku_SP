@@ -1,3 +1,7 @@
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
+
 #include "parser.h"
 
 #define UNUSED(x) (void)(x)

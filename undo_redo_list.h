@@ -1,7 +1,9 @@
 #ifndef UNDO_REDO_LIST_H
 #define UNDO_REDO_LIST_H
+
+#include <stdbool.h>
+
 #include "linked_list.h"
-#include "game.h"
 
 typedef struct {
     List list; 

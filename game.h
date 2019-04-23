@@ -22,12 +22,6 @@
 #define GAME_H_
 
 #include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-
-#include "linked_list.h" 
-#include "undo_redo_list.h"
-#include "rec_stack.h"
 
 /**
  * The value defined in this constant would mark an empty cell in the sudoku board.
@@ -111,6 +105,8 @@ bool isBoardCellEmpty(Cell* cell);
 
 void emptyBoardCell(Cell* cell);
 
+bool isBoardFilled(GameState* gameState);
+
 bool isBoardErroneous(GameState* gameState);
 
 bool isBoardSolvable(GameState* gameState);
@@ -170,5 +166,9 @@ void undoMove(State* state);
 void redoMove(State* state);
 
 bool calculateNumSolutions(Board* board, int* numSolutions);
+
+bool isSolutionSuccessful(GameState* gameState);
+
+bool isSolutionFailing(GameState* gameState);
 
 #endif /* GAME_H_ */

@@ -2,9 +2,6 @@
 #define ILP_SOLVER_H_
 
 #include <stdbool.h>
-#include <stdio.h>
-
-#include "gurobi_c.h"
 
 #include "game.h"
 
