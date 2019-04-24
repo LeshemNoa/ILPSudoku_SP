@@ -7,7 +7,7 @@
 
 #include "board.h"
 #include "parser.h"
-#include "ILP_solver.h"
+#include "LP_solver.h"
 
 #define UNUSED(x) (void)(x)
 
