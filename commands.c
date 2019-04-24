@@ -2142,12 +2142,12 @@ bool isResetCommandErrorRecoverable(int error) { /* TODO: fill this */
 }
 
 PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Command* command) {	
-	Board board;
-	int numSolutions;
+	Board board = {0};
+	int numSolutions = 0;
 
 	UNUSED(command);
 
-	if (!exportBoard(state->gameState, &board)) {
+	if (!exportBoard(state->gameState, &board)) { /* TODO: call cleanupBoard(board); */
 		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
@@ -2155,7 +2155,7 @@ PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Comm
 		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
-	printf("Number of possible solutions: %d\n", numSolutions); /* TODO: delete this and include of stdio */
+	printf("Number of possible solutions: %d\n", numSolutions); /* TODO: delete this, and include of stdio.h (if possible) */
 	return ERROR_SUCCESS;
 }
 
