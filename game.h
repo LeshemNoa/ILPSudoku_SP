@@ -109,7 +109,6 @@ bool isValueLegalForCell(GameState* gameState, int row, int col, int value);
 
 bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegalValues* cellLegalValuesInOut);
 
-void setTempFunc(GameState* gameState, int row, int indexInRow, int value);
 /* Should this be in the .h file? */
 int setPuzzleCell(State* state, int row, int col, int value);
 

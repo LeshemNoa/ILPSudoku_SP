@@ -377,25 +377,6 @@ bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegal
 	return true;
 }
 
-void setTempFunc(GameState* gameState, int row, int indexInRow, int value) { /* TODO: will be replaced with actual set func from other branch */
-	Cell* cell = getBoardCellByRow(&(gameState->puzzle), row, indexInRow);
-
-	if (!isBoardCellEmpty(cell)) {
-		int oldValue = cell->value;
-		gameState->rowsCellsValuesCounters[row][oldValue]--;
-		gameState->columnsCellsValuesCounters[indexInRow][oldValue]--;
-		gameState->blocksCellsValuesCounters[whichBlock(&(gameState->puzzle), row, indexInRow)][oldValue]--;
-	} else {
-		gameState->numEmpty--;
-	}
-
-	cell->value = value;
-	gameState->rowsCellsValuesCounters[row][value]++;
-	gameState->columnsCellsValuesCounters[indexInRow][value]++;
-	gameState->blocksCellsValuesCounters[whichBlock(&(gameState->puzzle), row, indexInRow)][value]++;
-	updateCellsErroneousness(gameState); /* TODO: could do something more efficient (going over just one row, col and block) */	
-}
-
 /****** From here on - Noa's additions *******/
 
 /* Maintaining the invariant: at all times, all erroneous cells are marked
@@ -489,7 +470,7 @@ bool isSolutionFailing(GameState* gameState) {
 		   (isBoardErroneous(gameState));
 }
 
-bool calculateNumSolutions(Board* board, int* numSolutions) { /* TODO: probably should be in another module */
+bool calculateNumSolutions(Board* board, int* numSolutions) { /* TODO: probably should be in another (possibly BT_solver) module */
 	Stack stack;
 	bool erroneous = false;
 	int curCol, curRow;

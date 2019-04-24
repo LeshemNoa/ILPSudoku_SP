@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <stdio.h> /* TODO: delete this */
+#include <stdio.h>
 
 #include "commands.h"
 
@@ -26,8 +26,6 @@ typedef char* (*getCommandArgsValidatorErrorStringFunc)(int error);
 typedef char* (*getCommandErrorStringFunc)(int error);
 typedef bool (*isCommandErrorRecoverableFunc)(int error);
 typedef char* (*getCommandStrOutputFunc)(Command* command, GameState* gameState);
-
-/* TODO: check necessity of IGNORE in all of the below */
 
 bool isCommandAllowed(GameMode gameMode, CommandType commandType) {
 	switch (gameMode) {
@@ -302,7 +300,7 @@ int getSizeofCommandArgsStruct(CommandType commandType) {
 		return sizeof(ResetCommandArguments);
 	case COMMAND_TYPE_EXIT:
 		return sizeof(ExitCommandArguments);
-	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+	case COMMAND_TYPE_IGNORE:
 		return sizeof(IgnoreCommandArguments);
 	}
 	return 0;
@@ -646,7 +644,7 @@ commandArgsParser getCommandArgsParser(CommandType commandType) {
 	case COMMAND_TYPE_AUTOFILL:
 	case COMMAND_TYPE_RESET:
 	case COMMAND_TYPE_EXIT:
-	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+	case COMMAND_TYPE_IGNORE:
 		return NULL;
 	}
 	return NULL;
@@ -676,7 +674,7 @@ commandArgsRangeChecker getCommandArgsRangeChecker(CommandType commandType) {
 	case COMMAND_TYPE_AUTOFILL:
 	case COMMAND_TYPE_RESET:
 	case COMMAND_TYPE_EXIT:
-	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+	case COMMAND_TYPE_IGNORE:
 		return NULL;
 	}
 	return NULL;
@@ -706,7 +704,7 @@ commandArgsGetExpectedRangeStringFunc getGetCommandArgsExpectedRangeStringFunc(C
 		case COMMAND_TYPE_AUTOFILL:
 		case COMMAND_TYPE_RESET:
 		case COMMAND_TYPE_EXIT:
-		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		case COMMAND_TYPE_IGNORE:
 			return NULL;
 	}
 	return NULL;
@@ -737,7 +735,7 @@ commandArgsValidator getCommandArgsValidator(CommandType commandType) {
 	case COMMAND_TYPE_AUTOFILL:
 	case COMMAND_TYPE_RESET:
 	case COMMAND_TYPE_EXIT:
-	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+	case COMMAND_TYPE_IGNORE:
 		return NULL;
 	}
 	return NULL;
@@ -763,7 +761,7 @@ getCommandArgsValidatorErrorStringFunc getGetCommandArgsValidatorErrorString(Com
 	case COMMAND_TYPE_AUTOFILL:
 	case COMMAND_TYPE_RESET:
 	case COMMAND_TYPE_EXIT:
-	case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+	case COMMAND_TYPE_IGNORE:
 		return NULL;
 	}
 	return NULL;
@@ -917,7 +915,7 @@ IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* co
 		case COMMAND_TYPE_REDO:
 		case COMMAND_TYPE_RESET:
 		case COMMAND_TYPE_EXIT:
-		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		case COMMAND_TYPE_IGNORE:
 			return ERROR_SUCCESS;
 		}
 	return ERROR_SUCCESS;
@@ -1131,7 +1129,7 @@ bool isSolveCommandErrorRecoverable(int error) {
 	}
 }
 
-PerformSolveCommandErrorCode performSolveCommand(State* state, Command* command) { /* TODO: wrap solve and edit with some generic LOAD command */
+PerformSolveCommandErrorCode performSolveCommand(State* state, Command* command) { /* TODO: perhaps wrap solve and edit with some generic LOAD command */
 	SolveCommandArguments* solveArguments = (SolveCommandArguments*)(command->arguments);
 	GameState* newGameState = NULL;
 
@@ -1226,7 +1224,7 @@ PerformSaveCommandErrorCode performSaveCommand(State* state, Command* command) {
 		return PERFORM_SAVE_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
-	if (state->gameMode == GAME_MODE_EDIT) { /* TODO: think of changing exportBoard so that it does the following when EDIT */
+	if (state->gameMode == GAME_MODE_EDIT) {
 		markFilledCellsAsFixed(&exportedBoard);
 	}
 
@@ -1525,7 +1523,7 @@ randomlyFillXEmptyCellsErrorCode randomlyFillXEmptyCells(Board* boardInOut, int 
 	for (numEmptyCellsFilled = 0; numEmptyCellsFilled < numEmptyCellsToFill; numEmptyCellsFilled++) {
 		int row = 0, col = 0;
 
-		findEmptyCellInBoard(boardInOut, &row, &col); /* TODO: perhaps there's a better function that noa wrote? */
+		findEmptyCellInBoard(boardInOut, &row, &col);
 
 		switch (randomlyFillEmptyCell(boardInOut, row, col)) {
 		case RANDOMLY_FILL_EMPTY_SUCCESS:
@@ -2147,7 +2145,7 @@ PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Comm
 
 	UNUSED(command);
 
-	if (!exportBoard(state->gameState, &board)) { /* TODO: call cleanupBoard(board); */
+	if (!exportBoard(state->gameState, &board)) { /* TODO: need to call cleanupBoard later */
 		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
@@ -2155,7 +2153,7 @@ PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Comm
 		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
-	printf("Number of possible solutions: %d\n", numSolutions); /* TODO: delete this, and include of stdio.h (if possible) */
+	printf("Number of possible solutions: %d\n", numSolutions); /* TODO: delete this */
 	return ERROR_SUCCESS;
 }
 
@@ -2221,9 +2219,9 @@ int performCommand(State* state, Command* command) {
 			return performResetCommand(state, command);*/
 		case COMMAND_TYPE_PRINT_BOARD:
 		case COMMAND_TYPE_EXIT:
-		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		case COMMAND_TYPE_IGNORE:
 			return ERROR_SUCCESS;
-		default: /* TODO: get rid of this */
+		default: /* TODO: get rid of this (when we have autofill and reset) */
 			break;
 		}
 
@@ -2265,9 +2263,9 @@ getCommandErrorStringFunc getGetCommandErrorStringFunc(CommandType type) {
 			return getResetCommandErrorString;(state, command);*/
 		case COMMAND_TYPE_PRINT_BOARD:
 		case COMMAND_TYPE_EXIT:
-		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		case COMMAND_TYPE_IGNORE:
 			return NULL;
-		default: /* TODO: get rid of this */
+		default: /* TODO: get rid of this (when we have autofill and reset) */
 			return NULL;
 		}
 
@@ -2313,7 +2311,7 @@ isCommandErrorRecoverableFunc getIsCommandErrorRecoverableFunc(CommandType type)
 			return isResetCommandErrorRecoverable;
 		case COMMAND_TYPE_PRINT_BOARD:
 		case COMMAND_TYPE_EXIT:
-		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		case COMMAND_TYPE_IGNORE:
 			return NULL;
 		}
 
@@ -2389,7 +2387,7 @@ char* getExitCommandStrOutput(Command* command, GameState* gameState) {
 	return str;
 }
 
-char* getIgnoreCommandStrOutput(Command* command, GameState* gameState) { /* TODO: is needed ?? */
+char* getIgnoreCommandStrOutput(Command* command, GameState* gameState) { /* Note: function is not really necessary (will never be called) */
 	IgnoreCommandArguments* ignoreArguments = (IgnoreCommandArguments*)(command->arguments);
 
 	char* str = NULL;
@@ -2441,7 +2439,7 @@ getCommandStrOutputFunc getGetCommandStrOutputFunc(CommandType type) {
 			return getPrintBoardCommandStrOutput;
 		case COMMAND_TYPE_EXIT:
 			return getExitCommandStrOutput;
-		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
+		case COMMAND_TYPE_IGNORE: /* Note: effectively unreachable */
 			return getIgnoreCommandStrOutput;
 		}
 	return NULL;
