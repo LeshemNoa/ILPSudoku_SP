@@ -1502,14 +1502,13 @@ typedef enum {
 
 PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Command* command) {	
 	int numSolutions;
-
-	UNUSED(command);
+	NumSolutionsCommandArguments* args = (NumSolutionsCommandArguments*) command->arguments;
 
 	if (!calculateNumSolutions(state->gameState, &numSolutions)) {
 		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
-	printf("Number of possible solutions: %d\n", numSolutions);
+	args->numSolutionsOut = numSolutions;
 	return ERROR_SUCCESS;
 }
 
