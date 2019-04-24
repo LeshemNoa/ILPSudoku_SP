@@ -7,7 +7,7 @@
 #define UNUSED(x) (void)(x)
 
 void freeIntAndIndexBasedLegalValuesForAllCells(Board* board, int*** cellLegalValuesIntBased) {
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(board);
 
 	if (cellLegalValuesIntBased != NULL) {
 		int row = 0;
@@ -32,7 +32,7 @@ bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(Board* board, C
 	bool retValue = true;
 	int*** cellLegalValuesIntBased = NULL;
 
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(board);
 	cellLegalValuesIntBased = calloc(MN, sizeof(int**));
 	if (cellLegalValuesIntBased == NULL)
 		retValue = false;
@@ -86,7 +86,7 @@ bool getLegalValuesForAllCells(Board* board, int**** cellLegalValuesIntBasedOut)
 	CellLegalValues** cellsLegalValues = NULL;
 	int*** cellLegalValuesIntBased = NULL;
 
-	if (!getSuperficiallyLegalValuesForAllCells(NULL, board, &cellsLegalValues)) {
+	if (!getSuperficiallyLegalValuesForAllBoardCells(board, &cellsLegalValues)) {
 		return false;
 	}
 
@@ -95,14 +95,14 @@ bool getLegalValuesForAllCells(Board* board, int**** cellLegalValuesIntBasedOut)
 	} else
 		retValue = false;
 
-	freeCellsLegalValuesForAllCells(NULL, board, cellsLegalValues);
+	freeCellsLegalValuesForAllBoardCells(board, cellsLegalValues);
 
 	return retValue;
 }
 
 int getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental(Board* board, int*** cellLegalValuesIntBased) {
 	int totalNumLegalValues = 0;
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(board);
 
 	int row = 0, col = 0;
 	for (row = 0; row < MN; row++) {
@@ -174,7 +174,7 @@ addVariablesAndObjectiveFunctionToModelErrorCode addVariablesAndObjectiveFunctio
 	UNUSED(env);
 
 	if (board != NULL)
-		MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+		MN = getBoardBlockSize_MN(board);
 
 	obj = calloc(numVars, sizeof(double));
 	vtype = calloc(numVars, sizeof(char));
@@ -246,7 +246,7 @@ addConstraintsFuncsErrorCode addCellConstraints(GRBenv* env, GRBmodel* model, Bo
 	int* ind = NULL;
 	double* val = NULL;
 
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(board);
 
 	UNUSED(env);
 	UNUSED(numVars);
@@ -302,7 +302,7 @@ addConstraintsFuncsErrorCode addCellConstraints(GRBenv* env, GRBmodel* model, Bo
 }
 
 addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(board);
 	int row = 0, col = 0;
 	for (row = 0; row < MN; row++)
 		for (col = 0; col < MN; col++) {
@@ -313,13 +313,13 @@ addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, B
 	return ADD_CONSTRAINTS_FUNCS_SUCCESS;
 }
 
-addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, int value, getRowBasedIDByCategoryBasedIDFunc getRowBasedIDfunc) {
+addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, int value, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;
 
 	int* ind = NULL;
 	double* val = NULL;
 
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(board);
 
 	UNUSED(env);
 	UNUSED(numVars);
@@ -366,8 +366,8 @@ addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GR
 	return retVal;
 }
 
-addConstraintsFuncsErrorCode addCategoryInstanceConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, getRowBasedIDByCategoryBasedIDFunc getRowBasedIDfunc) {
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+addConstraintsFuncsErrorCode addCategoryInstanceConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
+	int MN = getBoardBlockSize_MN(board);
 	int value = 1;
 	for (value = 1; value <= MN; value++) {
 		addConstraintsFuncsErrorCode retVal = addCategoryInstanceValueConstraints(env, model, board, numVars, cellLegalValuesIntBased, categoryNo, value, getRowBasedIDfunc);
@@ -378,8 +378,8 @@ addConstraintsFuncsErrorCode addCategoryInstanceConstraints(GRBenv* env, GRBmode
 	return ADD_CONSTRAINTS_FUNCS_SUCCESS;
 }
 
-addConstraintsFuncsErrorCode addCategoryConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, getRowBasedIDByCategoryBasedIDFunc getRowBasedIDfunc) {
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+addConstraintsFuncsErrorCode addCategoryConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
+	int MN = getBoardBlockSize_MN(board);
 
 	int categoryNo = 0;
 	for (categoryNo = 0; categoryNo < MN; categoryNo++) {
@@ -455,7 +455,7 @@ solveModelErrorCode solveModel(GRBenv* env, GRBmodel* model) {
 }
 
 void applySolutionToBoard(double* sol, int numVars, int*** cellLegalValuesIntBased, Board* boardSolution) {
-	int MN = boardSolution->numRowsInBlock_M * boardSolution->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(boardSolution);
 
 	int row = 0, col = 0;
 
@@ -479,7 +479,7 @@ void applySolutionToBoard(double* sol, int numVars, int*** cellLegalValuesIntBas
 }
 
 void applySolutionToValuesScoresArray(double* sol, int numVars, int*** cellLegalValuesIntBased, Board* board, double*** allCellsValuesScores) {
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(board);
 
 	int row = 0, col = 0;
 
@@ -628,7 +628,7 @@ solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solve
 }
 
 void freeValuesScoresArr(double*** valuesScores, Board* board) {
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(board);
 
 	if (valuesScores != NULL) {
 		int row = 0;
@@ -650,7 +650,7 @@ void freeValuesScoresArr(double*** valuesScores, Board* board) {
 }
 
 bool allocateValuesScoresArr(double**** valuesScoresOut, Board* board) {
-	int MN = board->numRowsInBlock_M * board->numColumnsInBlock_N;
+	int MN = getBoardBlockSize_MN(board);
 
 	bool success = true;
 

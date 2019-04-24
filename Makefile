@@ -1,5 +1,5 @@
 CC = gcc
-OBJS = main.o rec_stack.o linked_list.o undo_redo_list.o main_aux.o commands.o parser.o game.o
+OBJS = main.o rec_stack.o linked_list.o undo_redo_list.o main_aux.o commands.o parser.o game.o board.o
 EXEC = sudoku-console
 COMP_FLAGS = -ansi -O3 -Wall -Wextra -Werror -pedantic-errors
 GUROBI_COMP = -I/usr/local/lib/gurobi563/include
@@ -9,6 +9,8 @@ $(EXEC): $(OBJS) ILP_solver_dummy.o
 	$(CC) $(OBJS) ILP_solver_dummy.o -o $@ -lm	
 $(EXEC)-nova: $(OBJS) ILP_solver.o
 	$(CC) $(OBJS) ILP_solver.o $(GUROBI_LIB) -o $@ -lm
+board.o: board.c board.h
+	$(CC) $(COMP_FLAGS) -c $*.c
 game.o: game.c game.h
 	$(CC) $(COMP_FLAGS) -c $*.c
 parser.o: parser.c parser.h
