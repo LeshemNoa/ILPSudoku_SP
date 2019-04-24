@@ -6,6 +6,15 @@
 
 #define UNUSED(x) (void)(x)
 
+
+/**
+ * freeIntAndIndexBasedLegalValuesForAllCells frees an array acquired from getLegalValuesForAllCells
+ *
+ * @param board						[in] the board that was passed to getLegalValuesForAllCells
+ * @param cellLegalValuesIntBased	[in] the array gotten from getLegalValuesForAllCells
+ *
+ * @return void
+ */
 void freeIntAndIndexBasedLegalValuesForAllCells(Board* board, int*** cellLegalValuesIntBased) {
 	int MN = getBoardBlockSize_MN(board);
 
@@ -28,6 +37,22 @@ void freeIntAndIndexBasedLegalValuesForAllCells(Board* board, int*** cellLegalVa
 	}
 }
 
+/**
+ * convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased creates an int-based array of legal values for
+ *  														   all cells, given a CellLegalValues based array.
+ *
+ * @param board							[in] the board for which the said arrays are relevant
+ * @param cellsLegalValues				[in] an array of CellLegalValues for each of the board's cells
+ * @param cellLegalValuesIntBasedOut	[out] a pointer to put the legal values array in. The structure of the
+ * 											  array (given that the function has succeeded is):
+ * 											  array[row][col][value] = num, where if value>0 and num>0 then
+ * 											  value is legal for cell (row, col) in board, and all such positive
+ * 											  nums form an oredered sequence (1, 2, 3, ..., numLegalValues); if
+ * 											  value=0 then num represented the number of legal values for cell
+ * 											  (row, col).
+ *
+ * @return bool							true when succeeds, false otherwise (due to memory allocation failure)
+ */
 bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(Board* board, CellLegalValues** cellsLegalValues, int**** cellLegalValuesIntBasedOut) {
 	bool retValue = true;
 	int*** cellLegalValuesIntBased = NULL;
@@ -81,6 +106,16 @@ bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(Board* board, C
 
 }
 
+/**
+ * getLegalValuesForAllCells creates an array of the legal values for all cells in the given board
+ *
+ * @param board						[in] the board for the cells of which to create said array
+ * @param cellLegalValuesIntBased	[out] the sough-for array (created using
+ * 										  convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased).
+ * 										  It must later be freed using freeIntAndIndexBasedLegalValuesForAllCells.
+ *
+ * @return bool						true when succeeds, false otherwise (due to memory allocation failure)
+ */
 bool getLegalValuesForAllCells(Board* board, int**** cellLegalValuesIntBasedOut) {
 	bool retValue = true;
 	CellLegalValues** cellsLegalValues = NULL;
@@ -100,6 +135,23 @@ bool getLegalValuesForAllCells(Board* board, int**** cellLegalValuesIntBasedOut)
 	return retValue;
 }
 
+/**
+ * getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental returns the total number of legal values for all
+ * 															 empty cells in the board. It also transforms the
+ * 															 list number of legal values for each cell to be
+ * 															 incremental, i.e. list (2, 3, 5, 1, 2) is transformed
+ * 															 to (0, 2, 5, 10, 11).
+ *
+ * @param board						[in] the board for which the the legal values array passed via the second
+ * 										 parameter was created
+ * @param cellLegalValuesIntBased	[in, out] an int-based of legal values for all cells in board, gotten from
+ * 										  	  getLegalValuesForAllCells. The list formed by
+ * 										  	  cellLegalValuesIntBased[row][col][0] for all empty cells (row, col)
+ * 										  	  in board (representing the number of legal values for the cell) is
+ * 										  	  transformed to be incremental, as specified above.
+ *
+ * @return int						the total number of legal values for all empty cells in the board.
+ */
 int getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental(Board* board, int*** cellLegalValuesIntBased) {
 	int totalNumLegalValues = 0;
 	int MN = getBoardBlockSize_MN(board);
@@ -118,10 +170,22 @@ int getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental(Board* board, int*
 	return totalNumLegalValues;
 }
 
+/**
+ * freeGRBEnvironment frees a GRB environment gotten via getNewGRBEnvironment.
+ *
+ * @param env	[in] a pointer to the GRB environment (gotten via getNewGRBEnvironment) to free.
+ *
+ * @return void
+ */
 void freeGRBEnvironment(GRBenv* env) {
 	GRBfreeenv(env);
 }
 
+/**
+ * getNewGRBEnvironment creates a new GRB environment.
+ *
+ * @return GRBenv*	a pointer to the newly-created GRB environment, or NULL upon failure.
+ */
 GRBenv* getNewGRBEnvironment() {
 	int error = 0;
 
@@ -140,6 +204,13 @@ GRBenv* getNewGRBEnvironment() {
 	return env;
 }
 
+/**
+ * getNewGRBModel creates a new GRB model.
+ *
+ * @param env	[in] a pointer to a GRB environment
+ *
+ * @return GRBmodel*	a pointer to the newly-created GRB model, or NULL upon failure.
+ */
 GRBmodel* getNewGRBModel(GRBenv* env) {
 	int error = 0;
 
@@ -152,6 +223,14 @@ GRBmodel* getNewGRBModel(GRBenv* env) {
 	return model;
 }
 
+/**
+ * freeGRBModel frees a GRB model gotten via getNewGRBModel.
+ * A model must be freed before freeing the environment in which it was created.
+ *
+ * @param model	[in] a pointer to the GRB model to free.
+ *
+ * @return void
+ */
 void freeGRBModel(GRBmodel* model) {
 	GRBfreemodel(model);
 }
@@ -163,6 +242,20 @@ typedef enum {
 	ADD_VARIABLES_AND_OBJECTIVE_FUNCTION_TO_MODEL_GRB_COULD_NOT_SET_OBJECTIVE,
 	ADD_VARIABLES_AND_OBJECTIVE_FUNCTION_TO_MODEL_GRB_COULD_NOT_UPDATE_MODEL
 } addVariablesAndObjectiveFunctionToModelErrorCode;
+
+/**
+ * addVariablesAndObjectiveFunctionToModel add variables to a GRB model and sets its objective.
+ *
+ * @param env			[in] a pointer to the GRB environment of the model.
+ * @param model			[in] the GRB model
+ * @param numVars		[in] the number of variables to add to the model
+ * @param board			[in] the board to be solved
+ * @param solvingMode	[in] the solving mode (ILP or LP)
+ *
+ * @return addVariablesAndObjectiveFunctionToModelErrorCode		an error code is returned, specifying
+ * 																whether the board was solved, or else
+ * 																that an error has occurred
+ */
 addVariablesAndObjectiveFunctionToModelErrorCode addVariablesAndObjectiveFunctionToModel(GRBenv* env, GRBmodel* model, int numVars, Board* board, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	addVariablesAndObjectiveFunctionToModelErrorCode retVal = ADD_VARIABLES_AND_OBJECTIVE_FUNCTION_TO_MODEL_SUCCESS;
 
@@ -217,6 +310,19 @@ addVariablesAndObjectiveFunctionToModelErrorCode addVariablesAndObjectiveFunctio
 	return retVal;
 }
 
+/**
+ * getIndexOfSpecificLegalValueOfCertainCell get the index (in the list of variables created in the Gurobi model)
+ * 											 of a certain legal value of a certain cell
+ *
+ * @param row						[in] the cell's row
+ * @param col						[in] the cell's column
+ * @param value						[in] the legal value for the cell in (row, col)
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ *
+ * @return int	the sought after index, or -1 if cell (row, col) in relevant board isn't empty or if value isn't
+ * 				legal for the cell.
+ */
 int getIndexOfSpecificLegalValueOfCertainCell(int row, int col, int value, int*** cellLegalValuesIntBased) {
 	int baseIndex = 0;
 	int relativeIndex = 0;
@@ -240,6 +346,22 @@ typedef enum {
 	ADD_CONSTRAINTS_FUNCS_GRB_COULD_NOT_ADD_CONSTRAINT
 } addConstraintsFuncsErrorCode;
 
+/**
+ * addCellConstraints adds constraints pertaining to a cell (of the board to solve) to the Gurobi model
+ *
+ * @param env						[in] a pointer to the GRB environment of the model.
+ * @param model						[in] the GRB model
+ * @param board						[in] the board to be solved
+ * @param numVars					[in] the number of variables to add to the model
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ * @param row						[in] the cells' row
+ * @param col						[in] the cell's column
+ * @param solvingMode				[in] the solving mode (ILP or LP)
+ *
+ * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
+ * 											were added, or else	that an error has occurred
+ */
 addConstraintsFuncsErrorCode addCellConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int row, int col, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;
 
@@ -301,6 +423,20 @@ addConstraintsFuncsErrorCode addCellConstraints(GRBenv* env, GRBmodel* model, Bo
 	return retVal;
 }
 
+/**
+ * addCellsConstraints adds constraints pertaining to all cells (of the board to solve) to the Gurobi model
+ *
+ * @param env						[in] a pointer to the GRB environment of the model.
+ * @param model						[in] the GRB model
+ * @param board						[in] the board to be solved
+ * @param numVars					[in] the number of variables to add to the model
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ * @param solvingMode				[in] the solving mode (ILP or LP)
+ *
+ * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
+ * 											were added, or else	that an error has occurred
+ */
 addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	int MN = getBoardBlockSize_MN(board);
 	int row = 0, col = 0;
@@ -313,6 +449,23 @@ addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, B
 	return ADD_CONSTRAINTS_FUNCS_SUCCESS;
 }
 
+/**
+ * addCategoryInstanceValueConstraints adds constraints pertaining to a certain value in a certain instance
+ * 									   of a certain category (of the board to solve) to the Gurobi model
+ *
+ * @param env						[in] a pointer to the GRB environment of the model.
+ * @param model						[in] the GRB model
+ * @param board						[in] the board to be solved
+ * @param numVars					[in] the number of variables to add to the model
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ * @param categoryNo				[in] no. of category
+ * @param value						[in] the value
+ * @param getRowBasedIDfunc			[in] a function translating category-based cell ID to row-based cell ID
+ *
+ * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
+ * 											were added, or else	that an error has occurred
+ */
 addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, int value, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;
 
@@ -366,6 +519,22 @@ addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GR
 	return retVal;
 }
 
+/**
+ * addCategoryInstanceConstraints 	adds constraints pertaining to a certain instance of a certain category
+ * 									(of the board to solve) to the Gurobi model
+ *
+ * @param env						[in] a pointer to the GRB environment of the model.
+ * @param model						[in] the GRB model
+ * @param board						[in] the board to be solved
+ * @param numVars					[in] the number of variables to add to the model
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ * @param categoryNo				[in] no. of category
+ * @param getRowBasedIDfunc			[in] a function translating category-based cell ID to row-based cell ID
+ *
+ * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
+ * 											were added, or else	that an error has occurred
+ */
 addConstraintsFuncsErrorCode addCategoryInstanceConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
 	int MN = getBoardBlockSize_MN(board);
 	int value = 1;
@@ -378,6 +547,21 @@ addConstraintsFuncsErrorCode addCategoryInstanceConstraints(GRBenv* env, GRBmode
 	return ADD_CONSTRAINTS_FUNCS_SUCCESS;
 }
 
+/**
+ * addCategoryConstraints adds constraints pertaining to a certain category (of the board to solve)
+ * 									   to the Gurobi model
+ *
+ * @param env						[in] a pointer to the GRB environment of the model.
+ * @param model						[in] the GRB model
+ * @param board						[in] the board to be solved
+ * @param numVars					[in] the number of variables to add to the model
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ * @param getRowBasedIDfunc			[in] a function translating category-based cell ID to row-based cell ID
+ *
+ * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
+ * 											were added, or else	that an error has occurred
+ */
 addConstraintsFuncsErrorCode addCategoryConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
 	int MN = getBoardBlockSize_MN(board);
 
@@ -391,6 +575,20 @@ addConstraintsFuncsErrorCode addCategoryConstraints(GRBenv* env, GRBmodel* model
 	return ADD_CONSTRAINTS_FUNCS_SUCCESS;
 }
 
+/**
+ * addCategoriesConstraints adds constraints pertaining to all relevant categories (of the board to solve)
+ * 									   to the Gurobi model (i.e.: row, column, block)
+ *
+ * @param env						[in] a pointer to the GRB environment of the model.
+ * @param model						[in] the GRB model
+ * @param board						[in] the board to be solved
+ * @param numVars					[in] the number of variables to add to the model
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ *
+ * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
+ * 											were added, or else	that an error has occurred
+ */
 addConstraintsFuncsErrorCode addCategoriesConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;
 
@@ -407,6 +605,21 @@ addConstraintsFuncsErrorCode addCategoriesConstraints(GRBenv* env, GRBmodel* mod
 	return ADD_CONSTRAINTS_FUNCS_SUCCESS;
 }
 
+/**
+ * addSudokuConstraints 	adds sudoku constraints (based on the board to solve)
+ * 						 	to the Gurobi model (i.e.: row, column, block)
+ *
+ * @param env						[in] a pointer to the GRB environment of the model.
+ * @param model						[in] the GRB model
+ * @param board						[in] the board to be solved
+ * @param numVars					[in] the number of variables to add to the model
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ * @param solvingMode				[in] the solving mode (ILP or LP)
+ *
+ * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
+ * 											ware added, or else	that an error has occurred
+ */
 addConstraintsFuncsErrorCode addSudokuConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;
 
@@ -426,6 +639,16 @@ typedef enum {
 	SOLVE_MODEL_MODEL_IS_UNSOLVABLE,
 	SOLVE_MODEL_OTHER_ERROR
 } solveModelErrorCode;
+
+/**
+ * solveModel	solves the given Gurobi model
+ *
+ * @param env		[in] a pointer to the GRB environment of the model.
+ * @param model		[in] the GRB model
+ *
+ * @return solveModelErrorCode		an error code is returned, specifying whether the board
+ * 									was solved, or else	that an error has occurred
+ */
 solveModelErrorCode solveModel(GRBenv* env, GRBmodel* model) {
 	int error = 0;
 
@@ -454,6 +677,18 @@ solveModelErrorCode solveModel(GRBenv* env, GRBmodel* model) {
 	}
 }
 
+/**
+ * solveModel	applies the model ILP solution to a board.
+ *
+ * @param sol						[in] an array containing the values for each of the variables in the GRB model
+ * 										 (constituting the solution of the model)
+ * @param numVars					[in] the number of variables in the GRB environment
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ * @param boardSolution				[in, out] the board to which to apply the found solution
+ *
+ * @return void
+ */
 void applySolutionToBoard(double* sol, int numVars, int*** cellLegalValuesIntBased, Board* boardSolution) {
 	int MN = getBoardBlockSize_MN(boardSolution);
 
@@ -478,6 +713,19 @@ void applySolutionToBoard(double* sol, int numVars, int*** cellLegalValuesIntBas
 		}
 }
 
+/**
+ * solveModel	applies the model LP solution to a values scores array.
+ *
+ * @param sol						[in] an array containing the values for each of the variables in the GRB model
+ * 										 (constituting the solution of the model)
+ * @param numVars					[in] the number of variables in the GRB environment
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ * @param board						[in] the board that was to be solved
+ * @param allCellsValuesScores		[in, out] the values scores array
+ *
+ * @return void
+ */
 void applySolutionToValuesScoresArray(double* sol, int numVars, int*** cellLegalValuesIntBased, Board* board, double*** allCellsValuesScores) {
 	int MN = getBoardBlockSize_MN(board);
 
@@ -508,6 +756,22 @@ typedef enum {
 	GET_SOLUTION_MEMORY_ALLOCATION_FAILURE,
 	GET_SOLUTION_GRB_ERROR
 } getSolutionErrorCode;
+
+/**
+ * getSolution	gets the solution of a GRB model, and applies it.
+ *
+ * @param env						[in] a pointer to the GRB environment of the model.
+ * @param model						[in] the GRB model
+ * @param numVars					[in] the number of variables to add to the model
+ * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
+ * 										 getLegalValuesForAllCells)
+ * @param board						[in] the board to be solved
+ * @param boardSolution				[in, out] the board solution (for ILP)
+ * @param allCellsValuesScores		[in, out] the values scores array (for LP)
+ * @param solvingMode				[in] the solving mode (ILP or LP)
+ *
+ * @return void
+ */
 getSolutionErrorCode getSolution(GRBenv* env, GRBmodel* model, int numVars, int*** cellLegalValuesIntBased, Board* board, Board* boardSolution, double*** allCellsValuesScores, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	getSolutionErrorCode retVal = GET_SOLUTION_SUCCESS;
 
