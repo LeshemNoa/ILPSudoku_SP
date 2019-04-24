@@ -1,5 +1,7 @@
-#include "rec_stack.h"
 #include <stdlib.h>
+
+#include "rec_stack.h"
+
 
 typedef struct {
     int curRow;
@@ -11,7 +13,7 @@ void initStack(Stack* stack) {
 }
 
 bool pushStack(Stack* stack, int curRow, int curCol) {
-    CallFrame* frame = (CallFrame*)malloc(sizeof(CallFrame));
+    CallFrame* frame = (CallFrame*)calloc(1, sizeof(CallFrame));
     if (frame == NULL) {
         return false;
     }

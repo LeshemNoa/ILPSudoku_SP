@@ -1,5 +1,7 @@
 #include <stdlib.h>
+
 #include "linked_list.h"
+
 
 /* Nodes and data are dynamically allocated while lists aren't */
 
@@ -17,7 +19,7 @@ bool isEmpty(List* list) {
 
 Node* createNewNode(void* new_data) {
     Node* new_node;
-    new_node = (Node*) malloc(sizeof(Node));
+    new_node = (Node*) calloc(1, sizeof(Node));
     if (new_node != NULL) {
         new_node->data = new_data;
         new_node->prev = NULL;

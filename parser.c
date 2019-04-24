@@ -1,3 +1,7 @@
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
+
 #include "parser.h"
 
 #define UNUSED(x) (void)(x)
@@ -20,11 +24,11 @@ bool parseIntArg(char* arg, int* dst) {
 }
 
 bool parseIntArgOffset(char* arg, int* dst, int offset) {
-	int sscanfRetVal = sscanf(arg, "%d", dst);
-	if (sscanfRetVal == 1) {
+	if (parseIntArg(arg, dst)) {
 		*dst += offset;
+		return true;
 	}
-	return (sscanfRetVal == 1);
+	return false;
 }
 
 bool parseBooleanIntArg(char* arg, bool* dst) {

@@ -2,9 +2,8 @@
 #define ILP_SOLVER_H_
 
 #include <stdbool.h>
-#include <stdio.h>
 
-#include "game.h"
+#include "board.h"
 
 #define ERROR_SUCCESS (0)
 

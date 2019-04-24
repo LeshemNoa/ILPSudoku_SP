@@ -1,20 +1,16 @@
 #ifndef COMMANDS_H_
 #define COMMANDS_H_
 
-/* TODO: consider dividing this module to its different commands (one per command), with this one being their "governor" */
-
 #include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
 
-#include "parser.h"
 #include "game.h"
-#include "ILP_solver.h"
+
+/* TODO: consider dividing this module to its different commands (one per command), with this one being their "governor" */
 
 
 #define ERROR_SUCCESS (0)
 
-#define COMMAND_MAX_LENGTH (256) /* One extra character for the newline character */
+#define COMMAND_MAX_LENGTH (256)
 #define COMMAND_END_MARKER ('\n')
 
 #define SOLVE_COMMAND_TYPE_STRING ("solve")
@@ -36,13 +32,10 @@
 #define EXIT_COMMAND_TYPE_STRING ("exit")
 #define IGNORE_COMMAND_TYPE_STRING ("ignore")
 
-/* TODO: consider replacing this with a function that builds these strings of the above Defines */
 #define INIT_MODE_LIST_OF_ALLOWED_COMMANDS ("solve, edit, exit")
 #define EDIT_MODE_LIST_OF_ALLOWED_COMMANDS ("solve, edit, print_board, set, validate, generate, undo, redo, save, num_solutions, reset, exit")
 #define SOLVE_MODE_LIST_OF_ALLOWED_COMMANDS ("solve, edit, mark_errors, print_board, set, validate, guess, undo, redo, save, hint, guess_hint, num_solutions, autofill, reset, exit")
 
-/* TODO: consider replacing this with a function that builds these strings of the above Defines
- * 		 Or maybe eliminate all the repetitions */
 #define SOLVE_COMMAND_LIST_OF_ALLOWING_STATES ("Init, Edit, Solve")
 #define EDIT_COMMAND_LIST_OF_ALLOWING_STATES ("Init, Edit, Solve")
 #define MARK_ERRORS_COMMAND_LIST_OF_ALLOWING_STATES ("Solve")
@@ -61,19 +54,19 @@
 #define RESET_COMMAND_LIST_OF_ALLOWING_STATES ("Edit, Solve")
 #define EXIT_COMMAND_LIST_OF_ALLOWING_STATES ("Init, Edit, Solve")
 
-#define SOLVE_COMMAND_USAGE ("solve <path>")
-#define EDIT_COMMAND_USAGE ("edit (<path>)")
-#define MARK_ERRORS_COMMAND_USAGE ("mark_errors <0|1>")
+#define SOLVE_COMMAND_USAGE ("solve <path (str)>")
+#define EDIT_COMMAND_USAGE ("edit (<path (str)>)")
+#define MARK_ERRORS_COMMAND_USAGE ("mark_errors <0|1 (int)>")
 #define PRINT_BOARD_COMMAND_USAGE ("print_board")
-#define SET_COMMAND_USAGE ("set <column_no> <row_no> <value>")
+#define SET_COMMAND_USAGE ("set <column_no (int)> <row_no (int)> <value (int)>")
 #define VALIDATE_COMMAND_USAGE ("validate")
-#define GUESS_COMMAND_USAGE ("guess <threshold>")
-#define GENERATE_COMMAND_USAGE ("generate <num_cells_to_fill> <num_cells_to_clear>")
+#define GUESS_COMMAND_USAGE ("guess <threshold (real)>")
+#define GENERATE_COMMAND_USAGE ("generate <num_cells_to_fill (int)> <num_cells_to_clear (int)>")
 #define UNDO_COMMAND_USAGE ("undo")
 #define REDO_COMMAND_USAGE ("redo")
-#define SAVE_COMMAND_USAGE ("save <path>")
-#define HINT_COMMAND_USAGE ("hint <column_no> <row_no>")
-#define GUESS_HINT_COMMAND_USAGE ("guess_hint <column_no> <row_no>")
+#define SAVE_COMMAND_USAGE ("save <path (str)>")
+#define HINT_COMMAND_USAGE ("hint <column_no (int)> <row_no (int)>")
+#define GUESS_HINT_COMMAND_USAGE ("guess_hint <column_no (int)> <row_no (int)>")
 #define NUM_SOLUTIONS_COMMAND_USAGE ("num_solutions")
 #define AUTOFILL_COMMAND_USAGE ("autofill")
 #define RESET_COMMAND_USAGE ("reset")
@@ -107,10 +100,7 @@ typedef enum commandType {
 
 typedef enum {
 	IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS = 1,
-	IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_UNDO, /* TODO: undo and redo probably shouldn't count here as "board invalid" for command */
-	IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_REDO,
 	IS_BOARD_VALID_FOR_COMMAND_BOARD_UNSOLVABLE,
-	IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_ERRONEOUS_VALUE,
 	IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_FIXED_VALUE,
 	IS_BOARD_VALID_FOR_COMMAND_CELL_IS_NOT_EMPTY
 } IsBoardValidForCommandErrorCode;
@@ -137,7 +127,7 @@ typedef bool (*commandArgsParser)(char* arg, int argNo, void* arguments);
 
 typedef bool (*commandArgsRangeChecker)(void* arguments, int argNo, GameState* gameState);
 
-typedef bool (*commandArgsValidator)(void* arguments, int argNo, GameState* gameState);
+typedef bool (*commandArgsValidator)(void* arguments, int argNo, GameState* gameState, int* errorCodeOut);
 
 typedef void (*commandArgsCleaner)(void* arguments);
 
@@ -162,7 +152,7 @@ typedef struct { /* Note: order of row and col is reverse to that provided by us
 } SetCommandArguments;
 
 typedef struct {
-	double threshold; /* TODO: perhaps should be float? */
+	double threshold;
 } GuessCommandArguments;
 
 typedef struct {
@@ -184,7 +174,7 @@ typedef struct { /* Note: order of row and col is reverse to that provided by us
 typedef struct { /* Note: order of row and col is reverse to that provided by user */
 	int row;
 	int col;
-	double* valuesScoresOut; /* TODO: will require freeing (aka: cleaner) */
+	double* valuesScoresOut;
 } GuessHintCommandArguments;
 
 typedef struct {
@@ -263,15 +253,27 @@ commandArgsParser getCommandArgsParser(CommandType commandType);
 
 commandArgsRangeChecker getCommandArgsRangeChecker(CommandType commandType);
 
+char* getCommandArgsExpectedRangeString(CommandType commandType, int argNo, GameState* gameState);
+
 commandArgsValidator getCommandArgsValidator(CommandType commandType);
 
 IsBoardValidForCommandErrorCode isBoardValidForCommand(State* state, Command* command);
 
+char* getIsBoardValidForCommandErrorString(IsBoardValidForCommandErrorCode errorCode);
+
 int performCommand(State* state, Command* command);
+
+char* getCommandErrorString(CommandType type, int error);
+
+bool isCommandErrorRecoverable(CommandType, int error);
+
+char* getCommandStrOutput(Command* command, GameState* gameState);
 
 bool shouldPrintBoardPostCommand(CommandType commandType);
 
-ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* commandStr, Command* commandOut, int* problematicArgNo);
+ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* commandStr, Command* commandOut, int* problematicArgNo, int* argsValidatorError);
+
+char* getProcessStringAsCommandErrorString(ProcessStringAsCommandErrorCode errorCode, int problematicArgNo, State* state, Command* command, char* commandName, int argsValidatorError);
 
 void cleanupCommand(Command* command);
 

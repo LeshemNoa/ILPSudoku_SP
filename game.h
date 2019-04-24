@@ -22,33 +22,8 @@
 #define GAME_H_
 
 #include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "linked_list.h" 
 
-/**
- * The value defined in this constant would mark an empty cell in the sudoku board.
- */
-#define EMPTY_CELL_VALUE (0)
-
-
-/**
- * Cell struct represents one cell of a sudoku puzzle board. It contains the value
- * in the cell, and a marker determining whether the cell is fixed (immutable) or not.
- */
-typedef struct {
-	int value;
-    bool isFixed;
-	bool isErroneous;} Cell;
-
-/**
- * Board struct represents a sudoku board.
- */
-typedef struct {
-	int numRowsInBlock_M;
-	int numColumnsInBlock_N;
-	Cell** cells;} Board;
-	
+#include "board.h"
 
 /**
  *  GameState struct represents a sudoku game in its current GameState.
@@ -67,16 +42,8 @@ typedef struct {
 	bool shouldHideErrors;
 	GameState* gameState;} State;
 
-typedef struct {
-	int numLegalValues;
-    bool* legalValues;} CellLegalValues;
-
-typedef void (*getRowBasedIDByCategoryBasedIDFunc)(Board* board, int categoryNo, int indexInCategory, int* row, int* indexInRow);
-
 
 int getNumEmptyCells(GameState* gameState);
-
-int getNumFilledBoardCells(Board* board);
 
 int getNumColumnsInBlock_N(GameState* gameState);
 
@@ -84,7 +51,7 @@ int getNumRowsInBlock_M(GameState* gameState);
 
 int getBlockSize_MN(GameState* gameState);
 
-int getBoardSize_MN2(GameState* gameState);
+int getPuzzleBoardSize_MN2(GameState* gameState);
 
 bool isIndexInRange(GameState* gameState, int index);
 
@@ -92,25 +59,27 @@ bool isCellValueInRange(GameState* gameState, int value);
 
 char* getCurModeString(State* state);
 
-Cell* getBoardCellByRow(Board* board, int row, int index);
-
-void getRowBasedIDGivenRowBasedID(Board* board, int rowIn, int indexInRowIn, int* row, int* indexInRow);
-
-void getRowBasedIDGivenBlockBasedID(Board* board, int block, int indexInBlock, int* row, int* indexInRow);
-
-void getRowBasedIDGivenColumnBasedID(Board* board, int column, int indexInColumn, int* row, int* indexInRow);
-
-bool isBoardCellFixed(Cell* cell);
-
-int getBoardCellValue(Cell* cell);
-
-bool isBoardCellEmpty(Cell* cell);
-
-void emptyBoardCell(Cell* cell);
+bool isBoardFilled(GameState* gameState);
 
 bool isBoardErroneous(GameState* gameState);
 
-bool isBoardSolvable(GameState* gameState);
+typedef enum {
+	GET_PUZZLE_SOLUTION_SUCCESS,
+	GET_PUZZLE_SOLUTION_BOARD_UNSOLVABLE,
+	GET_PUZZLE_SOLUTION_COULD_NOT_SOLVE_BOARD,
+	GET_PUZZLE_SOLUTION_MEMORY_ALLOCATION_FAILURE
+} getPuzzleSolutionErrorCode;
+
+getPuzzleSolutionErrorCode getPuzzleSolution(GameState* gameState, Board* solutionOut);
+
+typedef enum {
+	IS_PUZZLE_SOLVABLE_BOARD_SOLVABLE,
+	IS_PUZZLE_SOLVABLE_BOARD_UNSOLVABLE,
+	IS_PUZZLE_SOLVABLE_FAILED_VALIDATING,
+	IS_PUZZLE_SOLVABLE_MEMORY_ALLOCATION_FAILURE
+} isPuzzleSolvableErrorCode;
+
+isPuzzleSolvableErrorCode isPuzzleSolvable(GameState* gameState);
 
 bool isCellEmpty(GameState* gameState, int row, int col);
 
@@ -128,21 +97,9 @@ bool isThereMoveToUndo(GameState* gameState);
 
 bool isThereMoveToRedo(GameState* gameState);
 
-void cleanupBoard(Board* boardInOut);
-
-void cleanupBoard(Board* boardInOut);
-
-bool createEmptyBoard(Board* boardInOut);
-
-GameState* createGameState(Board* board);
+GameState* createGameState(Board* board, GameMode mode);
 
 void cleanupGameState(GameState* state);
-
-void markAllCellsAsNotFixed(GameState* gameState);
-
-/*bool findErroneousCells(Board* board);*/
-
-bool copyBoard(Board* boardIn, Board* boardOut);
 
 bool exportBoard(GameState* gameState, Board* boardInOut);
 
@@ -152,18 +109,20 @@ bool isValueLegalForCell(GameState* gameState, int row, int col, int value);
 
 bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegalValues* cellLegalValuesInOut);
 
-void freeCellsLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues** cellsLegalValuesOut);
-
-bool getSuperficiallyLegalValuesForAllCells(GameState* gameStateIn, Board* boardIn, CellLegalValues*** cellsLegalValuesOut);
-
 int setPuzzleCell(GameState* gameState, int row, int indexInRow, int value);
 
 bool setPuzzleCellMove(State* state, int value, int row, int col);
+
+bool calculateNumSolutions(GameState* state, int* numSolutions);
 
 void undoMove(State* state);
 
 void redoMove(State* state);
 
-bool calculateNumSolutions(GameState* state, int* numSolutions);
+bool isSolutionSuccessful(GameState* gameState);
+
+bool isSolutionFailing(GameState* gameState);
+
+char* getPuzzleAsString(State* state);
 
 #endif /* GAME_H_ */

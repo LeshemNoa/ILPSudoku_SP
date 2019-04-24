@@ -1,5 +1,7 @@
-#include "undo_redo_list.h"
 #include <stdlib.h>
+
+#include "undo_redo_list.h"
+
 
 /* Lists are not dynamically allocated anymore. Nodes and their data still are */
 
@@ -16,7 +18,7 @@ void initMove(Move* move) {
 }
 
 singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row){
-    singleCellMove* scMove = (singleCellMove*) malloc(sizeof(singleCellMove));
+    singleCellMove* scMove = (singleCellMove*) calloc(1, sizeof(singleCellMove));
     if (scMove == NULL) { return NULL; }
     scMove->col = col;
     scMove->row = row;

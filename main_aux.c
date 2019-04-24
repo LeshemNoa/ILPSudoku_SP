@@ -1,88 +1,50 @@
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "main_aux.h"
 
-/* TODO: perhaps have errors printed to stderr, as discuseed earlier */
+#include "commands.h"
 
-#define INPUT_STRING_MAX_LENGTH (COMMAND_MAX_LENGTH + sizeof(COMMAND_END_MARKER) + 1) /* One for COMMAND_END_MARKER, and one for the null terminator */
+#define INPUT_STRING_MAX_LENGTH (COMMAND_MAX_LENGTH + sizeof(COMMAND_END_MARKER) + 1) /* Note: One for COMMAND_END_MARKER, and one for the null terminator */
+
+#define ERROR_PREFIX_STR ("Error: ")
+
+#define EOF_WAS_REACHED_ERROR_STR ("EOF was reached.\n")
+#define COMMAND_IS_TOO_LONG_ERROR_STR ("command's length exceeds expectations (i.e., too many characters were entered in a single line)\n")
+
+#define USER_PROMPT_MARKER_STR (">")
+
+#define BOARD_SUCCESSFULLY_SOLVED_STR ("The board was successfully solved!\n")
+#define BOARD_REMAINS_UNSOLVED_STR ("The board is erroneous and hence remains unsolved...\n")
+
+#define GAME_HEADER_STR ("\t~~~ Let's play Sudoku! ~~~\t\n\n")
+#define EXIT_STR ("Exiting...\n")
 
 #define ERROR_SUCCESS (0)
 
-#define BLOCK_SEPARATOR ('|')
-#define SPACE_CHARACTER (' ')
-#define EMPTY_CELL_STRING ("  ")
-#define FIXED_CELL_MARKER ('.')
-#define ERROENOUS_CELL_MARKER ('*')
-#define DASH_CHARACTER ('-')
+void printString(char* str) {
+	if (str != NULL)
+		printf("%s", str);
+}
 
-#define LENGTH_OF_STRING_REPRESENTING_CELL (4)
+bool printAllocatedString(char* str) {
+	printString(str);
+	if (str != NULL) {
+		free(str);
+		return true;
+	}
+	return false;
+}
 
+void printErrorPrefix() {
+	printString(ERROR_PREFIX_STR);
+}
 
 typedef enum GetInputStringErrorCode {
 	GET_INPUT_STRING_REACHED_EOF = 1,
 	GET_INPUT_STRING_COMMAND_TOO_LONG} GetInputStringErrorCode;
-
-void printSeparatorLine(State* state) {
-	int M = getNumRowsInBlock_M(state->gameState);
-	int N = getNumColumnsInBlock_N(state->gameState);
-
-	int i = 0;
-	for (i = 0; i < LENGTH_OF_STRING_REPRESENTING_CELL * (M * N) + M + 1; i++)
-		printf("%c", DASH_CHARACTER);
-
-	printf("\n");
-}
-
-void printCell(State* state, int row, int col) {
-	printf("%c", SPACE_CHARACTER);
-
-	if (!isCellEmpty(state->gameState, row, col))
-		printf("%2d", getCellValue(state->gameState, row, col));
-	else
-		printf("%s", EMPTY_CELL_STRING);
-
-	if (isCellFixed(state->gameState, row, col))
-		printf("%c", FIXED_CELL_MARKER);
-	else if (isCellErroneous(state->gameState, row, col) &&
-			((state->gameMode == GAME_MODE_EDIT) || (shouldMarkErrors(state))))
-			printf("%c", ERROENOUS_CELL_MARKER);
-	else printf("%c", SPACE_CHARACTER);
-}
-
-void printRow(State* state, int rowsBlock, int rowInBlock) {
-	int M = getNumRowsInBlock_M(state->gameState);
-	int N = getNumColumnsInBlock_N(state->gameState);
-	int row = rowsBlock * M + rowInBlock;
-	int col = 0;
-
-	for (col = 0; col < N * M; col++) {
-		if (col % N == 0)
-			printf("%c", BLOCK_SEPARATOR);
-		printCell(state, row, col);
-	}
-	printf("%c", BLOCK_SEPARATOR);
-
-	printf("\n");
-}
-
-void printRowsBlock(State* state, int rowsBlock) {
-	int rowInBlock = 0;
-	int numRowsInBlock = getNumRowsInBlock_M(state->gameState);
-
-	for(rowInBlock = 0; rowInBlock < numRowsInBlock; rowInBlock++) {
-		printRow(state, rowsBlock, rowInBlock);
-	}
-}
-
-void printBoard(State* state) {
-	int rowsBlock = 0;
-	int numRowsBlocks = getNumColumnsInBlock_N(state->gameState);
-
-	printSeparatorLine(state);
-
-	for (rowsBlock = 0; rowsBlock < numRowsBlocks; rowsBlock++) {
-		printRowsBlock(state, rowsBlock);
-		printSeparatorLine(state);
-	}
-}
 
 /**
  * getCommandString reads a command string from stdin, and writes the input
@@ -102,7 +64,7 @@ GetInputStringErrorCode getInputString(char* commandStrOut, int commandMaxSize) 
 	do {
 		char* fgetsRes = fgets(commandStrOut, commandMaxSize, stdin);
 		if (fgetsRes == NULL) { /* EOF was reached */
-			printf("EOF was reached.\n");
+			printErrorPrefix(); printString(EOF_WAS_REACHED_ERROR_STR);
 			return GET_INPUT_STRING_REACHED_EOF;
 		} else if (strchr(commandStrOut, COMMAND_END_MARKER) != NULL) {
 			foundNewline = true;
@@ -115,7 +77,7 @@ GetInputStringErrorCode getInputString(char* commandStrOut, int commandMaxSize) 
 		 * the maximal length of any given command, in case we needed more than one iteration of the above loop, the command
 		 * is to be treated as too long.
 		 */
-		printf("Error: command's length exceeds the maximum of %d characters\n", COMMAND_MAX_LENGTH);
+		printErrorPrefix(); printString(COMMAND_IS_TOO_LONG_ERROR_STR);
 		return GET_INPUT_STRING_COMMAND_TOO_LONG;
 	}
 
@@ -123,66 +85,24 @@ GetInputStringErrorCode getInputString(char* commandStrOut, int commandMaxSize) 
 }
 
 void promptUserToInput(State* state) {
-	printf("%s>", getCurModeString(state));
+	printString(getCurModeString(state)); printString(USER_PROMPT_MARKER_STR);
 }
 
-void printIsBoardValidForCommandError(IsBoardValidForCommandErrorCode errorCode) {
-	printf("The board is not valid to perform desired command: ");
-	switch (errorCode) {
-	case IS_BOARD_VALID_FOR_COMMAND_BOARD_ERRONEOUS:
-		printf("it is erroneous");
-		break;
-	case IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_UNDO:
-		printf("there is no move to undo");
-		break;
-	case IS_BOARD_VALID_FOR_COMMAND_NO_MOVE_TO_REDO:
-		printf("there is no move to redo");
-		break;
-	case IS_BOARD_VALID_FOR_COMMAND_BOARD_UNSOLVABLE:
-		printf("it is unsolvable");
-		break;
-	case IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_ERRONEOUS_VALUE:
-		printf("cell has erroneous value");
-		break;
-	case IS_BOARD_VALID_FOR_COMMAND_CELL_HAS_FIXED_VALUE:
-		printf("cell has a fixed value");
-		break;
-	case IS_BOARD_VALID_FOR_COMMAND_CELL_IS_NOT_EMPTY:
-		printf("cell is not empty");
-		break;
-	}
-	printf("\n");
+void announceBoardSolved() {
+	printString(BOARD_SUCCESSFULLY_SOLVED_STR);
 }
 
-void printProcessStringAsCommandError(ProcessStringAsCommandErrorCode errorCode, int problematicArgNo, State* state, Command* command, char* commandName) {
-	switch (errorCode) {
-	case PROCESS_STRING_AS_COMMAND_UNKNOWN_COMMAND:
-		printf("Error: invalid command (unknown)\n");
-		printf("Allowed commands in current mode are the following: %s\n", getAllowedCommandsString(state->gameMode));
-		break;
-	case PROCESS_STRING_AS_COMMAND_COMMAND_NOT_ALLOWED_IN_CURRENT_MODE:
-		printf("Error: invalid command (not allowed in the current mode)\n");
-		printf("Command '%s' is allowed in the following modes: %s\n", commandName, getAllowingModesString(command->type));
-		break;
-	case PROCESS_STRING_AS_COMMAND_INCORRECT_ARGUMENTS_NUM:
-		printf("Error: incorrect number of arguments\n");
-		printf("Usage: %s\n", getCommandUsage(command->type));
-		break;
-	case PROCESS_STRING_AS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILURE:
-		printf("Error: Memory allocation for command's arguments' struct failed\n");
-		break;
-	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_PARSED:
-		printf("Error: failed to parse argument no. %d (due to wrong type)\n", problematicArgNo);
-		printf("Usage: %s\n", getCommandUsage(command->type));
-		break;
-	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_IN_RANGE:
-		printf("Error: Value of argument no. %d is out of expected range\n", problematicArgNo);
-		/* TODO: print appropriate range! (can be passed through the command! (we can define some range struct for that)))*/
-		break;
-	case PROCESS_STRING_AS_COMMAND_ARGUMENT_NOT_AGREEING_WITH_BOARD:
-		printf("Error: Value of argument no. %d does not agree with the current board state\n", problematicArgNo);
-		break;
-	}
+void announceBoardErroneous() {
+	printString(BOARD_REMAINS_UNSOLVED_STR);
+}
+
+void switchToInitMode(State* state) {
+	cleanupGameState(state->gameState); state->gameState = NULL;
+	state->gameMode = GAME_MODE_INIT;
+}
+
+bool printBoard(State* state) {
+	return printAllocatedString(getPuzzleAsString(state));
 }
 
 /**
@@ -201,6 +121,7 @@ void performCommandLoop(State* state) {
 		char inputStr[INPUT_STRING_MAX_LENGTH] = {0};
 		int errorCode = ERROR_SUCCESS;
 		int problematicArgNo = 0;
+		int argsValidatorError = 0;
 
 		promptUserToInput(state);
 		errorCode = getInputString(inputStr, INPUT_STRING_MAX_LENGTH);
@@ -210,31 +131,45 @@ void performCommandLoop(State* state) {
 			continue;
 		}
 
-		errorCode = processStringAsCommand(state, inputStr, &command, &problematicArgNo); /* Note: mustn't 'continue' or 'break' from this point on - cleanupCommand needs to be called in the end */
+		errorCode = processStringAsCommand(state, inputStr, &command, &problematicArgNo, &argsValidatorError); /* Note: mustn't 'continue' or 'break' from this point on - cleanupCommand needs to be called in the end */
 		if (errorCode != ERROR_SUCCESS) {
-			printProcessStringAsCommandError((ProcessStringAsCommandErrorCode)errorCode, problematicArgNo, state, &command, inputStr);
+			printErrorPrefix();
+			if (!printAllocatedString(getProcessStringAsCommandErrorString((ProcessStringAsCommandErrorCode)errorCode, problematicArgNo, state, &command, inputStr, argsValidatorError)))
+				loopHolds = false;
 			if (errorCode == PROCESS_STRING_AS_COMMAND_ARGUMENTS_MEMORY_ALLOCATION_FAILURE)
 				loopHolds = false;
 		} else {
 
 			errorCode = isBoardValidForCommand(state, &command);
 			if (errorCode != ERROR_SUCCESS) {
-				printIsBoardValidForCommandError((IsBoardValidForCommandErrorCode)errorCode);
+				printErrorPrefix();
+				if (!printAllocatedString(getIsBoardValidForCommandErrorString((IsBoardValidForCommandErrorCode)errorCode)))
+					loopHolds = false;
 			} else {
 
 				errorCode = performCommand(state, &command);
 				if (errorCode != ERROR_SUCCESS) {
-					/* TODO: call a printErrorMessage function, which should translate the error codes to string */
-					/* TODO: decide if error is recoverable; if not, loopHolds = false! */
+					printErrorPrefix();
+					printString(getCommandErrorString(command.type, errorCode));
+					if (!isCommandErrorRecoverable(command.type, errorCode))
+						loopHolds = false;
 				} else {
-					/* TODO: output of command should be printed here */
+					if (!printAllocatedString(getCommandStrOutput(&command, state->gameState)))
+						loopHolds = false;
 
 					if (shouldPrintBoardPostCommand(command.type)) {
-						printBoard(state);
+						if (!printBoard(state))
+							loopHolds = false;
 					}
 
-					/* TODO: in solve mode, if all cells are now filled, check whether board is solved or not and let user know (in case of successful solution, immediately switch to INIT mode
-					 * 		 this takes care of the case of loading a solved board for solving - immediately it shall be announced that the board was solved, and we then switch to INIT mode */
+					if (state->gameMode == GAME_MODE_SOLVE) {
+						if (isSolutionSuccessful(state->gameState)) {
+							announceBoardSolved();
+							switchToInitMode(state);
+						} else if (isSolutionFailing(state->gameState)) {
+							announceBoardErroneous();
+						}
+					}
 
 					if (command.type == COMMAND_TYPE_EXIT) {
 						loopHolds = false;
@@ -254,14 +189,13 @@ void performCommandLoop(State* state) {
  * @return true 	iff the game is exited (Rather than: restarted)
  */
 void runGame() {
-	State state = {0}; /* properly initialised */
-	/* TODO: even though, perhaps add an "initialiseState function" */
+	State state = {0}; /* Note: this is properly initialised */
 
-	printf("\t~~~ Let's play Sudoku! ~~~\t\n\n");
+	printString(GAME_HEADER_STR);
 
 	performCommandLoop(&state);
 
 	cleanupGameState(state.gameState); state.gameState = NULL;
 
-	printf("Exiting...\n");
+	printString(EXIT_STR);
 }

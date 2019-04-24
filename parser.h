@@ -11,10 +11,6 @@
 #define PARSER_H_
 
 #include <stdbool.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
 
 bool parseIntArg(char* arg, int* dst);
 
@@ -25,17 +21,6 @@ bool parseBooleanIntArg(char* arg, bool* dst);
 bool parseStringArg(char* arg, char** dst);
 
 bool parseDoubleArg(char* arg, double* dst);
-
-/**
- * Reserved for future use.
- *
- * cleanupCommand frees memory allocated by parseCommand. In case one of the command types
- * will need to allocate additional internal memory, there will be a specific cleanup
- * implementation provided.
- *
- * @param command		the Command struct whose arguments are removed
- */
-/*void cleanupCommand(Command* command); *//* TODO: is needed? */
 
 char* getFirstToken(char* commandStr);
 
