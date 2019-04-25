@@ -312,7 +312,7 @@ GameState* createGameState(Board* board, GameMode mode) {
 			gameState->numEmpty = countNumEmptyCells(&(gameState->puzzle));
 			gameState->numErroneous = 0;
 			updateCellsErroneousness(gameState);
-			initUndoRedo(&(gameState->moveList)); /* TODO: have this freed at cleanupGameState */
+			initUndoRedo(&(gameState->moveList));
 
 			if (mode == GAME_MODE_EDIT)
 				markAllCellsAsNotFixed(&(gameState->puzzle));
@@ -332,6 +332,12 @@ void cleanupGameState(GameState* gameState) {
 	freeCellsValuesCounters(gameState);
 
 	cleanupBoard(&(gameState->puzzle));
+
+	/* cleanup undo-redo list */
+	while (!isEmpty(&(gameState->moveList.list))) {
+		void* data = pop(&(gameState->moveList.list));
+		free(data);
+	}
 
 	free(gameState);
 }

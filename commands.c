@@ -1958,7 +1958,7 @@ typedef enum {
 	PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
 } PerformSetCommandErrorCode;
 
-char* getSetCommandErrorString(int error) { /* TODO: fill this */
+char* getSetCommandErrorString(int error) {
 	PerformSetCommandErrorCode errorCode = (PerformSetCommandErrorCode)error;
 
 	switch (errorCode) {
@@ -1969,7 +1969,7 @@ char* getSetCommandErrorString(int error) { /* TODO: fill this */
 	return NULL;
 }
 
-bool isSetCommandErrorRecoverable(int error) { /* TODO: fill this */
+bool isSetCommandErrorRecoverable(int error) {
 	PerformSetCommandErrorCode errorCode = (PerformSetCommandErrorCode)error;
 
 	switch (errorCode) {
