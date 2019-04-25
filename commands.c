@@ -1639,7 +1639,7 @@ PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* co
 		case GET_BOARD_SOLUTION_SUCCESS:
 			randomlyClearYCells(&boardSolution, generateArguments->numCellsToClear);
 
-			if (makeMultiCellMove(state, &board)) {
+			if (makeMultiCellMove(state, &boardSolution)) { /* CR: this should have been here boardSolution, as I wrote in the original TODO that was here. Are you sure you have checked the code you've written? */
 				retVal = ERROR_SUCCESS;
 				succeeded = true;
 			} else {
