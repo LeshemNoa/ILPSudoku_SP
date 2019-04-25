@@ -1,13 +1,14 @@
 CC = gcc
 OBJS = main.o rec_stack.o linked_list.o undo_redo_list.o main_aux.o commands.o parser.o game.o board.o
 EXEC = sudoku-console
+EXEC_NOVA = $(EXEC)-nova
 COMP_FLAGS = -ansi -O3 -Wall -Wextra -Werror -pedantic-errors
 GUROBI_COMP = -I/usr/local/lib/gurobi563/include
 GUROBI_LIB = -L/usr/local/lib/gurobi563/lib -lgurobi56
 
 $(EXEC): $(OBJS) LP_solver_dummy.o
 	$(CC) $(OBJS) LP_solver_dummy.o -o $@ -lm
-$(EXEC)-nova: $(OBJS) LP_solver.o
+$(EXEC_NOVA): $(OBJS) LP_solver.o
 	$(CC) $(OBJS) LP_solver.o $(GUROBI_LIB) -o $@ -lm
 board.o: board.c board.h
 	$(CC) $(COMP_FLAGS) -c $*.c
@@ -32,5 +33,6 @@ undo_redo_list.o: undo_redo_list.c undo_redo_list.h move.h
 rec_stack.o: rec_stack.c rec_stack.h
 	$(CC) $(COMP_FLAGS) -c $*.c
 
+all: $(EXEC) $(EXEC_NOVA)
 clean:
-	rm -f $(OBJS) LP_solver_dummy.o LP_solver.o $(EXEC) $(EXEC)-nova
+	rm -f $(OBJS) LP_solver_dummy.o LP_solver.o $(EXEC) $(EXEC_NOVA)
