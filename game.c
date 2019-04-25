@@ -533,7 +533,7 @@ bool isSolutionFailing(GameState* gameState) {
 
 /* CR: this function is absolutely lovely */
 bool calculateNumSolutions(GameState* state, int* numSolutions) { /* CR: LOGIC should called from another module (possibly BT_solver), for modularity's sake (the idea is that we have two kinds of solvers) */
-	Stack stack = {0};
+	Stack stack = {{0}};
 	int curCol, curRow;
 	int sum = 0;
 	int MN = getBlockSize_MN(state);
