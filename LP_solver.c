@@ -245,6 +245,7 @@ typedef enum {
 
 /**
  * addVariablesAndObjectiveFunctionToModel add variables to a GRB model and sets its objective.
+ * The variables are binary when in ILP mode, and continuous when in LP mode.
  *
  * @param env			[in] a pointer to the GRB environment of the model.
  * @param model			[in] the GRB model
@@ -347,7 +348,10 @@ typedef enum {
 } addConstraintsFuncsErrorCode;
 
 /**
- * addCellConstraints adds constraints pertaining to a cell (of the board to solve) to the Gurobi model
+ * addCellConstraints adds constraints pertaining to a cell (of the board to solve) to the Gurobi model.
+ * Constraints: - all variables of a certain cell must together amount to exactly 1.0.
+ * 				- (in LP) each variable pertaining to a certain value must be in the range [0.0, 1.0].
+ *
  *
  * @param env						[in] a pointer to the GRB environment of the model.
  * @param model						[in] the GRB model
@@ -451,7 +455,9 @@ addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, B
 
 /**
  * addCategoryInstanceValueConstraints adds constraints pertaining to a certain value in a certain instance
- * 									   of a certain category (of the board to solve) to the Gurobi model
+ * 									   of a certain category (of the board to solve) to the Gurobi model.
+ * Constraints: - all variables of a certain value in a certain instance of a certain category must together
+ * 				  amount to exactly 1.0.
  *
  * @param env						[in] a pointer to the GRB environment of the model.
  * @param model						[in] the GRB model
