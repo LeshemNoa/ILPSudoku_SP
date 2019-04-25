@@ -33,4 +33,4 @@ rec_stack.o: rec_stack.c rec_stack.h
 	$(CC) $(COMP_FLAGS) -c $*.c
 
 clean:
-	rm -f $(OBJS) LP_solver_dummy.o ILP_solver.o $(EXEC) $(EXEC)-nova
+	rm -f $(OBJS) LP_solver_dummy.o LP_solver.o $(EXEC) $(EXEC)-nova
