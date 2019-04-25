@@ -2,7 +2,6 @@ CC = gcc
 OBJS = main.o rec_stack.o linked_list.o undo_redo_list.o main_aux.o commands.o parser.o game.o board.o
 EXEC = sudoku-console
 EXEC_NOVA = $(EXEC)-nova
-COMP_FLAGS = -ansi -O3 -Wall -Wextra -Werror -pedantic-errors
 GUROBI_COMP = -I/usr/local/lib/gurobi563/include
 GUROBI_LIB = -L/usr/local/lib/gurobi563/lib -lgurobi56
 COMP_FLAGS = -ansi -O3 -Wall -Wextra -Werror -pedantic-errors
