@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "linked_list.h"
+#include "linked_list.h" /* CR: again, we are graded on modularity. We should have a generic stack module, included by this module (this module certainly does not need the whole power of a list */
 
 typedef struct {
     List list;

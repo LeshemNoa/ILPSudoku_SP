@@ -109,7 +109,7 @@ bool getNextEmptyBoardCell(Board* board, int row, int col, int* outRow, int* out
 	Cell* curr;
 	int MN = getBoardBlockSize_MN(board);
 
-	while (row < MN) {
+	while (row < MN) { /* CR: isn't this classic to be two nested for loops? where rowIndex is initialised to row and colIndex is initialised to col if rowIndex == row, or 0 otherwise ? */
 		curr = getBoardCellByRow(board, row, col);
 		if (curr->value == EMPTY_CELL_VALUE) {
 			*outRow = row;

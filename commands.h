@@ -180,7 +180,7 @@ typedef struct { /* Note: order of row and col is reverse to that provided by us
 
 typedef struct {
 	Move* movesListOut;
-} UndoCommandArguments, RedoCommandArguments, AutofillCommandArguments;
+} UndoCommandArguments, RedoCommandArguments, AutofillCommandArguments; /* CR: autofill needn't have output! */
 
 typedef struct {
 	bool isSolvableOut;

@@ -112,19 +112,19 @@ bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegal
 
 int setPuzzleCell(GameState* gameState, int row, int indexInRow, int value);
 
-bool makeSingleCellMove(State* state, int value, int row, int col);
+bool makeSingleCellMove(State* state, int value, int row, int col); /* CR: shouldn't this func get GameState* rather than State*? */
 
-bool makeMultiCellMove(State* state, Board* newBoard);
+bool makeMultiCellMove(State* state, Board* newBoard); /* CR: shouldn't this func get GameState* rather than State*? */
 
 bool calculateNumSolutions(GameState* state, int* numSolutions);
 
-bool autofill(State* state, Move** outMove);
+bool autofill(State* state, Move** outMove); /* CR: shouldn't this func get GameState* rather than State*? */
 
-Move* undoMove(State* state);
+Move* undoMove(State* state); /* CR: shouldn't this func get GameState* rather than State*? */
 
-Move* redoMove(State* state);
+Move* redoMove(State* state); /* CR: shouldn't this func get GameState* rather than State*? */
 
-bool resetMoves(State* state);
+bool resetMoves(State* state); /* CR: shouldn't this func get GameState* rather than State*? */
 
 bool isSolutionSuccessful(GameState* gameState);
 

@@ -8,6 +8,7 @@
 #include "board.h"
 #include "parser.h"
 #include "LP_solver.h"
+#include "linked_list.h" /* CR: added this include so code will compile */
 
 #define UNUSED(x) (void)(x)
 
@@ -1926,7 +1927,7 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 				}
 		}
 
-		if (!makeMultiCellMove(state, &board)) {
+		if (!makeMultiCellMove(state, &board)) { /* CR: actually here, in guess, we CAN (as you see) document each change. If you feel like writing this code (hopefully it would be easy) for improved efficiency - by all means, do it */
 			retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 		}
 	}
@@ -2042,14 +2043,14 @@ PerformUndoCommandErrorCode performUndoCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
-#define SINGLE_CELL_MOVE_OUTPUT_FORMAT ("[%d,%d] = %d->%d\n")
+#define SINGLE_CELL_MOVE_OUTPUT_FORMAT ("[%d,%d] = %d->%d\n") /* CR: not a CR comment!: I would love it if you used a reversed arrow for undo...: [0,3] = 1 <- 2 (undo), [0,3] = 1 -> 2 (redo); also, if you could feel like changing the squared brackets to regular ones, that's be lovely (the squared ones makes me think of ranges, rather than coordinates); last thing, how about having an empty cell be an empty string (for example, (1, 3) =   -> 1). These are all merely suggestions, again :) */
 
 size_t getMoveStrOutputSize(GameState* gameState, Move* move) {
 	int MN = getBlockSize_MN(gameState);
 
 	size_t numCharsRequired = 
-		1 +	move->singleCellMoves.size *
-			(sizeof(SINGLE_CELL_MOVE_OUTPUT_FORMAT) + (4 * getNumDecDigitsInNumber(MN+1)));
+		1 +	(move->singleCellMoves.size * /* CR: access size through a wrapper function (also singleCellMoves...) */
+			(sizeof(SINGLE_CELL_MOVE_OUTPUT_FORMAT) + (4 * getNumDecDigitsInNumber(MN + 1)))); /* CR: 4 should be be a define constant */ /* CR: since we were instucted to use format %2d for each cell's value when outputting a board to the screen, you could use the same here, and refrain from using the getNumDecDigits func */
 	
 	return numCharsRequired;
 }
@@ -2057,18 +2058,17 @@ size_t getMoveStrOutputSize(GameState* gameState, Move* move) {
 /* Returns the total number of characters written. 
 This count does not include the additional null-character 
 automatically appended at the end of the string. */
-size_t sprintMoveStrOutput(char* outStr, Move* move, bool undo) {
+size_t sprintMoveStrOutput(char* outStr, Move* move, bool undo) { /* CR: if the move is empty (aka an autofill that changed nothing, perhaps have some indicative output?) */
 	char* start = outStr;
-	Node* curr = getHead(&(move->singleCellMoves));
+	Node* curr = getHead(&(move->singleCellMoves)); /* CR: access singleCellMoves through a wrapper function */
 	while (curr != NULL) {
-		singleCellMove* scMove = (singleCellMove*)curr->data;
-		outStr += sprintf(
-			outStr, 
-			SINGLE_CELL_MOVE_OUTPUT_FORMAT, 
-			scMove->row+1, 
-			scMove->col+1, 
-			undo ? scMove->newVal : scMove->prevVal, 
-			undo ? scMove->prevVal : scMove->newVal);
+		singleCellMove* scMove = (singleCellMove*)curr->data; /* CR: access data through a wrapper function */
+		outStr += sprintf(outStr,
+						  SINGLE_CELL_MOVE_OUTPUT_FORMAT,
+						  scMove->row + 1, /* CR: note the reason for the offset */
+						  scMove->col + 1,
+						  undo ? scMove->newVal : scMove->prevVal,
+						  undo ? scMove->prevVal : scMove->newVal);
 		curr = getNext(curr);
 	}
 
@@ -2084,10 +2084,10 @@ char* getUndoCommandStrOutput(Command* command, GameState* gameState) {
 
 	if (undoArguments->movesListOut != NULL) {
 		numCharsRequired = getMoveStrOutputSize(gameState, undoArguments->movesListOut);
-		str = calloc(numCharsRequired, sizeof(char));
+		str = calloc(numCharsRequired, sizeof(char)); /* CR: check returned value of calloc */
 		sprintMoveStrOutput(str, undoArguments->movesListOut, true);
 	} else {
-		numCharsRequired = strlen(emptyString) + 1;
+		numCharsRequired = strlen(emptyString) + 1; /* TODO: call here a call to a generic function that returns a dynamically allocated empty string */
 		str = calloc(numCharsRequired, sizeof(char));
 	}
 
@@ -2129,7 +2129,7 @@ PerformRedoCommandErrorCode performRedoCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
-char* getRedoCommandStrOutput(Command* command, GameState* gameState) {
+char* getRedoCommandStrOutput(Command* command, GameState* gameState) { /* CR: similar to getUndoCommandStrOutput */
 	RedoCommandArguments* redoArguments = (RedoCommandArguments*)(command->arguments);
 	char* str = NULL;
 	size_t numCharsRequired = 0;
@@ -2214,8 +2214,8 @@ bool isResetCommandErrorRecoverable(int error) {
 }
 
 PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Command* command) {	
-	int numSolutions;
 	NumSolutionsCommandArguments* args = (NumSolutionsCommandArguments*) command->arguments;
+	int numSolutions = 0;
 
 	if (!calculateNumSolutions(state->gameState, &numSolutions)) {
 		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
@@ -2226,8 +2226,8 @@ PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Comm
 }
 
 PerformAutofillCommandErrorCode performAutofillCommand(State* state, Command* command) {
-	Move* move;
 	AutofillCommandArguments* autofillArguments = (AutofillCommandArguments*)(command->arguments);
+	Move* move = NULL;
 
 	if (!autofill(state, &move)) {
 		return PERFORM_AUTO_FILL_COMMAND_MEMORY_ALLOCATION_FAILURE;
@@ -2238,7 +2238,10 @@ PerformAutofillCommandErrorCode performAutofillCommand(State* state, Command* co
 }
 
 PerformResetCommandErrorCode performResetCommand(State* state, Command* command) {
-	UNUSED(command);
+	ResetCommandArguments* resetfillArguments = (ResetCommandArguments*)(command->arguments);
+
+	UNUSED(resetfillArguments);
+
 	if (!resetMoves(state)) {
 		return PERFORM_RESET_COMMAND_NO_CHANGES;
 	}
@@ -2266,8 +2269,6 @@ char* getNumSolutionsCommandStrOutput(Command* command, GameState* gameState) {
 }
 
 int performCommand(State* state, Command* command) {
-	int errorCode = ERROR_SUCCESS;
-
 	switch (command->type) {
 		case COMMAND_TYPE_SOLVE:
 			return performSolveCommand(state, command);
@@ -2303,11 +2304,9 @@ int performCommand(State* state, Command* command) {
 		case COMMAND_TYPE_EXIT:
 		case COMMAND_TYPE_IGNORE:
 			return ERROR_SUCCESS;
-		default: /* TODO: get rid of this (when we have autofill and reset) */
-			break;
 		}
 
-	return errorCode;
+	return ERROR_SUCCESS;
 }
 
 getCommandErrorStringFunc getGetCommandErrorStringFunc(CommandType type) {
@@ -2344,8 +2343,6 @@ getCommandErrorStringFunc getGetCommandErrorStringFunc(CommandType type) {
 		case COMMAND_TYPE_PRINT_BOARD:
 		case COMMAND_TYPE_EXIT:
 		case COMMAND_TYPE_IGNORE:
-			return NULL;
-		default: /* TODO: get rid of this (when we have autofill and reset) */
 			return NULL;
 		}
 
@@ -2394,7 +2391,6 @@ isCommandErrorRecoverableFunc getIsCommandErrorRecoverableFunc(CommandType type)
 		case COMMAND_TYPE_IGNORE:
 			return NULL;
 		}
-
 	return NULL;
 }
 
@@ -2403,7 +2399,7 @@ bool isCommandErrorRecoverable(CommandType type, int error) {
 	return func(error);
 }
 
-char* getAutofillCommandStrOutput(Command* command, GameState* gameState) {
+char* getAutofillCommandStrOutput(Command* command, GameState* gameState) { /* CR: autofill shouldn't have any output */
 	AutofillCommandArguments* autofillArguments = (AutofillCommandArguments*)(command->arguments);
 
 	char* str = NULL;

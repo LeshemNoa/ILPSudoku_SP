@@ -2,6 +2,7 @@
 
 #include "rec_stack.h"
 
+/* CR: if you feel like on top of a generic stack module we need also a rec_stacl module, sure (and it will be used by the BT_solver module). If not, all this could be in the BT_solver module */
 
 typedef struct {
     int curRow;
@@ -9,7 +10,7 @@ typedef struct {
 } CallFrame;
 
 void initStack(Stack* stack) {
-    initList(&(stack->list));
+    initList(&(stack->list)); /* CR: you see, accessing the list part of the stack violates what this module needs to know! it need only call a push function of a stack module */
 }
 
 bool pushStack(Stack* stack, int curRow, int curCol) {
@@ -20,7 +21,7 @@ bool pushStack(Stack* stack, int curRow, int curCol) {
 
     frame->curRow = curRow;
     frame->curCol = curCol;
-    return push(&(stack->list), frame);
+    return push(&(stack->list), frame); /* CR: if push has failed, frame needs to be freed */
 }
 
 bool peekStack(Stack* stack, int* curRow, int* curCol) {

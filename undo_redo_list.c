@@ -7,7 +7,7 @@
 void initUndoRedo(UndoRedoList* moveList) { 
     if (moveList != NULL) {
         initList(&(moveList->list));
-        moveList->current = moveList->list.head;
+        moveList->current = moveList->list.head; /* CR: access head through a wrapper function */
         moveList->numUndos = 0;
     }
 }
@@ -30,12 +30,12 @@ singleCellMove* createSingleCellMove(int prevVal, int newVal, int row, int col){
 bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int row, int col) {
     singleCellMove* scMove = createSingleCellMove(prevVal, newVal, row, col);
     if (scMove == NULL) { return false; }
-    return push(&(move->singleCellMoves), scMove);
+    return push(&(move->singleCellMoves), scMove); /* CR: if push has failed, you have to free scMove */
 }
 
 /* returns false upon memory allocation error in push */
 bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
-    while (moveList->list.head != moveList->current) {
+    while (moveList->list.head != moveList->current) { /* CR: should call getHead */ /* CR: also, perhaps make this a function of undo_redo_list? (it could also naturally change numUndos to 0 */
         void* data = pop(&(moveList->list));
         free(data);
     }
@@ -46,11 +46,11 @@ bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
 }
 
 bool canUndo(UndoRedoList* moveList) {
-    return (moveList->numUndos != moveList->list.size);
+    return (moveList->numUndos != moveList->list.size); /*CR: use a wrapper function to get list's size */ /* CR: better to check if numUndos is smaller that list's size (so if the worst happens and numUndos is negative....) */
 }
 
 bool canRedo(UndoRedoList* moveList) {
-    return (moveList->numUndos != 0);
+    return (moveList->numUndos != 0); /* CR: again, better to check if numUndos is larger than zero */
 }
 
 Move* undoInList(UndoRedoList* moveList) {
@@ -59,14 +59,14 @@ Move* undoInList(UndoRedoList* moveList) {
         return NULL; /* no more moves to undo */
     }
     moveToUndo = getCurrent(moveList);
-    if (moveList->current->next != NULL) {
+    if (moveList->current->next != NULL) { /* CR: use a wrapper function to get next */ /* CR: it's better to minimise number of derefercing when possible - aka save the 'next' node to a variable */
         moveList->current = moveList->current->next;
     }
     moveList->numUndos++;
     return moveToUndo;
 }
 
-Move* redoInList(UndoRedoList* moveList) {
+Move* redoInList(UndoRedoList* moveList) { /* CR: similar to undoInList */
     Move* moveToRedo;
     if (!canRedo(moveList)) {
         return NULL; /* cannot advance current further */
@@ -82,13 +82,13 @@ Move* redoInList(UndoRedoList* moveList) {
 }
 
 Move* getCurrent(UndoRedoList* moveList) {
-    return (Move*) moveList->current->data;
+    return (Move*) moveList->current->data; /* CR: access data through a wrapper function */
 }
 
 void cleanupUndoRedoList(UndoRedoList* moveList) {
-	while (!isEmpty(&(moveList->list))) {
+	while (!isEmpty(&(moveList->list))) { /* CR: this looks like it needs to be a function of List */
 		Move* move = (Move*)pop(&(moveList->list));
-        while(!isEmpty(&(move->singleCellMoves))) {
+        while(!isEmpty(&(move->singleCellMoves))) { /* CR: ... which, it seems, would be called here again */
             singleCellMove* scMove = pop(&(move->singleCellMoves));
             free(scMove);
         }
