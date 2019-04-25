@@ -319,7 +319,8 @@ addVariablesAndObjectiveFunctionToModelErrorCode addVariablesAndObjectiveFunctio
  * @param col						[in] the cell's column
  * @param value						[in] the legal value for the cell in (row, col)
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells, and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  *
  * @return int	the sought after index, or -1 if cell (row, col) in relevant board isn't empty or if value isn't
  * 				legal for the cell.
@@ -358,7 +359,8 @@ typedef enum {
  * @param board						[in] the board to be solved
  * @param numVars					[in] the number of variables to add to the model
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param row						[in] the cells' row
  * @param col						[in] the cell's column
  * @param solvingMode				[in] the solving mode (ILP or LP)
@@ -435,7 +437,8 @@ addConstraintsFuncsErrorCode addCellConstraints(GRBenv* env, GRBmodel* model, Bo
  * @param board						[in] the board to be solved
  * @param numVars					[in] the number of variables to add to the model
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param solvingMode				[in] the solving mode (ILP or LP)
  *
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
@@ -464,7 +467,8 @@ addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, B
  * @param board						[in] the board to be solved
  * @param numVars					[in] the number of variables to add to the model
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param categoryNo				[in] no. of category
  * @param value						[in] the value
  * @param getRowBasedIDfunc			[in] a function translating category-based cell ID to row-based cell ID
@@ -534,7 +538,8 @@ addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GR
  * @param board						[in] the board to be solved
  * @param numVars					[in] the number of variables to add to the model
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param categoryNo				[in] no. of category
  * @param getRowBasedIDfunc			[in] a function translating category-based cell ID to row-based cell ID
  *
@@ -562,7 +567,8 @@ addConstraintsFuncsErrorCode addCategoryInstanceConstraints(GRBenv* env, GRBmode
  * @param board						[in] the board to be solved
  * @param numVars					[in] the number of variables to add to the model
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param getRowBasedIDfunc			[in] a function translating category-based cell ID to row-based cell ID
  *
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
@@ -590,7 +596,8 @@ addConstraintsFuncsErrorCode addCategoryConstraints(GRBenv* env, GRBmodel* model
  * @param board						[in] the board to be solved
  * @param numVars					[in] the number of variables to add to the model
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  *
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
  * 											were added, or else	that an error has occurred
@@ -620,7 +627,8 @@ addConstraintsFuncsErrorCode addCategoriesConstraints(GRBenv* env, GRBmodel* mod
  * @param board						[in] the board to be solved
  * @param numVars					[in] the number of variables to add to the model
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param solvingMode				[in] the solving mode (ILP or LP)
  *
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
@@ -690,7 +698,8 @@ solveModelErrorCode solveModel(GRBenv* env, GRBmodel* model) {
  * 										 (constituting the solution of the model)
  * @param numVars					[in] the number of variables in the GRB environment
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param boardSolution				[in, out] the board to which to apply the found solution
  *
  * @return void
@@ -726,7 +735,8 @@ void applySolutionToBoard(double* sol, int numVars, int*** cellLegalValuesIntBas
  * 										 (constituting the solution of the model)
  * @param numVars					[in] the number of variables in the GRB environment
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param board						[in] the board that was to be solved
  * @param allCellsValuesScores		[in, out] the values scores array
  *
@@ -770,7 +780,8 @@ typedef enum {
  * @param model						[in] the GRB model
  * @param numVars					[in] the number of variables to add to the model
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells)
+ * 										 getLegalValuesForAllCells and transformed via
+ * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param board						[in] the board to be solved
  * @param boardSolution				[in, out] the board solution (for ILP)
  * @param allCellsValuesScores		[in, out] the values scores array (for LP)
