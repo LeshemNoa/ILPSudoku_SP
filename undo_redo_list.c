@@ -46,9 +46,17 @@ bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
     return true;
 }
 
+bool canUndo(UndoRedoList* moveList) {
+    return (moveList->numUndos != moveList->list.size);
+}
+
+bool canRedo(UndoRedoList* moveList) {
+    return (moveList->numUndos != 0);
+}
+
 Move* undoInList(UndoRedoList* moveList) {
     Move* moveToUndo;
-    if (moveList->numUndos == moveList->list.size) {
+    if (!canUndo(moveList)) {
         return NULL; /* no more moves to undo */
     }
     moveToUndo = getCurrent(moveList);
@@ -61,7 +69,7 @@ Move* undoInList(UndoRedoList* moveList) {
 
 Move* redoInList(UndoRedoList* moveList) {
     Move* moveToRedo;
-    if (moveList->numUndos == 0) {
+    if (!canRedo(moveList)) {
         return NULL; /* cannot advance current further */
     }
     if (moveList->numUndos == moveList->list.size) {

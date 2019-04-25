@@ -477,34 +477,37 @@ bool makeMultiCellMove(State* state, Board* newBoard) {
 	return true;
 }
 
-void undoMove(State* state) {
+Move* undoMove(State* state) {
 	singleCellMove* scMove;
 	Node* currNode;
 	Move* moveToUndo = undoInList(&(state->gameState->moveList));
 	if (moveToUndo == NULL) {
-		return; /* nothing to undo */
+		return NULL; /* nothing to undo */
 	}
-	currNode = moveToUndo->singleCellMoves.head;
+	currNode = getHead(&(moveToUndo->singleCellMoves));
 	while (currNode != NULL) {
 		scMove = (singleCellMove*) currNode->data;
 		setPuzzleCell(state->gameState, scMove->row, scMove->col, scMove->prevVal);
-		currNode = currNode->next;
+		currNode = getNext(currNode);
 	}
+	return moveToUndo;
 }
 
-void redoMove(State* state) {
+Move* redoMove(State* state) {
 	singleCellMove* scMove;
 	Node* currNode;
 	Move* moveToRedo = redoInList(&(state->gameState->moveList));
 	if (moveToRedo == NULL) {
-		return; /* nothing to redo */
+		return NULL; /* nothing to redo */
 	}
-	currNode = moveToRedo->singleCellMoves.head;
+	currNode = getHead(&(moveToRedo->singleCellMoves));
 	while (currNode != NULL) {
 		scMove = (singleCellMove*) currNode->data;
 		setPuzzleCell(state->gameState, scMove->row, scMove->col, scMove->newVal);
-		currNode = currNode->next;
+		currNode = getNext(currNode);
 	}
+
+	return moveToRedo;
 }
 
 bool isSolutionSuccessful(GameState* gameState) {
@@ -587,6 +590,55 @@ bool calculateNumSolutions(GameState* state, int* numSolutions) {
 
 	*numSolutions = sum;
 	return true;
+}
+
+bool autofill(State* state, Move** outMove) {
+	int MN, row, col, val;
+	bool filled = false;
+	bool retValue = true;
+	CellLegalValues** cellsLegalValues = NULL;
+
+	Board board = {0};
+	if (!exportBoard(state->gameState, &board)) {
+		return false;
+	}
+
+	if (!getSuperficiallyLegalValuesForAllBoardCells(&(state->gameState->puzzle), &cellsLegalValues)) {
+		cleanupBoard(&board);
+		return false;
+	}
+
+	MN = getBlockSize_MN(state->gameState);
+	for (row = 0; row < MN; row++) {
+		for (col = 0; col < MN; col++) {
+			CellLegalValues* legal = &cellsLegalValues[row][col];
+			/* if only one legal value, set it in the board */
+			if (isCellEmpty(state->gameState, row, col) &&
+				legal->numLegalValues == 1) {
+				for (val = 1; val <= MN; val++) {
+					if (legal->legalValues[val]) {
+						setBoardCellValue(&board, row, col, val);
+						filled = true;
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	if (filled) {
+		if (makeMultiCellMove(state, &board)) {
+			*outMove = getCurrent(&(state->gameState->moveList));
+		} else {
+			retValue = false;
+		}
+	} else {
+		*outMove = NULL;
+	}
+
+	cleanupBoard(&board);
+	freeCellsLegalValuesForAllBoardCells(&(state->gameState->puzzle), cellsLegalValues);
+	return retValue;
 }
 
 char* getPuzzleAsString(State* state) {

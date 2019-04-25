@@ -24,6 +24,7 @@
 #include <stdbool.h>
 
 #include "board.h"
+#include "move.h"
 
 /**
  *  GameState struct represents a sudoku game in its current GameState.
@@ -117,9 +118,11 @@ bool makeMultiCellMove(State* state, Board* newBoard);
 
 bool calculateNumSolutions(GameState* state, int* numSolutions);
 
-void undoMove(State* state);
+bool autofill(State* state, Move** outMove);
 
-void redoMove(State* state);
+Move* undoMove(State* state);
+
+Move* redoMove(State* state);
 
 bool isSolutionSuccessful(GameState* gameState);
 
