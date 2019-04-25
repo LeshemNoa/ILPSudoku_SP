@@ -24,6 +24,7 @@
 #include <stdbool.h>
 
 #include "board.h"
+#include "move.h"
 
 /**
  *  GameState struct represents a sudoku game in its current GameState.
@@ -109,14 +110,21 @@ bool isValueLegalForCell(GameState* gameState, int row, int col, int value);
 
 bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegalValues* cellLegalValuesInOut);
 
-/* Should this be in the .h file? */
-int setPuzzleCell(State* state, int row, int col, int value);
+int setPuzzleCell(GameState* gameState, int row, int indexInRow, int value);
 
-bool setPuzzleCellMove(State* state, int value, int row, int col);
+bool makeSingleCellMove(State* state, int value, int row, int col);
 
-void undoMove(State* state);
+bool makeMultiCellMove(State* state, Board* newBoard);
 
-void redoMove(State* state);
+bool calculateNumSolutions(GameState* state, int* numSolutions);
+
+bool autofill(State* state, Move** outMove);
+
+Move* undoMove(State* state);
+
+Move* redoMove(State* state);
+
+bool resetMoves(State* state);
 
 bool isSolutionSuccessful(GameState* gameState);
 

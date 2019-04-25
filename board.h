@@ -98,8 +98,6 @@ bool findErroneousCells(Board* board);
 
 bool copyBoard(Board* boardIn, Board* boardOut);
 
-bool calculateNumSolutions(Board* board, int* numSolutions);
-
 void setBoardCellValue(Board* board, int row, int col, int value);
 
 void cleanupBoardCellLegalValuesStruct(CellLegalValues* cellLegalValues);

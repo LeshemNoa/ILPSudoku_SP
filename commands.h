@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "game.h"
+#include "move.h"
 
 /* TODO: consider dividing this module to its different commands (one per command), with this one being their "governor" */
 
@@ -178,8 +179,8 @@ typedef struct { /* Note: order of row and col is reverse to that provided by us
 } GuessHintCommandArguments;
 
 typedef struct {
-	void* movesListOut; /* TODO: will require freeing (aka: cleaner) */
-} UndoCommandArguments, RedoCommandArguments;
+	Move* movesListOut;
+} UndoCommandArguments, RedoCommandArguments, AutofillCommandArguments;
 
 typedef struct {
 	bool isSolvableOut;
@@ -196,7 +197,6 @@ typedef struct {
 typedef struct {
 	char dummy;
 } PrintBoardCommandArguments,
-  AutofillCommandArguments,
   ResetCommandArguments,
   ExitCommandArguments,
   IgnoreCommandArguments;

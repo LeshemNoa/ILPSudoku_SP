@@ -17,7 +17,7 @@ void initMove(Move* move) {
     initList(&(move->singleCellMoves));
 }
 
-singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row){
+singleCellMove* createSingleCellMove(int prevVal, int newVal, int row, int col){
     singleCellMove* scMove = (singleCellMove*) calloc(1, sizeof(singleCellMove));
     if (scMove == NULL) { return NULL; }
     scMove->col = col;
@@ -28,8 +28,8 @@ singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row){
 }
 
 /* false is returned on memory allocation error */
-bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int col, int row) {
-    singleCellMove* scMove = createSingleCellMove(prevVal, newVal, col, row);
+bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int row, int col) {
+    singleCellMove* scMove = createSingleCellMove(prevVal, newVal, row, col);
     if (scMove == NULL) { return false; }
     return push(&(move->singleCellMoves), scMove);
 }
@@ -46,9 +46,17 @@ bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
     return true;
 }
 
+bool canUndo(UndoRedoList* moveList) {
+    return (moveList->numUndos != moveList->list.size);
+}
+
+bool canRedo(UndoRedoList* moveList) {
+    return (moveList->numUndos != 0);
+}
+
 Move* undoInList(UndoRedoList* moveList) {
     Move* moveToUndo;
-    if (moveList->numUndos == moveList->list.size) {
+    if (!canUndo(moveList)) {
         return NULL; /* no more moves to undo */
     }
     moveToUndo = getCurrent(moveList);
@@ -61,7 +69,7 @@ Move* undoInList(UndoRedoList* moveList) {
 
 Move* redoInList(UndoRedoList* moveList) {
     Move* moveToRedo;
-    if (moveList->numUndos == 0) {
+    if (!canRedo(moveList)) {
         return NULL; /* cannot advance current further */
     }
     if (moveList->numUndos == moveList->list.size) {
@@ -72,15 +80,6 @@ Move* redoInList(UndoRedoList* moveList) {
     }
     moveList->numUndos--;
     return moveToRedo;
-}
-
-/* return true iff something's actually changed */
-bool reset(UndoRedoList* moveList) { /* CR response: I'm leaving this here for now, I'll use it later */
-    bool changed = false;
-    while (undoInList(moveList)) {
-        changed = true;
-    }
-    return changed;
 }
 
 Move* getCurrent(UndoRedoList* moveList) {

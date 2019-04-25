@@ -27,6 +27,12 @@ typedef char* (*getCommandErrorStringFunc)(int error);
 typedef bool (*isCommandErrorRecoverableFunc)(int error);
 typedef char* (*getCommandStrOutputFunc)(Command* command, GameState* gameState);
 
+int getNumDecDigitsInNumber(int num) { /* Note: assumed to be non-negative */
+	if (num == 0)
+		return 1;
+	return floor(log10(num)) + 1;
+}
+
 bool isCommandAllowed(GameMode gameMode, CommandType commandType) {
 	switch (gameMode) {
 	case GAME_MODE_INIT:
@@ -1595,7 +1601,7 @@ bool isGenerateCommandErrorRecoverable(int error) {
 	}
 }
 
-PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* command) { /* TODO: change of board needs to be documented in undo-redo list */
+PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* command) {
 	GenerateCommandArguments* generateArguments = (GenerateCommandArguments*)(command->arguments);
 
 	PerformGenerateCommandErrorCode retVal = ERROR_SUCCESS;
@@ -1631,10 +1637,14 @@ PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* co
 		switch (getBoardSolution(&board, &boardSolution)) {
 		case GET_BOARD_SOLUTION_SUCCESS:
 			randomlyClearYCells(&boardSolution, generateArguments->numCellsToClear);
-			retVal = ERROR_SUCCESS;
-			succeeded = true;
 
-			/* TODO: save boardSolution to state... and document all changes for redo-undo list... */
+			if (makeMultiCellMove(state, &board)) {
+				retVal = ERROR_SUCCESS;
+				succeeded = true;
+			} else {
+				retVal = PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+				severeErrorOccurred = true;
+			}
 
 			break;
 		case GET_BOARD_SOLUTION_BOARD_UNSOLVABLE:
@@ -1916,7 +1926,9 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 				}
 		}
 
-		/* TODO: document changes (from board) to state and to undo-redo */
+		if (!makeMultiCellMove(state, &board)) {
+			retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		}
 	}
 
 
@@ -1973,7 +1985,7 @@ checked - in solve mode fixed cells cannot be set etc. This is consistent
 with the command loop flow */
 PerformSetCommandErrorCode performSetCommand(State* state, Command* command) {
 	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
-	if(!setPuzzleCellMove(state, setArguments->value, setArguments->row, setArguments->col)){
+	if(!makeSingleCellMove(state, setArguments->value, setArguments->row, setArguments->col)){
 		return PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 	else {return ERROR_SUCCESS; }
@@ -1995,94 +2007,142 @@ char* getSetCommandStrOutput(Command* command, GameState* gameState) {
 	return str;
 }
 
-char* getUndoCommandErrorString(int error) { /* TODO: fill this */
-	/*PerformUndoCommandErrorCode errorCode = (PerformUndoCommandErrorCode)error;
+#define UNDO_COMMAND_NOTHING_TO_UNDO_FAILURE_STR ("No move to undo\n")
+
+typedef enum {
+	PERFORM_UNDO_COMMAND_NOTHING_TO_UNDO = 1
+} PerformUndoCommandErrorCode;
+
+char* getUndoCommandErrorString(int error) {
+	PerformUndoCommandErrorCode errorCode = (PerformUndoCommandErrorCode)error;
 
 	switch (errorCode) {
-	case <case>:
-		return <error_string>;
-	}*/
-	UNUSED(error);
+	case PERFORM_UNDO_COMMAND_NOTHING_TO_UNDO:
+		return UNDO_COMMAND_NOTHING_TO_UNDO_FAILURE_STR;
+	}
 	return NULL;
 }
 
-bool isUndoCommandErrorRecoverable(int error) { /* TODO: fill this */
-	/*PerformUndoCommandErrorCode errorCode = (PerformUndoCommandErrorCode)error;
+bool isUndoCommandErrorRecoverable(int error) {
+	PerformUndoCommandErrorCode errorCode = (PerformUndoCommandErrorCode)error;
 
+	/* all undo errors are recoverable */
 	switch (errorCode) {
-	case <case>:
-		return false;
 	default:
 		return true;
-	}*/
-	UNUSED(error);
-	return true;
+	}
 }
 
-int performUndoCommand(State* state, Command* command) {
-	UNUSED(command);
-	undoMove(state);
+PerformUndoCommandErrorCode performUndoCommand(State* state, Command* command) {
+	UndoCommandArguments* undoArguments = (UndoCommandArguments*)(command->arguments);
+	undoArguments->movesListOut = undoMove(state);
+	if (undoArguments->movesListOut == NULL) {
+		return PERFORM_UNDO_COMMAND_NOTHING_TO_UNDO;
+	}
 	return ERROR_SUCCESS;
 }
 
-char* getUndoCommandStrOutput(Command* command, GameState* gameState) { /* TODO: fill this */
+#define SINGLE_CELL_MOVE_OUTPUT_FORMAT ("[%d,%d] = %d->%d\n")
+
+size_t getMoveStrOutputSize(GameState* gameState, Move* move) {
+	int MN = getBlockSize_MN(gameState);
+
+	size_t numCharsRequired = 
+		1 +	move->singleCellMoves.size *
+			(sizeof(SINGLE_CELL_MOVE_OUTPUT_FORMAT) + (4 * getNumDecDigitsInNumber(MN+1)));
+	
+	return numCharsRequired;
+}
+
+/* Returns the total number of characters written. 
+This count does not include the additional null-character 
+automatically appended at the end of the string. */
+size_t sprintMoveStrOutput(char* outStr, Move* move, bool undo) {
+	char* start = outStr;
+	Node* curr = getHead(&(move->singleCellMoves));
+	while (curr != NULL) {
+		singleCellMove* scMove = (singleCellMove*)curr->data;
+		outStr += sprintf(
+			outStr, 
+			SINGLE_CELL_MOVE_OUTPUT_FORMAT, 
+			scMove->row+1, 
+			scMove->col+1, 
+			undo ? scMove->newVal : scMove->prevVal, 
+			undo ? scMove->prevVal : scMove->newVal);
+		curr = getNext(curr);
+	}
+
+	return outStr - start;
+}
+
+char* getUndoCommandStrOutput(Command* command, GameState* gameState) {
 	UndoCommandArguments* undoArguments = (UndoCommandArguments*)(command->arguments);
 
 	char* str = NULL;
 	size_t numCharsRequired = 0;
 	char* emptyString = "";
 
-	UNUSED(undoArguments);
-	UNUSED(gameState);
-
-	numCharsRequired = strlen(emptyString) + 1;
-	str = calloc(numCharsRequired, sizeof(char));
+	if (undoArguments->movesListOut != NULL) {
+		numCharsRequired = getMoveStrOutputSize(gameState, undoArguments->movesListOut);
+		str = calloc(numCharsRequired, sizeof(char));
+		sprintMoveStrOutput(str, undoArguments->movesListOut, true);
+	} else {
+		numCharsRequired = strlen(emptyString) + 1;
+		str = calloc(numCharsRequired, sizeof(char));
+	}
 
 	return str;
 }
 
-char* getRedoCommandErrorString(int error) { /* TODO: fill this */
-	/*PerformRedoCommandErrorCode errorCode = (PerformRedoCommandErrorCode)error;
+#define REDO_COMMAND_NOTHING_TO_REDO_FAILURE_STR ("No move to redo\n")
+
+typedef enum {
+	PERFORM_REDO_COMMAND_NOTHING_TO_REDO = 1
+} PerformRedoCommandErrorCode;
+
+char* getRedoCommandErrorString(int error) {
+	PerformRedoCommandErrorCode errorCode = (PerformRedoCommandErrorCode)error;
 
 	switch (errorCode) {
-	case <case>:
-		return <error_string>;
-	}*/
-	UNUSED(error);
+	case PERFORM_REDO_COMMAND_NOTHING_TO_REDO:
+		return REDO_COMMAND_NOTHING_TO_REDO_FAILURE_STR;
+	}
 	return NULL;
 }
 
-bool isRedoCommandErrorRecoverable(int error) { /* TODO: fill this */
-	/*PerformRedoCommandErrorCode errorCode = (PerformRedoCommandErrorCode)error;
+bool isRedoCommandErrorRecoverable(int error) {
+	PerformRedoCommandErrorCode errorCode = (PerformRedoCommandErrorCode)error;
 
+	/* all redo errors are recoverable */
 	switch (errorCode) {
-	case <case>:
-		return false;
 	default:
 		return true;
-	}*/
-	UNUSED(error);
-	return true;
+	}
 }
 
-int performRedoCommand(State* state, Command* command) {
-	UNUSED(command);
-	redoMove(state);
+PerformRedoCommandErrorCode performRedoCommand(State* state, Command* command) {
+	RedoCommandArguments* redoArguments = (RedoCommandArguments*)(command->arguments);
+	redoArguments->movesListOut = redoMove(state);
+	if (redoArguments->movesListOut == NULL) {
+		return PERFORM_REDO_COMMAND_NOTHING_TO_REDO;
+	}
 	return ERROR_SUCCESS;
 }
 
-char* getRedoCommandStrOutput(Command* command, GameState* gameState) { /* TODO: fill this */
+char* getRedoCommandStrOutput(Command* command, GameState* gameState) {
 	RedoCommandArguments* redoArguments = (RedoCommandArguments*)(command->arguments);
-
 	char* str = NULL;
 	size_t numCharsRequired = 0;
 	char* emptyString = "";
 
-	UNUSED(redoArguments);
-	UNUSED(gameState);
-
-	numCharsRequired = strlen(emptyString) + 1;
-	str = calloc(numCharsRequired, sizeof(char));
+	if (redoArguments->movesListOut != NULL) {
+		numCharsRequired = getMoveStrOutputSize(gameState, redoArguments->movesListOut);
+		str = calloc(numCharsRequired, sizeof(char));
+		sprintMoveStrOutput(str, redoArguments->movesListOut, false);
+	} else {
+		numCharsRequired = strlen(emptyString) + 1;
+		str = calloc(numCharsRequired, sizeof(char));
+	}
 
 	return str;
 }
@@ -2091,7 +2151,7 @@ typedef enum {
 	PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
 } PerformNumSoltionsCommandErrorCode;
 
-char* getNumSolutionsCommandErrorString(int error) { /* TODO: fill this */
+char* getNumSolutionsCommandErrorString(int error) {
 	PerformNumSoltionsCommandErrorCode errorCode = (PerformNumSoltionsCommandErrorCode)error;
 
 	switch (errorCode) {
@@ -2102,7 +2162,7 @@ char* getNumSolutionsCommandErrorString(int error) { /* TODO: fill this */
 	return NULL;
 }
 
-bool isNumSolutionsCommandErrorRecoverable(int error) { /* TODO: fill this */
+bool isNumSolutionsCommandErrorRecoverable(int error) {
 	PerformNumSoltionsCommandErrorCode errorCode = (PerformNumSoltionsCommandErrorCode)error;
 
 	switch (errorCode) {
@@ -2113,54 +2173,76 @@ bool isNumSolutionsCommandErrorRecoverable(int error) { /* TODO: fill this */
 	}
 }
 
-bool isAutofillCommandErrorRecoverable(int error) { /* TODO: fill this */
-	/*PerformAutofillCommandErrorCode errorCode = (PerformAutofillCommandErrorCode)error;
+typedef enum {
+	PERFORM_AUTO_FILL_COMMAND_MEMORY_ALLOCATION_FAILURE = 1
+} PerformAutofillCommandErrorCode;
+
+char* getAutoFillCommandErrorString(int error) {
+	PerformAutofillCommandErrorCode errorCode = (PerformAutofillCommandErrorCode)error;
 
 	switch (errorCode) {
-	case <case>:
-		return false;
-	default:
-		return true;
-	}*/
-	UNUSED(error);
-	return true;
+	case PERFORM_AUTO_FILL_COMMAND_MEMORY_ALLOCATION_FAILURE:
+		return COMMAND_ERROR_MEMORY_ALLOCATION_FAILURE_STR;
+	}
+
+	return NULL;
 }
 
-bool isResetCommandErrorRecoverable(int error) { /* TODO: fill this */
-	/*PerformResetCommandErrorCode errorCode = (PerformResetCommandErrorCode)error;
+bool isAutofillCommandErrorRecoverable(int error) {
+	PerformAutofillCommandErrorCode errorCode = (PerformAutofillCommandErrorCode)error;
 
 	switch (errorCode) {
-	case <case>:
+	case PERFORM_AUTO_FILL_COMMAND_MEMORY_ALLOCATION_FAILURE:
 		return false;
 	default:
 		return true;
-	}*/
-	UNUSED(error);
-	return true;
+	}
+}
+
+typedef enum {
+	PERFORM_RESET_COMMAND_NO_CHANGES
+} PerformResetCommandErrorCode;
+
+bool isResetCommandErrorRecoverable(int error) {
+	PerformResetCommandErrorCode errorCode = (PerformResetCommandErrorCode)error;
+
+	/* all reset errors are recoverable */
+	switch (errorCode) {
+	default:
+		return true;
+	}
 }
 
 PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Command* command) {	
-	Board board = {0};
-	int numSolutions = 0;
+	int numSolutions;
+	NumSolutionsCommandArguments* args = (NumSolutionsCommandArguments*) command->arguments;
 
-	UNUSED(command);
-
-	if (!exportBoard(state->gameState, &board)) { /* TODO: need to call cleanupBoard later */
+	if (!calculateNumSolutions(state->gameState, &numSolutions)) {
 		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
-	if (!calculateNumSolutions(&board, &numSolutions)) {
-		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
-	}
-
-	printf("Number of possible solutions: %d\n", numSolutions); /* TODO: delete this */
+	args->numSolutionsOut = numSolutions;
 	return ERROR_SUCCESS;
 }
 
-int getNumDecDigitsInNumber(int num) { /* Note: assumed to be non-negative */
-	if (num == 0)
-		return 1;
-	return floor(log10(num)) + 1;
+PerformAutofillCommandErrorCode performAutofillCommand(State* state, Command* command) {
+	Move* move;
+	AutofillCommandArguments* autofillArguments = (AutofillCommandArguments*)(command->arguments);
+
+	if (!autofill(state, &move)) {
+		return PERFORM_AUTO_FILL_COMMAND_MEMORY_ALLOCATION_FAILURE;
+	}
+
+	autofillArguments->movesListOut = move;
+	return ERROR_SUCCESS;
+}
+
+PerformResetCommandErrorCode performResetCommand(State* state, Command* command) {
+	UNUSED(command);
+	if (!resetMoves(state)) {
+		return PERFORM_RESET_COMMAND_NO_CHANGES;
+	}
+	return ERROR_SUCCESS;
 }
 
 #define NUM_SOLUTIONS_OUTPUT_FORMAT ("Number of solutions: %d\n")
@@ -2213,10 +2295,10 @@ int performCommand(State* state, Command* command) {
 			return performGuessHintCommand(state, command);
 		case COMMAND_TYPE_NUM_SOLUTIONS:
 			return performNumSolutionsCommand(state, command);
-		/*case COMMAND_TYPE_AUTOFILL:
+		case COMMAND_TYPE_AUTOFILL:
 			return performAutofillCommand(state, command);
 		case COMMAND_TYPE_RESET:
-			return performResetCommand(state, command);*/
+			return performResetCommand(state, command);
 		case COMMAND_TYPE_PRINT_BOARD:
 		case COMMAND_TYPE_EXIT:
 		case COMMAND_TYPE_IGNORE:
@@ -2256,11 +2338,9 @@ getCommandErrorStringFunc getGetCommandErrorStringFunc(CommandType type) {
 			return getGuessHintCommandErrorString;
 		case COMMAND_TYPE_NUM_SOLUTIONS:
 			return getNumSolutionsCommandErrorString;
-		/* TODO: the following */
-		/*case COMMAND_TYPE_AUTOFILL:
+		case COMMAND_TYPE_AUTOFILL:
 			return getAutoFillCommandErrorString;
 		case COMMAND_TYPE_RESET:
-			return getResetCommandErrorString;(state, command);*/
 		case COMMAND_TYPE_PRINT_BOARD:
 		case COMMAND_TYPE_EXIT:
 		case COMMAND_TYPE_IGNORE:
@@ -2330,11 +2410,14 @@ char* getAutofillCommandStrOutput(Command* command, GameState* gameState) {
 	size_t numCharsRequired = 0;
 	char* emptyString = "";
 
-	UNUSED(autofillArguments);
-	UNUSED(gameState);
-
-	numCharsRequired = strlen(emptyString) + 1;
-	str = calloc(numCharsRequired, sizeof(char));
+	if (autofillArguments->movesListOut != NULL) {
+		numCharsRequired = getMoveStrOutputSize(gameState, autofillArguments->movesListOut);
+		str = calloc(numCharsRequired, sizeof(char));
+		sprintMoveStrOutput(str, autofillArguments->movesListOut, false);
+	} else {
+		numCharsRequired = strlen(emptyString) + 1;
+		str = calloc(numCharsRequired, sizeof(char));
+	}
 
 	return str;
 }

@@ -1,4 +1,4 @@
-#include "ILP_solver.h"
+#include "LP_solver.h"
 
 #define UNUSED(x) (void)(x)
 

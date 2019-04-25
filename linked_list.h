@@ -22,5 +22,7 @@ bool push(List* list, void* new_data);
 void* pop(List* list);
 bool pushBack(List* list, void* new_data);
 void* popBack(List* list);
+Node* getHead(List* list);
+Node* getNext(Node* node);
 
 #endif /* LINKED_LIST_H */
