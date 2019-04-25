@@ -408,7 +408,7 @@ int setPuzzleCell(GameState* state, int row, int col, int value) {
 
 /* returns false upon memory allocation error. This function also
 causes the change in the board to be reflected in the undo-redo list  */
-bool setPuzzleCellMove(State* state, int value, int row, int col) {
+bool makeSingleCellMove(State* state, int value, int row, int col) {
 	int prevVal;
 	Move* move = (Move*) calloc(1, sizeof(Move));
 	if (move == NULL) { return false; }
@@ -416,12 +416,64 @@ bool setPuzzleCellMove(State* state, int value, int row, int col) {
 
 	prevVal = setPuzzleCell(state->gameState, row, col, value);
 
-	if (!addSingleCellMoveToMove(move, prevVal, value, col, row) || 
+	if (!addSingleCellMoveToMove(move, prevVal, value, row, col) || 
 		!addNewMoveToList(&(state->gameState->moveList), move)) {
 		free(move);
 		return false;
 	}
 
+	return true;
+}
+
+/* returns false upon memory allocation error. This function also
+causes the change in the board to be reflected in the undo-redo list  */
+bool makeMultiCellMove(State* state, Board* newBoard) {
+	int MN, row, col, prevVal, newValue;
+	Node* curr;
+	Move* move = (Move*) calloc(1, sizeof(Move));
+	if (move == NULL) { return false; }
+	MN = getBlockSize_MN(state->gameState);
+
+	initList(&move->singleCellMoves);
+
+	/* find all differences and build single cell move list */
+	for (row = 0; row < MN; row++) {
+		for (col = 0; col < MN; col++) {
+			prevVal = getCellValue(state->gameState, row, col);
+			newValue = getBoardCellValue(getBoardCellByRow(newBoard, row, col));
+			if (prevVal != newValue) {
+				if (!addSingleCellMoveToMove(move, prevVal, newValue, row, col)) {
+					/* memory error, cleanup and return */
+					while (!isEmpty(&(move->singleCellMoves))) {
+						void* data = pop(&(move->singleCellMoves));
+						free(data);
+					}
+					free(move);
+					return false;
+				}
+			}
+		}
+	}
+
+	/* add move to move list */
+	if (!addNewMoveToList(&(state->gameState->moveList), move)) {
+		/* memory error, cleanup and return */
+		while (!isEmpty(&(move->singleCellMoves))) {
+			void* data = pop(&(move->singleCellMoves));
+			free(data);
+		}
+		free(move);
+		return false;
+	}
+
+	/* perform all single cell moves */
+	curr = getHead(&(move->singleCellMoves));
+	while (curr != NULL) {
+		singleCellMove* scMove = (singleCellMove*)curr->data;
+		setPuzzleCell(state->gameState, scMove->row, scMove->col, scMove->newVal);
+		curr = getNext(curr);
+	}
+	
 	return true;
 }
 

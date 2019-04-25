@@ -1633,10 +1633,14 @@ PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* co
 		switch (getBoardSolution(&board, &boardSolution)) {
 		case GET_BOARD_SOLUTION_SUCCESS:
 			randomlyClearYCells(&boardSolution, generateArguments->numCellsToClear);
-			retVal = ERROR_SUCCESS;
-			succeeded = true;
 
-			/* TODO: save boardSolution to state... and document all changes for redo-undo list... */
+			if (makeMultiCellMove(state, &board)) {
+				retVal = ERROR_SUCCESS;
+				succeeded = true;
+			} else {
+				retVal = PERFORM_GENERATE_COMMAND_MEMORY_ALLOCATION_FAILURE;
+				severeErrorOccurred = true;
+			}
 
 			break;
 		case GET_BOARD_SOLUTION_BOARD_UNSOLVABLE:
@@ -1918,7 +1922,9 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 				}
 		}
 
-		/* TODO: document changes (from board) to state and to undo-redo */
+		if (!makeMultiCellMove(state, &board)) {
+			retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+		}
 	}
 
 
@@ -1975,7 +1981,7 @@ checked - in solve mode fixed cells cannot be set etc. This is consistent
 with the command loop flow */
 PerformSetCommandErrorCode performSetCommand(State* state, Command* command) {
 	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
-	if(!setPuzzleCellMove(state, setArguments->value, setArguments->row, setArguments->col)){
+	if(!makeSingleCellMove(state, setArguments->value, setArguments->row, setArguments->col)){
 		return PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 	else {return ERROR_SUCCESS; }

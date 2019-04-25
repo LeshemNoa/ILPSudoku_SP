@@ -17,7 +17,7 @@ void initMove(Move* move) {
     initList(&(move->singleCellMoves));
 }
 
-singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row){
+singleCellMove* createSingleCellMove(int prevVal, int newVal, int row, int col){
     singleCellMove* scMove = (singleCellMove*) calloc(1, sizeof(singleCellMove));
     if (scMove == NULL) { return NULL; }
     scMove->col = col;
@@ -28,8 +28,8 @@ singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row){
 }
 
 /* false is returned on memory allocation error */
-bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int col, int row) {
-    singleCellMove* scMove = createSingleCellMove(prevVal, newVal, col, row);
+bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int row, int col) {
+    singleCellMove* scMove = createSingleCellMove(prevVal, newVal, row, col);
     if (scMove == NULL) { return false; }
     return push(&(move->singleCellMoves), scMove);
 }

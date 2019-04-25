@@ -110,4 +110,18 @@ void* popBack(List* list) {
     return data;   
 }
 
+Node* getHead(List* list) {
+    if (list == NULL || isEmpty(list)) {
+        return NULL;
+    }
 
+    return list->head;
+}
+
+Node* getNext(Node* node) {
+    if (node == NULL) {
+        return NULL;
+    }
+
+    return node->next;
+}

@@ -22,8 +22,8 @@ typedef struct {
 	List singleCellMoves;
 } Move;
 
-singleCellMove* createSingleCellMove(int prevVal, int newVal, int col, int row);
-bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int col, int row);
+singleCellMove* createSingleCellMove(int prevVal, int newVal, int row, int col);
+bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int row, int col);
 void initUndoRedo(UndoRedoList* move_list);
 bool addNewMoveToList(UndoRedoList* move_list, Move* new_move);
 Move* undoInList(UndoRedoList* moveList); /* should this pass out move to undo? */

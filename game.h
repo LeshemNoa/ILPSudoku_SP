@@ -111,7 +111,9 @@ bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegal
 
 int setPuzzleCell(GameState* gameState, int row, int indexInRow, int value);
 
-bool setPuzzleCellMove(State* state, int value, int row, int col);
+bool makeSingleCellMove(State* state, int value, int row, int col);
+
+bool makeMultiCellMove(State* state, Board* newBoard);
 
 bool calculateNumSolutions(GameState* state, int* numSolutions);
 
