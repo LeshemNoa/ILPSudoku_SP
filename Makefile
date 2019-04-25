@@ -5,6 +5,12 @@ EXEC_NOVA = $(EXEC)-nova
 COMP_FLAGS = -ansi -O3 -Wall -Wextra -Werror -pedantic-errors
 GUROBI_COMP = -I/usr/local/lib/gurobi563/include
 GUROBI_LIB = -L/usr/local/lib/gurobi563/lib -lgurobi56
+COMP_FLAGS = -ansi -O3 -Wall -Wextra -Werror -pedantic-errors
+UNAME_S = $(shell uname -s)
+ifeq ($(UNAME_S),Darwin) # if Mac OS X
+	GUROBI_COMP = -I/Library/gurobi563/mac64/include
+	GUROBI_LIB = -L/Library/gurobi563/mac64/lib -lgurobi56
+endif
 
 $(EXEC): $(OBJS) LP_solver_dummy.o
 	$(CC) $(OBJS) LP_solver_dummy.o -o $@ -lm
