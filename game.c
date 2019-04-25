@@ -333,11 +333,7 @@ void cleanupGameState(GameState* gameState) {
 
 	cleanupBoard(&(gameState->puzzle));
 
-	/* cleanup undo-redo list */
-	while (!isEmpty(&(gameState->moveList.list))) {
-		void* data = pop(&(gameState->moveList.list));
-		free(data);
-	}
+	cleanupUndoRedoList(&(gameState->moveList));
 
 	free(gameState);
 }

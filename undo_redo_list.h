@@ -21,5 +21,6 @@ bool canRedo(UndoRedoList* moveList);
 Move* undoInList(UndoRedoList* moveList);
 Move* redoInList(UndoRedoList* moveList);
 Move* getCurrent(UndoRedoList* moveList);
+void cleanupUndoRedoList(UndoRedoList* moveList);
 
 #endif /* UNDO_REDO_LIST_H */

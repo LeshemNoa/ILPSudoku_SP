@@ -2,7 +2,6 @@
 
 #include "undo_redo_list.h"
 
-
 /* Lists are not dynamically allocated anymore. Nodes and their data still are */
 
 void initUndoRedo(UndoRedoList* moveList) { 
@@ -84,4 +83,15 @@ Move* redoInList(UndoRedoList* moveList) {
 
 Move* getCurrent(UndoRedoList* moveList) {
     return (Move*) moveList->current->data;
+}
+
+void cleanupUndoRedoList(UndoRedoList* moveList) {
+	while (!isEmpty(&(moveList->list))) {
+		Move* move = (Move*)pop(&(moveList->list));
+        while(!isEmpty(&(move->singleCellMoves))) {
+            singleCellMove* scMove = pop(&(move->singleCellMoves));
+            free(scMove);
+        }
+		free(move);
+	}
 }
