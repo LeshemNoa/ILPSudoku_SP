@@ -2201,17 +2201,18 @@ bool isAutofillCommandErrorRecoverable(int error) {
 	}
 }
 
-bool isResetCommandErrorRecoverable(int error) { /* TODO: fill this */
-	/*PerformResetCommandErrorCode errorCode = (PerformResetCommandErrorCode)error;
+typedef enum {
+	PERFORM_RESET_COMMAND_NO_CHANGES
+} PerformResetCommandErrorCode;
 
+bool isResetCommandErrorRecoverable(int error) {
+	PerformResetCommandErrorCode errorCode = (PerformResetCommandErrorCode)error;
+
+	/* all reset errors are recoverable */
 	switch (errorCode) {
-	case <case>:
-		return false;
 	default:
 		return true;
-	}*/
-	UNUSED(error);
-	return true;
+	}
 }
 
 PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Command* command) {	
@@ -2235,6 +2236,14 @@ PerformAutofillCommandErrorCode performAutofillCommand(State* state, Command* co
 	}
 
 	autofillArguments->movesListOut = move;
+	return ERROR_SUCCESS;
+}
+
+PerformResetCommandErrorCode performResetCommand(State* state, Command* command) {
+	UNUSED(command);
+	if (!resetMoves(state)) {
+		return PERFORM_RESET_COMMAND_NO_CHANGES;
+	}
 	return ERROR_SUCCESS;
 }
 
@@ -2290,8 +2299,8 @@ int performCommand(State* state, Command* command) {
 			return performNumSolutionsCommand(state, command);
 		case COMMAND_TYPE_AUTOFILL:
 			return performAutofillCommand(state, command);
-		/*case COMMAND_TYPE_RESET:
-			return performResetCommand(state, command);*/
+		case COMMAND_TYPE_RESET:
+			return performResetCommand(state, command);
 		case COMMAND_TYPE_PRINT_BOARD:
 		case COMMAND_TYPE_EXIT:
 		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */
@@ -2333,9 +2342,7 @@ getCommandErrorStringFunc getGetCommandErrorStringFunc(CommandType type) {
 			return getNumSolutionsCommandErrorString;
 		case COMMAND_TYPE_AUTOFILL:
 			return getAutoFillCommandErrorString;
-		/* TODO: the following
 		case COMMAND_TYPE_RESET:
-			return getResetCommandErrorString;(state, command);*/
 		case COMMAND_TYPE_PRINT_BOARD:
 		case COMMAND_TYPE_EXIT:
 		case COMMAND_TYPE_IGNORE: /* TODO: is needed? */

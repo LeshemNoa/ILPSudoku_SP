@@ -124,6 +124,8 @@ Move* undoMove(State* state);
 
 Move* redoMove(State* state);
 
+bool resetMoves(State* state);
+
 bool isSolutionSuccessful(GameState* gameState);
 
 bool isSolutionFailing(GameState* gameState);

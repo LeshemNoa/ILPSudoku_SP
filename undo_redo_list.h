@@ -18,9 +18,8 @@ void initUndoRedo(UndoRedoList* move_list);
 bool addNewMoveToList(UndoRedoList* move_list, Move* new_move);
 bool canUndo(UndoRedoList* moveList);
 bool canRedo(UndoRedoList* moveList);
-Move* undoInList(UndoRedoList* moveList); /* should this pass out move to undo? */
+Move* undoInList(UndoRedoList* moveList);
 Move* redoInList(UndoRedoList* moveList);
-bool reset(UndoRedoList* move_list);
 Move* getCurrent(UndoRedoList* moveList);
 
 #endif /* UNDO_REDO_LIST_H */

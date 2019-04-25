@@ -82,15 +82,6 @@ Move* redoInList(UndoRedoList* moveList) {
     return moveToRedo;
 }
 
-/* return true iff something's actually changed */
-bool reset(UndoRedoList* moveList) { /* CR response: I'm leaving this here for now, I'll use it later */
-    bool changed = false;
-    while (undoInList(moveList)) {
-        changed = true;
-    }
-    return changed;
-}
-
 Move* getCurrent(UndoRedoList* moveList) {
     return (Move*) moveList->current->data;
 }

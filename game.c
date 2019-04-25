@@ -510,6 +510,15 @@ Move* redoMove(State* state) {
 	return moveToRedo;
 }
 
+bool resetMoves(State* state) {
+	bool changed = false;
+    while (canUndo(&(state->gameState->moveList))) {
+		undoMove(state);
+        changed = true;
+    }
+    return changed;
+}
+
 bool isSolutionSuccessful(GameState* gameState) {
 	return (isBoardFilled(gameState)) &&
 		   (!isBoardErroneous(gameState));
