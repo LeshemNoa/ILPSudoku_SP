@@ -35,7 +35,7 @@ bool addSingleCellMoveToMove(Move* move, int prevVal, int newVal, int row, int c
 
 /* returns false upon memory allocation error in push */
 bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
-    while (moveList->list.head != moveList->current) { /* CR: should call getHead */ /* CR: also, perhaps make this a function of undo_redo_list? (it could also naturally change numUndos to 0 */
+    while (moveList->list.head != moveList->current) { /* CR: should call getHead */ /* CR: also, perhaps make this a function of undo_redo_list? (it could also naturally change numUndos to 0 */ /* CR: found bug: this check is not good enough, because current can point to head, but numUndos may still be greater than zero. I thin that all you really need to check is if numUndos is greater than zero (talk to me if don't understand what I mean; I can give you a case to run for youself) */
         void* data = pop(&(moveList->list));
         free(data);
     }

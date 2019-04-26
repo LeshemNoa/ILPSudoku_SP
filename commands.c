@@ -2065,7 +2065,7 @@ size_t sprintMoveStrOutput(char* outStr, Move* move, bool undo) { /* CR: if the 
 		singleCellMove* scMove = (singleCellMove*)curr->data; /* CR: access data through a wrapper function */
 		outStr += sprintf(outStr,
 						  SINGLE_CELL_MOVE_OUTPUT_FORMAT,
-						  scMove->row + 1, /* CR: note the reason for the offset */
+						  scMove->row + 1, /* CR: you should print col before row, for consistency... */ /* CR: note the reason for the offset */
 						  scMove->col + 1,
 						  undo ? scMove->newVal : scMove->prevVal,
 						  undo ? scMove->prevVal : scMove->newVal);
