@@ -26,7 +26,7 @@ struct GameState {
 	UndoRedoList moveList;
 };
 
-Board* getPuzzle(GameState* gameState) { /* Note: that this function mustn't be exported */
+const Board* getPuzzle(GameState* gameState) { /* Note: that this function mustn't be exported */
 	return &(gameState->puzzle);
 }
 
@@ -222,21 +222,21 @@ void updateCellErroneousness(GameState* gameState, int row, int col) {
 	gameState->numErroneous += deltaInNumErroneous;
 }
 
-void updateCellErroneousnessInRow(GameState* gameState, int row) { /* TODO: should be called by, for example, set (erroneousness of cells in the row might have changed) */
+void updateCellErroneousnessInRow(GameState* gameState, int row) {
 	int MN = gameState->puzzle.numColumnsInBlock_N * gameState->puzzle.numRowsInBlock_M;
 	int i = 0;
 	for (i = 0; i < MN; i++)
 		updateCellErroneousness(gameState, row, i);
 }
 
-void updateCellErroneousnessInColumn(GameState* gameState, int col) { /* TODO: should be called by, for example, set (erroneousness of cells in the column might have changed) */
+void updateCellErroneousnessInColumn(GameState* gameState, int col) {
 	int MN = gameState->puzzle.numColumnsInBlock_N * gameState->puzzle.numRowsInBlock_M;
 	int i = 0;
 	for (i = 0; i < MN; i++)
 		updateCellErroneousness(gameState, i, col);
 }
 
-void updateCellErroneousnessInBlock(GameState* gameState, int block) { /* TODO: should be called by, for example, set (erroneousness of cells in the block might have changed) */
+void updateCellErroneousnessInBlock(GameState* gameState, int block) {
 	int MN = gameState->puzzle.numColumnsInBlock_N * gameState->puzzle.numRowsInBlock_M;
 	int i = 0;
 	for (i = 0; i < MN; i++) {
@@ -257,9 +257,11 @@ void updateCellsErroneousness(GameState* gameState) {
 }
 
 bool createCellsValuesCounters(GameState* gameState) {
-	gameState->rowsCellsValuesCounters = createCellsValuesCountersByCategory(&(gameState->puzzle), getBoardCellByRow);
-	gameState->columnsCellsValuesCounters = createCellsValuesCountersByCategory(&(gameState->puzzle), getBoardCellByColumn);
-	gameState->blocksCellsValuesCounters = createCellsValuesCountersByCategory(&(gameState->puzzle), getBoardCellByBlock);
+	const Board* puzzle = getPuzzle(gameState);
+
+	gameState->rowsCellsValuesCounters = createCellsValuesCountersByCategory(puzzle, viewBoardCellByRow);
+	gameState->columnsCellsValuesCounters = createCellsValuesCountersByCategory(puzzle, viewBoardCellByColumn);
+	gameState->blocksCellsValuesCounters = createCellsValuesCountersByCategory(puzzle, viewBoardCellByBlock);
 
 	if ((gameState->rowsCellsValuesCounters != NULL) &&
 		(gameState->columnsCellsValuesCounters != NULL) &&
@@ -422,7 +424,7 @@ bool makeCellChangeMove(GameState* gameState, int value, int row, int col) {
 }
 
 void applyMoveToBoard(GameState* gameState, const Move* move, bool undo) {
-	Node* currNode;
+	const Node* currNode;
 	CellChange* change;
 
 	currNode = getFirstCellChange(move);
@@ -489,8 +491,8 @@ bool makeMultiCellMove(GameState* gameState, Board* newBoard) {
 	return true;
 }
 
-const Move* undoMove(GameState* gameState) { /* CR: const is a cool solution */
-	Move* moveToUndo = undoInList(&(gameState->moveList));
+const Move* undoMove(GameState* gameState) {
+	const Move* moveToUndo = undoInList(&(gameState->moveList));
 	if (moveToUndo == NULL) {
 		return NULL; /* nothing to undo */
 	}
@@ -499,7 +501,7 @@ const Move* undoMove(GameState* gameState) { /* CR: const is a cool solution */
 }
 
 const Move* redoMove(GameState* gameState) {
-	Move* moveToRedo = redoInList(&(gameState->moveList));
+	const Move* moveToRedo = redoInList(&(gameState->moveList));
 	if (moveToRedo == NULL) {
 		return NULL; /* nothing to redo */
 	}
@@ -562,7 +564,7 @@ bool autofill(GameState* gameState, Move** outMove) {
 	/* we are done with this */
 	freeCellsLegalValuesForAllBoardCells(&(gameState->puzzle), cellsLegalValues);
 
-	/* if move had any changes */ /* CR: and that settles it for autofill */
+	/* if move had any changes */
 	if (getCellChangesSize(move) > 0) {
 		/* add move to move list */
 		if (!addNewMoveToList(&(gameState->moveList), move)) {

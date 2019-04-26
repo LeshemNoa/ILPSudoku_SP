@@ -59,7 +59,7 @@ typedef enum {
  * 														the board was solved, or else that an error has
  * 														occurred
  */
-solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solveBoardUsingLinearProgrammingSolvingMode solvingMode, Board* board, Board* boardSolution, double*** allCellsValuesScores);
+solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solveBoardUsingLinearProgrammingSolvingMode solvingMode, const Board* board, Board* boardSolution, double*** allCellsValuesScores);
 
 /**
  * freeValuesScoresArr frees a scores array gotten from allocateValuesScoresArr
@@ -69,7 +69,7 @@ solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solve
  *
  * @return	void
  */
-void freeValuesScoresArr(double*** valuesScores, Board* board);
+void freeValuesScoresArr(double*** valuesScores, const Board* board);
 
 
 /**
@@ -80,6 +80,6 @@ void freeValuesScoresArr(double*** valuesScores, Board* board);
  *
  * @return	bool			true when succeeds, false otherwise (due to memory allocation failure)
  */
-bool allocateValuesScoresArr(double**** valuesScoresOut, Board* board);
+bool allocateValuesScoresArr(double**** valuesScoresOut, const Board* board);
 
 #endif /* ILP_SOLVER_H_ */

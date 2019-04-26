@@ -8,6 +8,7 @@
 #include "board.h"
 #include "parser.h"
 #include "LP_solver.h"
+#include "BT_solver.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -2053,13 +2054,12 @@ PerformUndoCommandErrorCode performUndoCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
-#define SINGLE_CELL_MOVE_OUTPUT_FORMAT_NUMBER_OF_COORDINATES (2)
-#define SINGLE_CELL_MOVE_REDO_OUTPUT_FORMAT ("(%d,%d) = %2d -> %2d\n") /* CR: why not use %2d for the coordinates too? just to make life easier */
-#define SINGLE_CELL_MOVE_UNDO_OUTPUT_FORMAT ("(%d,%d) = %2d <- %2d\n")
+#define SINGLE_CELL_MOVE_REDO_OUTPUT_FORMAT ("(%2d,%2d) = %2d -> %2d\n")
+#define SINGLE_CELL_MOVE_UNDO_OUTPUT_FORMAT ("(%2d,%2d) = %2d <- %2d\n")
 #define MOVE_EMPTY_OUTPUT_FORMAT ("No changes were made.\n")
 
-size_t getMoveStrOutputSize(GameState* gameState, const Move* move, bool undo) {
-	int size, MN = getBlockSize_MN(gameState);
+size_t getMoveStrOutputSize(const Move* move, bool undo) {
+	int size;
 	if (move == NULL) {
 		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT);
 	}
@@ -2072,8 +2072,7 @@ size_t getMoveStrOutputSize(GameState* gameState, const Move* move, bool undo) {
 	return size * 
 		(undo ? 
 			sizeof(SINGLE_CELL_MOVE_UNDO_OUTPUT_FORMAT) : 
-			sizeof(SINGLE_CELL_MOVE_REDO_OUTPUT_FORMAT) +
-		(SINGLE_CELL_MOVE_OUTPUT_FORMAT_NUMBER_OF_COORDINATES * getNumDecDigitsInNumber(MN + 1)));
+			sizeof(SINGLE_CELL_MOVE_REDO_OUTPUT_FORMAT));
 }
 
 /* Returns the total number of characters written. 
@@ -2081,11 +2080,12 @@ This count does not include the additional null-character
 automatically appended at the end of the string. */
 size_t sprintMoveStrOutput(char* outStr, const Move* move, bool undo) {
 	char* start = outStr;
-	Node* curr;
+	const Node* curr;
  
 	if (move == NULL || getCellChangesSize(move) == 0) {
-		memcpy(outStr, MOVE_EMPTY_OUTPUT_FORMAT, sizeof(MOVE_EMPTY_OUTPUT_FORMAT)); /* CR: use strcpy for string copying */
-		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT)-1 /* minus null-character */; /* CR: use strlen to get length of string (won't incldue the null terminator) */
+		memcpy(outStr, MOVE_EMPTY_OUTPUT_FORMAT, sizeof(MOVE_EMPTY_OUTPUT_FORMAT)); /* CR+: use strcpy for string copying */
+		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT)-1 /* minus null-character */; /* CR+: use strlen to get length of string (won't incldue the null terminator) */
+		/*CR Response: we could but it's a tiny bit ineffecient since sizeof is known at compilation time and strlen is done at runtime O(N) */
 	}
 
 	curr = getFirstCellChange(move);
@@ -2110,7 +2110,9 @@ char* getUndoCommandStrOutput(Command* command, GameState* gameState) {
 	char* str = NULL;
 	size_t numCharsRequired = 0;
 
-	numCharsRequired = getMoveStrOutputSize(gameState, undoArguments->movesListOut, true);
+	UNUSED(gameState);
+
+	numCharsRequired = getMoveStrOutputSize(undoArguments->movesListOut, true);
 	str = calloc(numCharsRequired, sizeof(char));
 	if (str == NULL) {
 		return NULL;
@@ -2159,8 +2161,13 @@ char* getRedoCommandStrOutput(Command* command, GameState* gameState) {
 	char* str = NULL;
 	size_t numCharsRequired = 0;
 
-	numCharsRequired = getMoveStrOutputSize(gameState, redoArguments->movesListOut, false);
-	str = calloc(numCharsRequired, sizeof(char)); /* CR: check returned value from malloc..*/
+	UNUSED(gameState);
+
+	numCharsRequired = getMoveStrOutputSize(redoArguments->movesListOut, false);
+	str = calloc(numCharsRequired, sizeof(char));
+	if (str == NULL) {
+		return NULL;
+	}
 	sprintMoveStrOutput(str, redoArguments->movesListOut, false);
 	return str;
 }
@@ -2417,14 +2424,18 @@ bool isCommandErrorRecoverable(CommandType type, int error) {
 	return func(error);
 }
 
-char* getAutofillCommandStrOutput(Command* command, GameState* gameState) { /* CR+: autofill shouldn't have any output */ /* CR Response: according to spec it should */ /* CR: I'm sorry, you are absolutely right */
-	AutofillCommandArguments* autofillArguments = (AutofillCommandArguments*)(command->arguments);
-
+char* getAutofillCommandStrOutput(Command* command, GameState* gameState) {
+	AutofillCommandArguments* autofillArguments = (AutofillCommandArguments*)(command->arguments);	
 	char* str = NULL;
 	size_t numCharsRequired = 0;
 
-	numCharsRequired = getMoveStrOutputSize(gameState, autofillArguments->movesListOut, false);
-	str = calloc(numCharsRequired, sizeof(char)); /* CR: check returned value from calloc..*/
+	UNUSED(gameState);
+
+	numCharsRequired = getMoveStrOutputSize(autofillArguments->movesListOut, false);
+	str = calloc(numCharsRequired, sizeof(char));
+	if (str == NULL) {
+		return NULL;
+	}
 	sprintMoveStrOutput(str, autofillArguments->movesListOut, false);
 
 	return str;

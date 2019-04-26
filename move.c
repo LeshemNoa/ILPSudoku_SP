@@ -43,6 +43,6 @@ int getCellChangesSize(const Move* move) {
     return getListSize(&(move->cellChanges));
 }
 
-Node* getFirstCellChange(const Move* move) { /* CR: seems like the returned value should be a const pointer, too... (and also perhaps in all those functions in list which return nodes (aka getListHead...) */
+const Node* getFirstCellChange(const Move* move) {
     return getListHead(&(move->cellChanges));
 }

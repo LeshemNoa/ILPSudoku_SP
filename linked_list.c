@@ -4,6 +4,11 @@
 
 
 /* Note: Nodes and data are dynamically allocated while lists aren't */
+struct Node {
+    void* data;
+    struct Node* next;
+    struct Node* prev;
+};
 
 void initList(List* list) { 
     if (list != NULL) {
@@ -114,7 +119,7 @@ int getListSize(const List* list) {
     return list->size;
 }
 
-Node* getListHead(const List* list) {
+const Node* getListHead(const List* list) {
     if (list == NULL || isListEmpty(list)) {
         return NULL;
     }
@@ -122,7 +127,7 @@ Node* getListHead(const List* list) {
     return list->head;
 }
 
-Node* getListTail(const List* list) {
+const Node* getListTail(const List* list) {
     if (list == NULL || isListEmpty(list)) {
         return NULL;
     }
@@ -130,7 +135,7 @@ Node* getListTail(const List* list) {
     return list->tail;
 }
 
-Node* getNodeNext(Node* node) {
+const Node* getNodeNext(const Node* node) {
     if (node == NULL) {
         return NULL;
     }
@@ -138,7 +143,7 @@ Node* getNodeNext(Node* node) {
     return node->next;
 }
 
-Node* getNodePrev(Node* node) {
+const Node* getNodePrev(const Node* node) {
     if (node == NULL) {
         return NULL;
     }
@@ -146,7 +151,7 @@ Node* getNodePrev(Node* node) {
     return node->prev;
 }
 
-void* getNodeData(Node* node) {
+void* getNodeData(const Node* node) {
     if (node == NULL) {
         return NULL;
     }

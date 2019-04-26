@@ -15,7 +15,7 @@
  *
  * @return void
  */
-void freeIntAndIndexBasedLegalValuesForAllCells(Board* board, int*** cellLegalValuesIntBased) {
+void freeIntAndIndexBasedLegalValuesForAllCells(const Board* board, int*** cellLegalValuesIntBased) {
 	int MN = getBoardBlockSize_MN(board);
 
 	if (cellLegalValuesIntBased != NULL) {
@@ -53,7 +53,7 @@ void freeIntAndIndexBasedLegalValuesForAllCells(Board* board, int*** cellLegalVa
  *
  * @return bool							true when succeeds, false otherwise (due to memory allocation failure)
  */
-bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(Board* board, CellLegalValues** cellsLegalValues, int**** cellLegalValuesIntBasedOut) {
+bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(const Board* board, CellLegalValues** cellsLegalValues, int**** cellLegalValuesIntBasedOut) {
 	bool retValue = true;
 	int*** cellLegalValuesIntBased = NULL;
 
@@ -71,7 +71,7 @@ bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(Board* board, C
 			} else {
 				int col = 0;
 				for (col = 0; col < MN; col++) {
-					if (!isBoardCellEmpty(getBoardCellByRow(board, row, col)))
+					if (!isBoardCellEmpty(viewBoardCellByRow(board, row, col)))
 						continue;
 					cellLegalValuesIntBased[row][col] = calloc(MN + 1, sizeof(int)); /* Note: +1 because values are 1-based (the first item will hold the number of legal values) */
 					if (cellLegalValuesIntBased[row][col] == NULL) {
@@ -116,7 +116,7 @@ bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(Board* board, C
  *
  * @return bool						true when succeeds, false otherwise (due to memory allocation failure)
  */
-bool getLegalValuesForAllCells(Board* board, int**** cellLegalValuesIntBasedOut) {
+bool getLegalValuesForAllCells(const Board* board, int**** cellLegalValuesIntBasedOut) {
 	bool retValue = true;
 	CellLegalValues** cellsLegalValues = NULL;
 	int*** cellLegalValuesIntBased = NULL;
@@ -152,7 +152,7 @@ bool getLegalValuesForAllCells(Board* board, int**** cellLegalValuesIntBasedOut)
  *
  * @return int						the total number of legal values for all empty cells in the board.
  */
-int getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental(Board* board, int*** cellLegalValuesIntBased) {
+int getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental(const Board* board, int*** cellLegalValuesIntBased) {
 	int totalNumLegalValues = 0;
 	int MN = getBoardBlockSize_MN(board);
 
@@ -257,7 +257,7 @@ typedef enum {
  * 																whether the board was solved, or else
  * 																that an error has occurred
  */
-addVariablesAndObjectiveFunctionToModelErrorCode addVariablesAndObjectiveFunctionToModel(GRBenv* env, GRBmodel* model, int numVars, Board* board, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
+addVariablesAndObjectiveFunctionToModelErrorCode addVariablesAndObjectiveFunctionToModel(GRBenv* env, GRBmodel* model, int numVars, const Board* board, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	addVariablesAndObjectiveFunctionToModelErrorCode retVal = ADD_VARIABLES_AND_OBJECTIVE_FUNCTION_TO_MODEL_SUCCESS;
 
 	int MN = 0;
@@ -368,7 +368,7 @@ typedef enum {
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
  * 											were added, or else	that an error has occurred
  */
-addConstraintsFuncsErrorCode addCellConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int row, int col, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
+addConstraintsFuncsErrorCode addCellConstraints(GRBenv* env, GRBmodel* model, const Board* board, int numVars, int*** cellLegalValuesIntBased, int row, int col, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;
 
 	int* ind = NULL;
@@ -444,7 +444,7 @@ addConstraintsFuncsErrorCode addCellConstraints(GRBenv* env, GRBmodel* model, Bo
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
  * 											were added, or else	that an error has occurred
  */
-addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
+addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, const Board* board, int numVars, int*** cellLegalValuesIntBased, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	int MN = getBoardBlockSize_MN(board);
 	int row = 0, col = 0;
 	for (row = 0; row < MN; row++)
@@ -476,7 +476,7 @@ addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, B
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
  * 											were added, or else	that an error has occurred
  */
-addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, int value, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
+addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GRBmodel* model, const Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, int value, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;
 
 	int* ind = NULL;
@@ -546,7 +546,7 @@ addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GR
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
  * 											were added, or else	that an error has occurred
  */
-addConstraintsFuncsErrorCode addCategoryInstanceConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
+addConstraintsFuncsErrorCode addCategoryInstanceConstraints(GRBenv* env, GRBmodel* model, const Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
 	int MN = getBoardBlockSize_MN(board);
 	int value = 1;
 	for (value = 1; value <= MN; value++) {
@@ -574,7 +574,7 @@ addConstraintsFuncsErrorCode addCategoryInstanceConstraints(GRBenv* env, GRBmode
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
  * 											were added, or else	that an error has occurred
  */
-addConstraintsFuncsErrorCode addCategoryConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
+addConstraintsFuncsErrorCode addCategoryConstraints(GRBenv* env, GRBmodel* model, const Board* board, int numVars, int*** cellLegalValuesIntBased, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
 	int MN = getBoardBlockSize_MN(board);
 
 	int categoryNo = 0;
@@ -602,7 +602,7 @@ addConstraintsFuncsErrorCode addCategoryConstraints(GRBenv* env, GRBmodel* model
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
  * 											were added, or else	that an error has occurred
  */
-addConstraintsFuncsErrorCode addCategoriesConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased) {
+addConstraintsFuncsErrorCode addCategoriesConstraints(GRBenv* env, GRBmodel* model, const Board* board, int numVars, int*** cellLegalValuesIntBased) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;
 
 	retVal = addCategoryConstraints(env, model, board, numVars, cellLegalValuesIntBased, getRowBasedIDGivenRowBasedID);
@@ -634,7 +634,7 @@ addConstraintsFuncsErrorCode addCategoriesConstraints(GRBenv* env, GRBmodel* mod
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
  * 											ware added, or else	that an error has occurred
  */
-addConstraintsFuncsErrorCode addSudokuConstraints(GRBenv* env, GRBmodel* model, Board* board, int numVars, int*** cellLegalValuesIntBased, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
+addConstraintsFuncsErrorCode addSudokuConstraints(GRBenv* env, GRBmodel* model, const Board* board, int numVars, int*** cellLegalValuesIntBased, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;
 
 	retVal = addCellsConstraints(env, model, board, numVars, cellLegalValuesIntBased, solvingMode);
@@ -742,7 +742,7 @@ void applySolutionToBoard(double* sol, int numVars, int*** cellLegalValuesIntBas
  *
  * @return void
  */
-void applySolutionToValuesScoresArray(double* sol, int numVars, int*** cellLegalValuesIntBased, Board* board, double*** allCellsValuesScores) {
+void applySolutionToValuesScoresArray(double* sol, int numVars, int*** cellLegalValuesIntBased, const Board* board, double*** allCellsValuesScores) {
 	int MN = getBoardBlockSize_MN(board);
 
 	int row = 0, col = 0;
@@ -751,7 +751,7 @@ void applySolutionToValuesScoresArray(double* sol, int numVars, int*** cellLegal
 
 	for (row = 0; row < MN; row++)
 		for (col = 0; col < MN; col++) {
-			if (isBoardCellEmpty(getBoardCellByRow(board, row, col))) {
+			if (isBoardCellEmpty(viewBoardCellByRow(board, row, col))) {
 				int value = 1;
 				for (value = 1; value <= MN; value++) {
 					int index = 0;
@@ -789,7 +789,7 @@ typedef enum {
  *
  * @return void
  */
-getSolutionErrorCode getSolution(GRBenv* env, GRBmodel* model, int numVars, int*** cellLegalValuesIntBased, Board* board, Board* boardSolution, double*** allCellsValuesScores, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
+getSolutionErrorCode getSolution(GRBenv* env, GRBmodel* model, int numVars, int*** cellLegalValuesIntBased, const Board* board, Board* boardSolution, double*** allCellsValuesScores, solveBoardUsingLinearProgrammingSolvingMode solvingMode) {
 	getSolutionErrorCode retVal = GET_SOLUTION_SUCCESS;
 
 	int error = 0;
@@ -822,7 +822,7 @@ getSolutionErrorCode getSolution(GRBenv* env, GRBmodel* model, int numVars, int*
 	return retVal;
 }
 
-solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solveBoardUsingLinearProgrammingSolvingMode solvingMode, Board* board, Board* boardSolution, double*** allCellsValuesScores) {
+solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solveBoardUsingLinearProgrammingSolvingMode solvingMode, const Board* board, Board* boardSolution, double*** allCellsValuesScores) {
 	solveBoardUsingLinearProgrammingErrorCode retVal = SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS;
 
 	int*** cellLegalValuesIntBased = NULL;
@@ -908,7 +908,7 @@ solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solve
 	return retVal;
 }
 
-void freeValuesScoresArr(double*** valuesScores, Board* board) {
+void freeValuesScoresArr(double*** valuesScores, const Board* board) {
 	int MN = getBoardBlockSize_MN(board);
 
 	if (valuesScores != NULL) {
@@ -930,7 +930,7 @@ void freeValuesScoresArr(double*** valuesScores, Board* board) {
 	}
 }
 
-bool allocateValuesScoresArr(double**** valuesScoresOut, Board* board) {
+bool allocateValuesScoresArr(double**** valuesScoresOut, const Board* board) {
 	int MN = getBoardBlockSize_MN(board);
 
 	bool success = true;
@@ -949,7 +949,7 @@ bool allocateValuesScoresArr(double**** valuesScoresOut, Board* board) {
 			} else {
 				int col = 0;
 				for (col = 0; col < MN; col++) {
-					if (isBoardCellEmpty(getBoardCellByRow(board, row, col))) {
+					if (isBoardCellEmpty(viewBoardCellByRow(board, row, col))) {
 						valuesScores[row][col] = calloc(MN + 1, sizeof(double));
 						if (valuesScores[row][col] == NULL) {
 							success = false;

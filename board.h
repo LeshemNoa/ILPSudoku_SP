@@ -30,19 +30,27 @@ typedef struct {
    	Cell** cells;} Board;
 
 
-typedef void (*getCategory1BasedIDByCategory2BasedIDFunc)(Board* board, int category1No, int indexInCategory1, int* category2No, int* indexInCateogry2);
+typedef void (*getCategory1BasedIDByCategory2BasedIDFunc)(const Board* board, int category1No, int indexInCategory1, int* category2No, int* indexInCateogry2);
+
+typedef const Cell* (*viewCellsByCategoryFunc)(const Board* board, int categoryNo, int indexInCategory);
 
 typedef Cell* (*getCellsByCategoryFunc)(Board* board, int categoryNo, int indexInCategory);
 
-int getNumColumnsInBoardBlock_N(Board* board);
+int getNumColumnsInBoardBlock_N(const Board* board);
 
-int getNumRowsInBoardBlock_M(Board* board);
+int getNumRowsInBoardBlock_M(const Board* board);
 
-int getBoardBlockSize_MN(Board* board);
+int getBoardBlockSize_MN(const Board* board);
 
-int getBoardSize_MN2(Board* board);
+int getBoardSize_MN2(const Board* board);
 
-int getNumFilledBoardCells(Board* board);
+int getNumFilledBoardCells(const Board* board);
+
+const Cell* viewBoardCellByRow(const Board* board, int row, int index);
+
+const Cell* viewBoardCellByColumn(const Board* board, int column, int index);
+
+const Cell* viewBoardCellByBlock(const Board* board, int block, int index);
 
 Cell* getBoardCellByRow(Board* board, int row, int index);
 
@@ -50,29 +58,29 @@ Cell* getBoardCellByColumn(Board* board, int column, int index);
 
 Cell* getBoardCellByBlock(Board* board, int block, int index);
 
-int whichBlock(Board* board, int row, int col);
+int whichBlock(const Board* board, int row, int col);
 
-int getBlockNumberByCell(Board* board, int row, int col);
+int getBlockNumberByCell(const Board* board, int row, int col);
 
-bool getNextEmptyBoardCell(Board* board, int row, int col, int* outRow, int* outCol);
+bool getNextEmptyBoardCell(const Board* board, int row, int col, int* outRow, int* outCol);
 
-void getRowBasedIDGivenRowBasedID(Board* board, int rowIn, int indexInRowIn, int* row, int* indexInRow);
+void getRowBasedIDGivenRowBasedID(const Board* board, int rowIn, int indexInRowIn, int* row, int* indexInRow);
 
-void getRowBasedIDGivenBlockBasedID(Board* board, int block, int indexInBlock, int* row, int* indexInRow);
+void getRowBasedIDGivenBlockBasedID(const Board* board, int block, int indexInBlock, int* row, int* indexInRow);
 
-void getRowBasedIDGivenColumnBasedID(Board* board, int column, int indexInColumn, int* row, int* indexInRow);
+void getRowBasedIDGivenColumnBasedID(const Board* board, int column, int indexInColumn, int* row, int* indexInRow);
 
-void getColumnBasedIDGivenRowBasedID(Board* board, int row, int indexInRow, int* column, int* indexInColumn);
+void getColumnBasedIDGivenRowBasedID(const Board* board, int row, int indexInRow, int* column, int* indexInColumn);
 
-void getBlockBasedIDGivenRowBasedID(Board* board, int row, int indexInRow, int* block, int* indexInBlock);
+void getBlockBasedIDGivenRowBasedID(const Board* board, int row, int indexInRow, int* block, int* indexInBlock);
 
-bool isBoardCellFixed(Cell* cell);
+bool isBoardCellFixed(const Cell* cell);
 
-bool isBoardCellErroneous(Cell* cell);
+bool isBoardCellErroneous(const Cell* cell);
 
-int getBoardCellValue(Cell* cell);
+int getBoardCellValue(const Cell* cell);
 
-bool isBoardCellEmpty(Cell* cell);
+bool isBoardCellEmpty(const Cell* cell);
 
 void emptyBoardCell(Cell* cell);
 
@@ -84,31 +92,31 @@ void cleanupBoard(Board* boardInOut);
 
 bool createEmptyBoard(Board* boardInOut);
 
-int countNumEmptyCells(Board* board);
+int countNumEmptyCells(const Board* board);
 
-void freeSpecificCellsValuesCounters(int** cellValuesCounters, Board* board);
+void freeSpecificCellsValuesCounters(int** cellValuesCounters, const Board* board);
 
-int** createCellsValuesCountersByCategory(Board* board, getCellsByCategoryFunc getCellFunc);
+int** createCellsValuesCountersByCategory(const Board* board, viewCellsByCategoryFunc getCellFunc);
 
-bool checkErroneousCellsInCategory(Board* board, int categoryNo, getCellsByCategoryFunc getCellFunc, bool* outErroneous);
+bool checkErroneousCellsInCategory(const Board* board, int categoryNo, viewCellsByCategoryFunc getCellFunc, bool* outErroneous);
 
-bool checkErroneousCells(Board* board, bool* outErroneous);
+bool checkErroneousCells(const Board* board, bool* outErroneous);
 
 bool findErroneousCells(Board* board);
 
-bool copyBoard(Board* boardIn, Board* boardOut);
+bool copyBoard(const Board* boardIn, Board* boardOut);
 
 void setBoardCellValue(Board* board, int row, int col, int value);
 
 void cleanupBoardCellLegalValuesStruct(CellLegalValues* cellLegalValues);
 
-bool isValueLegalForBoardCell(Board* boardIn, int row, int col, int value);
+bool isValueLegalForBoardCell(const Board* boardIn, int row, int col, int value);
 
-bool fillBoardCellLegalValuesStruct(Board* boardIn, int row, int col, CellLegalValues* cellLegalValuesInOut);
+bool fillBoardCellLegalValuesStruct(const Board* boardIn, int row, int col, CellLegalValues* cellLegalValuesInOut);
 
-void freeCellsLegalValuesForAllBoardCells(Board* boardIn, CellLegalValues** cellsLegalValuesOut);
+void freeCellsLegalValuesForAllBoardCells(const Board* boardIn, CellLegalValues** cellsLegalValuesOut);
 
-bool getSuperficiallyLegalValuesForAllBoardCells(Board* boardIn, CellLegalValues*** cellsLegalValuesOut);
+bool getSuperficiallyLegalValuesForAllBoardCells(const Board* boardIn, CellLegalValues*** cellsLegalValuesOut);
 
 typedef enum {
 	LOAD_BOARD_FROM_FILE_FILE_COULD_NOT_BE_OPENED = 1,
@@ -139,7 +147,7 @@ typedef enum {
 	GET_BOARD_SOLUTION_MEMORY_ALLOCATION_FAILURE
 } getBoardSolutionErrorCode;
 
-getBoardSolutionErrorCode getBoardSolution(Board* board, Board* solutionOut);
+getBoardSolutionErrorCode getBoardSolution(const Board* board, Board* solutionOut);
 
 typedef enum {
 	IS_BOARD_SOLVABLE_BOARD_SOLVABLE,
@@ -148,7 +156,7 @@ typedef enum {
 	IS_BOARD_SOLVABLE_MEMORY_ALLOCATION_FAILURE
 } isBoardSolvableErrorCode;
 
-isBoardSolvableErrorCode isBoardSolvable(Board* board);
+isBoardSolvableErrorCode isBoardSolvable(const Board* board);
 
 typedef enum {
 	GUESS_VALUES_FOR_ALL_PUZZLE_CELLS_MEMORY_ALLOCATION_FAILURE = 1,
@@ -157,8 +165,8 @@ typedef enum {
 	GUESS_VALUES_FOR_ALL_PUZZLE_CELLS_COULD_NOT_SOLVE_BOARD
 } GuessValuesForAllPuzzleCellsErrorCode;
 
-GuessValuesForAllPuzzleCellsErrorCode guessValuesForAllPuzzleCells(Board* board, double**** valuesScoreOut);
+GuessValuesForAllPuzzleCellsErrorCode guessValuesForAllPuzzleCells(const Board* board, double**** valuesScoreOut);
 
-char* getBoardAsString(Board* board, bool shouldMarkErrors);
+char* getBoardAsString(const Board* board, bool shouldMarkErrors);
 
 #endif /* BOARD_H_ */

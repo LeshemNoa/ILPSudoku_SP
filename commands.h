@@ -180,7 +180,7 @@ typedef struct { /* Note: order of row and col is reverse to that provided by us
 
 typedef struct {
 	const Move* movesListOut;
-} UndoCommandArguments, RedoCommandArguments, AutofillCommandArguments; /* CR+: autofill needn't have output! */ /* CR Respnse: Are you sure? Autofill spec says "fill it with the value and notify the user of the update. Repeat for all cells in the board" */ /* CR: sorry, you are absolutely right! */
+} UndoCommandArguments, RedoCommandArguments, AutofillCommandArguments;
 
 typedef struct {
 	bool isSolvableOut;

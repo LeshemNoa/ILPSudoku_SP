@@ -8,7 +8,7 @@
 
 typedef struct {
     List list; 
-    Node* current; /* CR: could be a const pointer, couldn't it? */
+    const Node* current;
     int numUndos;
 } UndoRedoList;
 
@@ -16,9 +16,9 @@ void initUndoRedo(UndoRedoList* move_list);
 bool addNewMoveToList(UndoRedoList* move_list, Move* new_move);
 bool canUndo(const UndoRedoList* moveList);
 bool canRedo(const UndoRedoList* moveList);
-Move* undoInList(UndoRedoList* moveList); /* CR: returned value should probably be const pointer, no? */
-Move* redoInList(UndoRedoList* moveList); /* CR: returned value should probably be const pointer, no? */
-Move* getCurrentMove(UndoRedoList* moveList); /* CR: returned value should probably be const pointer, no? */
+const Move* undoInList(UndoRedoList* moveList);
+const Move* redoInList(UndoRedoList* moveList);
+const Move* getCurrentMove(UndoRedoList* moveList);
 void cleanupUndoRedoList(UndoRedoList* moveList);
 
 #endif /* UNDO_REDO_LIST_H */

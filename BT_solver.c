@@ -7,7 +7,7 @@ bool calculateNumSolutions(GameState* gameState, int* numSolutions) {
 	int curCol, curRow;
 	int sum = 0;
 	int MN = getBlockSize_MN(gameState);
-    Board* puzzle = getPuzzle(gameState);
+    const Board* puzzle = getPuzzle(gameState);
 
 	if (isBoardErroneous(gameState) || getNumEmptyCells(gameState) == 0) {
 		/* board has errors or no moves to make, no possible solutions */
@@ -29,11 +29,11 @@ bool calculateNumSolutions(GameState* gameState, int* numSolutions) {
 	}
 
 	while (peekStack(&stack, &curRow, &curCol)) {
-		Cell* cell;
+		const Cell* cell;
 		int nextRow, nextCol, newValue;
 		bool isLegalValue;
 
-		cell = getBoardCellByRow(puzzle, curRow, curCol);
+		cell = viewBoardCellByRow(puzzle, curRow, curCol);
 		if (getBoardCellValue(cell) == MN) { /* max value */
 			/* back track */
 			setPuzzleCell(gameState, curRow, curCol, EMPTY_CELL_VALUE);

@@ -3,11 +3,7 @@
 
 #include <stdbool.h>
 
-typedef struct node {
-    void* data;
-    struct node* next;
-    struct node* prev;
-} Node;
+typedef struct Node Node;
 
 typedef struct list
 {
@@ -23,10 +19,10 @@ void* popList(List* list);
 bool pushListBack(List* list, void* new_data);
 void* popListBack(List* list);
 int getListSize(const List* list);
-Node* getListHead(const List* list);
-Node* getListTail(const List* list);
-Node* getNodeNext(Node* node);
-Node* getNodePrev(Node* node);
-void* getNodeData(Node* node);
+const Node* getListHead(const List* list);
+const Node* getListTail(const List* list);
+const Node* getNodeNext(const Node* node);
+const Node* getNodePrev(const Node* node);
+void* getNodeData(const Node* node);
 
 #endif /* LINKED_LIST_H */

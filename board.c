@@ -21,39 +21,49 @@
 
 #define LENGTH_OF_STRING_REPRESENTING_CELL (4)
 
-int getNumColumnsInBoardBlock_N(Board* board) {
+int getNumColumnsInBoardBlock_N(const Board* board) {
 	return board->numColumnsInBlock_N;
 }
 
-int getNumRowsInBoardBlock_M(Board* board) {
+int getNumRowsInBoardBlock_M(const Board* board) {
 	return board->numRowsInBlock_M;
 }
 
-int getBoardBlockSize_MN(Board* board) {
+int getBoardBlockSize_MN(const Board* board) {
 	return getNumRowsInBoardBlock_M(board) * getNumColumnsInBoardBlock_N(board);
 }
 
-int getBoardSize_MN2(Board* board) {
+int getBoardSize_MN2(const Board* board) {
 	int blockSize = getBoardBlockSize_MN(board);
 	return blockSize * blockSize;
 }
 
-void getRowBasedIDGivenRowBasedID(Board* board, int rowIn, int indexInRowIn, int* row, int* indexInRow) {
+void getRowBasedIDGivenRowBasedID(const Board* board, int rowIn, int indexInRowIn, int* row, int* indexInRow) {
 	UNUSED(board);
 
 	*row = rowIn;
 	*indexInRow = indexInRowIn;
 }
 
+const Cell* viewBoardCellByRow(const Board* board, int row, int index) {
+	return &(board->cells[row][index]);
+}
+
 Cell* getBoardCellByRow(Board* board, int row, int index) {
 	return &(board->cells[row][index]);
 }
 
-void getRowBasedIDGivenColumnBasedID(Board* board, int column, int indexInColumn, int* row, int* indexInRow) {
+void getRowBasedIDGivenColumnBasedID(const Board* board, int column, int indexInColumn, int* row, int* indexInRow) {
 	UNUSED(board);
 
 	*row = indexInColumn;
 	*indexInRow = column;
+}
+
+const Cell* viewBoardCellByColumn(const Board* board, int column, int index) {
+	int row = 0, indexInRow = 0;
+	getRowBasedIDGivenColumnBasedID(board, column, index, &row, &indexInRow);
+	return viewBoardCellByRow(board, row, indexInRow);
 }
 
 Cell* getBoardCellByColumn(Board* board, int column, int index) {
@@ -62,7 +72,7 @@ Cell* getBoardCellByColumn(Board* board, int column, int index) {
 	return getBoardCellByRow(board, row, indexInRow);
 }
 
-void getRowBasedIDGivenBlockBasedID(Board* board, int block, int indexInBlock, int* row, int* indexInRow) {
+void getRowBasedIDGivenBlockBasedID(const Board* board, int block, int indexInBlock, int* row, int* indexInRow) {
 	int colInBlocksMatrix = block % board->numRowsInBlock_M;
 	int rowInBlocksMatrix = block / board->numRowsInBlock_M;
 	int colInBlock = indexInBlock % board->numColumnsInBlock_N;
@@ -72,19 +82,25 @@ void getRowBasedIDGivenBlockBasedID(Board* board, int block, int indexInBlock, i
 	*indexInRow = colInBlocksMatrix * board->numColumnsInBlock_N + colInBlock;
 }
 
-void getColumnBasedIDGivenRowBasedID(Board* board, int row, int indexInRow, int* column, int* indexInColumn) {
+void getColumnBasedIDGivenRowBasedID(const Board* board, int row, int indexInRow, int* column, int* indexInColumn) {
 	UNUSED(board);
 
 	*column = indexInRow;
 	*indexInColumn = row;
 }
 
-void getBlockBasedIDGivenRowBasedID(Board* board, int row, int indexInRow, int* block, int* indexInBlock) {
+void getBlockBasedIDGivenRowBasedID(const Board* board, int row, int indexInRow, int* block, int* indexInBlock) {
 	int rowInBlock = row % board->numRowsInBlock_M;
 	int columnInBlock = indexInRow % board->numColumnsInBlock_N;
 	*indexInBlock = (rowInBlock * board->numColumnsInBlock_N) + columnInBlock;
 
 	*block = whichBlock(board, row, indexInRow);
+}
+
+const Cell* viewBoardCellByBlock(const Board* board, int block, int index) {
+	int row = 0, indexInRow = 0;
+	getRowBasedIDGivenBlockBasedID(board, block, index, &row, &indexInRow);
+	return viewBoardCellByRow(board, row, indexInRow);
 }
 
 Cell* getBoardCellByBlock(Board* board, int block, int index) {
@@ -93,46 +109,44 @@ Cell* getBoardCellByBlock(Board* board, int block, int index) {
 	return getBoardCellByRow(board, row, indexInRow);
 }
 
-int whichBlock(Board* board, int row, int col) {
+int whichBlock(const Board* board, int row, int col) {
 	int colInBlocksMatrix = col / board->numColumnsInBlock_N;
 	int rowInBlocksMatrix = row / board->numRowsInBlock_M;
 
 	return rowInBlocksMatrix * board->numRowsInBlock_M + colInBlocksMatrix;
 }
 
-int getBlockNumberByCell(Board* board, int row, int col) {
+int getBlockNumberByCell(const Board* board, int row, int col) {
 	return ((row / board->numRowsInBlock_M) * board->numRowsInBlock_M) +
 			(col / board->numColumnsInBlock_N);
 }
 
-bool getNextEmptyBoardCell(Board* board, int row, int col, int* outRow, int* outCol) {
-	Cell* curr;
+bool getNextEmptyBoardCell(const Board* board, int row, int col, int* outRow, int* outCol) {
+	const Cell* curr;
 	int r, c, MN = getBoardBlockSize_MN(board);
 
-	c = col;
 	for (r = row; r < MN; r++) {
-		for (; c < MN; c++) { /* CR: Since you seem to like the '? :' syntax, I just point out that you could use here: c = r == row ? col : 0 */
-			curr = getBoardCellByRow(board, r, c);
+		for (c = (r == row) ? col : 0; c < MN; c++) {
+			curr = viewBoardCellByRow(board, r, c);
 			if (curr->value == EMPTY_CELL_VALUE) {
 				*outRow = r;
 				*outCol = c;
 				return true;
 			}
 		}
-		c = 0;
 	}
 
 	return false;
 }
 
-int getNumEmptyBoardCells(Board* board) {
+int getNumEmptyBoardCells(const Board* board) {
 	int i, j;
 	int numEmpty = 0;
-	Cell* curr;
+	const Cell* curr;
 	int MN = getBoardBlockSize_MN(board);
 	for (i = 0; i < MN; i++) {
 		for (j = 0; j < MN; j++) {
-			 curr = getBoardCellByRow(board, i, j);
+			 curr = viewBoardCellByRow(board, i, j);
 			if (curr->value == EMPTY_CELL_VALUE) {
 				numEmpty++;
 			}
@@ -141,23 +155,23 @@ int getNumEmptyBoardCells(Board* board) {
 	return numEmpty;
 }
 
-int getNumFilledBoardCells(Board* board) {
+int getNumFilledBoardCells(const Board* board) {
 	return getBoardSize_MN2(board) - getNumEmptyBoardCells(board);
 }
 
-bool isBoardCellFixed(Cell* cell) {
+bool isBoardCellFixed(const Cell* cell) {
 	return cell->isFixed;
 }
 
-bool isBoardCellErroneous(Cell* cell) {
+bool isBoardCellErroneous(const Cell* cell) {
 	return cell->isErroneous;
 }
 
-int getBoardCellValue(Cell* cell) {
+int getBoardCellValue(const Cell* cell) {
 	return cell->value;
 }
 
-bool isBoardCellEmpty(Cell* cell) {
+bool isBoardCellEmpty(const Cell* cell) {
 	return getBoardCellValue(cell) == EMPTY_CELL_VALUE;
 }
 
@@ -207,7 +221,7 @@ bool createEmptyBoard(Board* boardInOut) {
 	return false;
 }
 
-int countNumEmptyCells(Board* board) {
+int countNumEmptyCells(const Board* board) {
 	int numEmptyCells = 0;
 	int MN = getBoardBlockSize_MN(board);
 
@@ -215,13 +229,13 @@ int countNumEmptyCells(Board* board) {
 	int col = 0;
 	for (row = 0; row < MN; row++)
 		for (col = 0; col < MN; col++)
-			if (isBoardCellEmpty(getBoardCellByRow(board, row, col)))
+			if (isBoardCellEmpty(viewBoardCellByRow(board, row, col)))
 				numEmptyCells++;
 
 	return numEmptyCells;
 }
 
-void freeSpecificCellsValuesCounters(int** cellValuesCounters, Board* board) {
+void freeSpecificCellsValuesCounters(int** cellValuesCounters, const Board* board) {
 	int i = 0;
 	int MN = getBoardBlockSize_MN(board);
 
@@ -237,7 +251,7 @@ void freeSpecificCellsValuesCounters(int** cellValuesCounters, Board* board) {
 	free(cellValuesCounters);
 }
 
-int** allocateNewSpecificCellsValuesCounters(Board* board) {
+int** allocateNewSpecificCellsValuesCounters(const Board* board) {
 	int** cellsValuesCounters = NULL;
 	int MN = getBoardBlockSize_MN(board);
 
@@ -262,12 +276,12 @@ int** allocateNewSpecificCellsValuesCounters(Board* board) {
 	return cellsValuesCounters;
 }
 
-void updateCellsValuesCountersInCategory(int* categoryNoCellsValuesCounters, Board* board, int categoryNo, getCellsByCategoryFunc getCellFunc) {
+void updateCellsValuesCountersInCategory(int* categoryNoCellsValuesCounters, const Board* board, int categoryNo, viewCellsByCategoryFunc getCellFunc) {
 	int MN = getBoardBlockSize_MN(board);
 	int index = 0;
 
 	for (index = 0; index < MN; index++) {
-		Cell* cell = getCellFunc(board, categoryNo, index);
+		const Cell* cell = getCellFunc(board, categoryNo, index);
 		if (!isBoardCellEmpty(cell)) {
 			int value = getBoardCellValue(cell);
 			categoryNoCellsValuesCounters[value]++;
@@ -275,7 +289,7 @@ void updateCellsValuesCountersInCategory(int* categoryNoCellsValuesCounters, Boa
 	}
 }
 
-void updateCellsValuesCountersByCategory(int** categoryCellsValuesCounters, Board* board, getCellsByCategoryFunc getCellFunc) {
+void updateCellsValuesCountersByCategory(int** categoryCellsValuesCounters, const Board* board, viewCellsByCategoryFunc getCellFunc) {
 	int numCategories = getBoardBlockSize_MN(board);
 	int categoryIndex = 0;
 
@@ -283,7 +297,7 @@ void updateCellsValuesCountersByCategory(int** categoryCellsValuesCounters, Boar
 		updateCellsValuesCountersInCategory(categoryCellsValuesCounters[categoryIndex], board, categoryIndex, getCellFunc);
 }
 
-int** createCellsValuesCountersByCategory(Board* board, getCellsByCategoryFunc getCellFunc) {
+int** createCellsValuesCountersByCategory(const Board* board, viewCellsByCategoryFunc getCellFunc) {
 	int** cellsValuesCounters = NULL;
 
 	cellsValuesCounters = allocateNewSpecificCellsValuesCounters(board);
@@ -294,7 +308,7 @@ int** createCellsValuesCountersByCategory(Board* board, getCellsByCategoryFunc g
 	return cellsValuesCounters;
 }
 
-bool checkErroneousCellsInCategory(Board* board, int categoryNo, getCellsByCategoryFunc getCellFunc, bool* outErroneous) {
+bool checkErroneousCellsInCategory(const Board* board, int categoryNo, viewCellsByCategoryFunc getCellFunc, bool* outErroneous) {
 	int MN = getBoardBlockSize_MN(board);
 	int index = 0;
 
@@ -304,7 +318,7 @@ bool checkErroneousCellsInCategory(Board* board, int categoryNo, getCellsByCateg
 
 	*outErroneous = false;
 	for (index = 0; index < MN; index++) {
-		Cell* cell = getCellFunc(board, categoryNo, index);
+		const Cell* cell = getCellFunc(board, categoryNo, index);
 		if (!isBoardCellEmpty(cell)) {
 			int value = getBoardCellValue(cell);
 			valuesCounters[value]++;
@@ -312,7 +326,7 @@ bool checkErroneousCellsInCategory(Board* board, int categoryNo, getCellsByCateg
 	}
 
 	for (index = 0; index < MN; index++) {
-		Cell* cell = getCellFunc(board, categoryNo, index);
+		const Cell* cell = getCellFunc(board, categoryNo, index);
 		if (!isBoardCellEmpty(cell)) {
 			int value = getBoardCellValue(cell);
 			if (valuesCounters[value] > 1) {
@@ -326,7 +340,7 @@ bool checkErroneousCellsInCategory(Board* board, int categoryNo, getCellsByCateg
 	return true;
 }
 
-bool checkErroneousCellsByCategory(Board* board, getCellsByCategoryFunc getCellFunc, bool* outErroneous) {
+bool checkErroneousCellsByCategory(const Board* board, viewCellsByCategoryFunc getCellFunc, bool* outErroneous) {
 	int numCategories = getBoardBlockSize_MN(board);
 	int index = 0;
 
@@ -337,22 +351,22 @@ bool checkErroneousCellsByCategory(Board* board, getCellsByCategoryFunc getCellF
 	return true;
 }
 
-bool checkErroneousCells(Board* board, bool* outErroneous) {
-	if (!checkErroneousCellsByCategory(board, getBoardCellByRow, outErroneous))
+bool checkErroneousCells(const Board* board, bool* outErroneous) {
+	if (!checkErroneousCellsByCategory(board, viewBoardCellByRow, outErroneous))
 		return false;
 
 	if (outErroneous) {
 		return true;
 	}
 
-	if (!checkErroneousCellsByCategory(board, getBoardCellByColumn, outErroneous))
+	if (!checkErroneousCellsByCategory(board, viewBoardCellByColumn, outErroneous))
 			return false;
 
 	if (outErroneous) {
 		return true;
 	}
 
-	if (!checkErroneousCellsByCategory(board, getBoardCellByBlock, outErroneous))
+	if (!checkErroneousCellsByCategory(board, viewBoardCellByBlock, outErroneous))
 			return false;
 
 	return true;
@@ -411,7 +425,7 @@ bool findErroneousCells(Board* board) {
 	return true;
 }
 
-bool copyBoard(Board* boardIn, Board* boardOut) {
+bool copyBoard(const Board* boardIn, Board* boardOut) {
 	int row = 0;
 	int col = 0;
 	int MN = 0;
@@ -427,7 +441,7 @@ bool copyBoard(Board* boardIn, Board* boardOut) {
 	for (row = 0; row < MN; row++)
 		for (col = 0; col < MN; col++) {
 			Cell* cellOut = getBoardCellByRow(boardOut, row, col);
-			Cell* cellIn = getBoardCellByRow(boardIn, row, col);
+			const Cell* cellIn = viewBoardCellByRow(boardIn, row, col);
 			*cellOut = *cellIn;
 		}
 
@@ -450,7 +464,7 @@ void cleanupBoardCellLegalValuesStruct(CellLegalValues* cellLegalValues) {
 	cellLegalValues->numLegalValues = 0;
 }
 
-bool isValueLegalForBoardCellInCategory(Board* boardIn, int row, int col, int value, getCellsByCategoryFunc getCellFunc, getCategory1BasedIDByCategory2BasedIDFunc switchIDFunc) {
+bool isValueLegalForBoardCellInCategory(const Board* boardIn, int row, int col, int value, viewCellsByCategoryFunc getCellFunc, getCategory1BasedIDByCategory2BasedIDFunc switchIDFunc) {
 	int MN = getBoardBlockSize_MN(boardIn);
 	int cellCategoryNo = 0;
 	int cellIndexInCategory = 0;
@@ -460,7 +474,7 @@ bool isValueLegalForBoardCellInCategory(Board* boardIn, int row, int col, int va
 
 	index = 0;
 	for (index = 0; index < MN; index++) {
-		Cell* curCell = NULL;
+		const Cell* curCell = NULL;
 		if (index == cellIndexInCategory)
 			continue;
 		curCell = getCellFunc(boardIn, cellCategoryNo, index);
@@ -473,13 +487,13 @@ bool isValueLegalForBoardCellInCategory(Board* boardIn, int row, int col, int va
 	return true;
 }
 
-bool isValueLegalForBoardCell(Board* boardIn, int row, int col, int value) {
-	return isValueLegalForBoardCellInCategory(boardIn, row, col, value, getBoardCellByRow, getRowBasedIDGivenRowBasedID) &&
-		   isValueLegalForBoardCellInCategory(boardIn, row, col, value, getBoardCellByColumn, getColumnBasedIDGivenRowBasedID) &&
-		   isValueLegalForBoardCellInCategory(boardIn, row, col, value, getBoardCellByBlock, getBlockBasedIDGivenRowBasedID);
+bool isValueLegalForBoardCell(const Board* boardIn, int row, int col, int value) {
+	return isValueLegalForBoardCellInCategory(boardIn, row, col, value, viewBoardCellByRow, getRowBasedIDGivenRowBasedID) &&
+		   isValueLegalForBoardCellInCategory(boardIn, row, col, value, viewBoardCellByColumn, getColumnBasedIDGivenRowBasedID) &&
+		   isValueLegalForBoardCellInCategory(boardIn, row, col, value, viewBoardCellByBlock, getBlockBasedIDGivenRowBasedID);
 }
 
-bool fillBoardCellLegalValuesStruct(Board* boardIn, int row, int col, CellLegalValues* cellLegalValuesInOut) {
+bool fillBoardCellLegalValuesStruct(const Board* boardIn, int row, int col, CellLegalValues* cellLegalValuesInOut) {
 	int MN = getBoardBlockSize_MN(boardIn);
 	int value = 0;
 
@@ -497,7 +511,7 @@ bool fillBoardCellLegalValuesStruct(Board* boardIn, int row, int col, CellLegalV
 	return true;
 }
 
-bool getSuperficiallyLegalValuesForBoardCell(Board* boardIn, int row, int col, CellLegalValues* cellLegalValuesInOut) {
+bool getSuperficiallyLegalValuesForBoardCell(const Board* boardIn, int row, int col, CellLegalValues* cellLegalValuesInOut) {
 	bool retValue = true;
 
 	if (!fillBoardCellLegalValuesStruct(boardIn, row, col, cellLegalValuesInOut)) {
@@ -508,7 +522,7 @@ bool getSuperficiallyLegalValuesForBoardCell(Board* boardIn, int row, int col, C
 	return retValue;
 }
 
-void freeCellsLegalValuesForAllBoardCells(Board* boardIn, CellLegalValues** cellsLegalValuesOut) {
+void freeCellsLegalValuesForAllBoardCells(const Board* boardIn, CellLegalValues** cellsLegalValuesOut) {
 	int MN = 0;
 	int row = 0, col = 0;
 
@@ -528,7 +542,7 @@ void freeCellsLegalValuesForAllBoardCells(Board* boardIn, CellLegalValues** cell
 	free(cellsLegalValuesOut);
 }
 
-bool getSuperficiallyLegalValuesForAllBoardCells(Board* boardIn, CellLegalValues*** cellsLegalValuesOut) {
+bool getSuperficiallyLegalValuesForAllBoardCells(const Board* boardIn, CellLegalValues*** cellsLegalValuesOut) {
 	bool retValue = true;
 	CellLegalValues** cellsLegalValues = NULL;
 
@@ -746,7 +760,7 @@ void markFilledCellsAsFixed(Board* board) {
 
 }
 
-getBoardSolutionErrorCode getBoardSolution(Board* board, Board* solutionOut) {
+getBoardSolutionErrorCode getBoardSolution(const Board* board, Board* solutionOut) {
 	getBoardSolutionErrorCode retVal = GET_BOARD_SOLUTION_SUCCESS;
 
 	Board boardCopy = {0};
@@ -780,7 +794,7 @@ getBoardSolutionErrorCode getBoardSolution(Board* board, Board* solutionOut) {
 	return retVal;
 }
 
-isBoardSolvableErrorCode isBoardSolvable(Board* board) {
+isBoardSolvableErrorCode isBoardSolvable(const Board* board) {
 	isBoardSolvableErrorCode retVal = IS_BOARD_SOLVABLE_BOARD_SOLVABLE;
 
 	Board boardSolution = {0};
@@ -805,7 +819,7 @@ isBoardSolvableErrorCode isBoardSolvable(Board* board) {
 	return retVal;
 }
 
-GuessValuesForAllPuzzleCellsErrorCode guessValuesForAllPuzzleCells(Board* board, double**** valuesScoreOut) {
+GuessValuesForAllPuzzleCellsErrorCode guessValuesForAllPuzzleCells(const Board* board, double**** valuesScoreOut) {
 	GuessValuesForAllPuzzleCellsErrorCode retVal = GUESS_VALUES_FOR_ALL_PUZZLE_CELLS_BOARD_SOLVED;
 
 	double*** valuesScores = NULL;
@@ -839,11 +853,11 @@ GuessValuesForAllPuzzleCellsErrorCode guessValuesForAllPuzzleCells(Board* board,
 }
 
 
-int getLineLength(Board* board) {
+int getLineLength(const Board* board) {
 	return LENGTH_OF_STRING_REPRESENTING_CELL * (getBoardBlockSize_MN(board)) + getNumRowsInBoardBlock_M(board) + 1 + 1;
 }
 
-char* writeSeparatorLine(char* str, Board* board) {
+char* writeSeparatorLine(char* str, const Board* board) {
 	int i = 0;
 	for (i = 0; i < getLineLength(board) - 1; i++)
 		str += sprintf(str, "%c", DASH_CHARACTER);
@@ -852,24 +866,24 @@ char* writeSeparatorLine(char* str, Board* board) {
 	return str;
 }
 
-char* writeCell(char* str, Board* board, int row, int col, bool shouldMarkErrors) {
+char* writeCell(char* str, const Board* board, int row, int col, bool shouldMarkErrors) {
 	str += sprintf(str, "%c", SPACE_CHARACTER);
 
-	if (!isBoardCellEmpty(getBoardCellByRow(board, row, col)))
-		str += sprintf(str, "%2d", getBoardCellValue(getBoardCellByRow(board, row, col)));
+	if (!isBoardCellEmpty(viewBoardCellByRow(board, row, col)))
+		str += sprintf(str, "%2d", getBoardCellValue(viewBoardCellByRow(board, row, col)));
 	else
 		str += sprintf(str, "%s", EMPTY_CELL_STRING);
 
-	if (isBoardCellFixed(getBoardCellByRow(board, row, col)))
+	if (isBoardCellFixed(viewBoardCellByRow(board, row, col)))
 		str += sprintf(str, "%c", FIXED_CELL_MARKER);
-	else if (isBoardCellErroneous(getBoardCellByRow(board, row, col)) && shouldMarkErrors)
+	else if (isBoardCellErroneous(viewBoardCellByRow(board, row, col)) && shouldMarkErrors)
 			str += sprintf(str, "%c", ERROENOUS_CELL_MARKER);
 	else str += sprintf(str, "%c", SPACE_CHARACTER);
 
 	return str;
 }
 
-char* writeRow(char* str, Board* board, int rowsBlock, int rowInBlock, bool shouldMarkErrors) {
+char* writeRow(char* str, const Board* board, int rowsBlock, int rowInBlock, bool shouldMarkErrors) {
 	int M = getNumRowsInBoardBlock_M(board);
 	int N = getNumColumnsInBoardBlock_N(board);
 	int row = rowsBlock * M + rowInBlock;
@@ -887,7 +901,7 @@ char* writeRow(char* str, Board* board, int rowsBlock, int rowInBlock, bool shou
 	return str;
 }
 
-char* writeRowsBlock(char* str, Board* board, int rowsBlock, bool shouldMarkErrors) {
+char* writeRowsBlock(char* str, const Board* board, int rowsBlock, bool shouldMarkErrors) {
 	int rowInBlock = 0;
 	int numRowsInBlock = getNumRowsInBoardBlock_M(board);
 
@@ -898,7 +912,7 @@ char* writeRowsBlock(char* str, Board* board, int rowsBlock, bool shouldMarkErro
 	return str;
 }
 
-char* getBoardAsString(Board* board, bool shouldMarkErrors) {
+char* getBoardAsString(const Board* board, bool shouldMarkErrors) {
 	char* str = NULL;
 	char* strPointer = NULL;
 	int rowsBlock = 0;

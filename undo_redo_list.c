@@ -32,9 +32,9 @@ bool canRedo(const UndoRedoList* moveList) {
     return moveList->numUndos > 0;
 }
 
-Move* undoInList(UndoRedoList* moveList) {
-    Move* moveToUndo;
-    Node* next;
+const Move* undoInList(UndoRedoList* moveList) {
+    const Move* moveToUndo;
+    const Node* next;
     if (!canUndo(moveList)) {
         return NULL; /* no more moves to undo */
     }
@@ -47,8 +47,8 @@ Move* undoInList(UndoRedoList* moveList) {
     return moveToUndo;
 }
 
-Move* redoInList(UndoRedoList* moveList) {
-    Move* moveToRedo;
+const Move* redoInList(UndoRedoList* moveList) {
+    const Move* moveToRedo;
     if (!canRedo(moveList)) {
         return NULL; /* cannot advance current further */
     }
@@ -62,7 +62,7 @@ Move* redoInList(UndoRedoList* moveList) {
     return moveToRedo;
 }
 
-Move* getCurrentMove(UndoRedoList* moveList) {
+const Move* getCurrentMove(UndoRedoList* moveList) {
     return (Move*) getNodeData(moveList->current);
 }
 

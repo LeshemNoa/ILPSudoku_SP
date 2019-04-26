@@ -2,8 +2,6 @@
 
 #include "rec_stack.h"
 
-/* CR: if you feel like on top of a generic stack module we need also a rec_stacl module, sure (and it will be used by the BT_solver module). If not, all this could be in the BT_solver module */
-
 typedef struct {
     int curRow;
     int curCol;
