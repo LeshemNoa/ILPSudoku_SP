@@ -2154,7 +2154,7 @@ PerformRedoCommandErrorCode performRedoCommand(State* state, Command* command) {
 	return ERROR_SUCCESS;
 }
 
-char* getRedoCommandStrOutput(Command* command, GameState* gameState) { /* CR: similar to getUndoCommandStrOutput */
+char* getRedoCommandStrOutput(Command* command, GameState* gameState) {
 	RedoCommandArguments* redoArguments = (RedoCommandArguments*)(command->arguments);
 	char* str = NULL;
 	size_t numCharsRequired = 0;
