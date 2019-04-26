@@ -8,7 +8,6 @@
 #include "board.h"
 #include "parser.h"
 #include "LP_solver.h"
-#include "linked_list.h" /* CR: added this include so code will compile */
 
 #define UNUSED(x) (void)(x)
 
@@ -1639,7 +1638,7 @@ PerformGenerateCommandErrorCode performGenerateCommand(State* state, Command* co
 		case GET_BOARD_SOLUTION_SUCCESS:
 			randomlyClearYCells(&boardSolution, generateArguments->numCellsToClear);
 
-			if (makeMultiCellMove(state, &boardSolution)) { /* CR: this should have been here boardSolution, as I wrote in the original TODO that was here. Are you sure you have checked the code you've written? */
+			if (makeMultiCellMove(state->gameState, &boardSolution)) {
 				retVal = ERROR_SUCCESS;
 				succeeded = true;
 			} else {
@@ -1916,22 +1915,33 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 	}
 
 	if (isBoardSolved) {
-		int row = 0;
-		for (row = 0; row < MN; row++) {
-			int col = 0;
-			for (col = 0; col < MN; col++)
+		int row, col;
+		bool memoryError = false;
+		Move* move = createMove();
+		if (move == NULL) {
+			retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+			memoryError = true;
+		}
+
+		for (row = 0; row < MN && !memoryError; row++) {
+			for (col = 0; col < MN && !memoryError; col++)
 				if (isBoardCellEmpty(getBoardCellByRow(&board, row, col))) {
 					int chosenValue = chooseGuessedValueForCell(&board, row, col, valuesScores[row][col], guessArguments->threshold);
-					if (chosenValue != -1)
-						setBoardCellValue(&board, row, col, chosenValue);
+					if (chosenValue != -1) {
+						if (!addCellChangeToMove(move, EMPTY_CELL_VALUE, chosenValue, row, col)) {
+							destroyMove(move);
+							memoryError = true;
+							retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
+						}
+					}
 				}
 		}
 
-		if (!makeMultiCellMove(state, &board)) { /* CR: actually here, in guess, we CAN (as you see) document each change. If you feel like writing this code (hopefully it would be easy) for improved efficiency - by all means, do it */
+		if (!memoryError && !makeMove(state->gameState, move)) {
+			destroyMove(move);
 			retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 		}
 	}
-
 
 	freeValuesScoresArr(valuesScores, &board);
 	cleanupBoard(&board);
@@ -1986,7 +1996,7 @@ checked - in solve mode fixed cells cannot be set etc. This is consistent
 with the command loop flow */
 PerformSetCommandErrorCode performSetCommand(State* state, Command* command) {
 	SetCommandArguments* setArguments = (SetCommandArguments*)(command->arguments);
-	if(!makeSingleCellMove(state, setArguments->value, setArguments->row, setArguments->col)){
+	if(!makeCellChangeMove(state->gameState, setArguments->value, setArguments->row, setArguments->col)){
 		return PERFORM_SET_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 	else {return ERROR_SUCCESS; }
@@ -2036,40 +2046,59 @@ bool isUndoCommandErrorRecoverable(int error) {
 
 PerformUndoCommandErrorCode performUndoCommand(State* state, Command* command) {
 	UndoCommandArguments* undoArguments = (UndoCommandArguments*)(command->arguments);
-	undoArguments->movesListOut = undoMove(state);
+	undoArguments->movesListOut = undoMove(state->gameState);
 	if (undoArguments->movesListOut == NULL) {
 		return PERFORM_UNDO_COMMAND_NOTHING_TO_UNDO;
 	}
 	return ERROR_SUCCESS;
 }
 
-#define SINGLE_CELL_MOVE_OUTPUT_FORMAT ("[%d,%d] = %d->%d\n") /* CR: not a CR comment!: I would love it if you used a reversed arrow for undo...: [0,3] = 1 <- 2 (undo), [0,3] = 1 -> 2 (redo); also, if you could feel like changing the squared brackets to regular ones, that's be lovely (the squared ones makes me think of ranges, rather than coordinates); last thing, how about having an empty cell be an empty string (for example, (1, 3) =   -> 1). These are all merely suggestions, again :) */
+#define SINGLE_CELL_MOVE_OUTPUT_FORMAT_NUMBER_OF_COORDINATES (2)
+#define SINGLE_CELL_MOVE_REDO_OUTPUT_FORMAT ("(%d,%d) = %2d -> %2d\n")
+#define SINGLE_CELL_MOVE_UNDO_OUTPUT_FORMAT ("(%d,%d) = %2d <- %2d\n")
+#define MOVE_EMPTY_OUTPUT_FORMAT ("No changes made.\n")
 
-size_t getMoveStrOutputSize(GameState* gameState, Move* move) {
-	int MN = getBlockSize_MN(gameState);
-
-	size_t numCharsRequired = 
-		1 +	(move->singleCellMoves.size * /* CR: access size through a wrapper function (also singleCellMoves...) */
-			(sizeof(SINGLE_CELL_MOVE_OUTPUT_FORMAT) + (4 * getNumDecDigitsInNumber(MN + 1)))); /* CR: 4 should be be a define constant */ /* CR: since we were instucted to use format %2d for each cell's value when outputting a board to the screen, you could use the same here, and refrain from using the getNumDecDigits func */
+size_t getMoveStrOutputSize(GameState* gameState, const Move* move, bool undo) {
+	int size, MN = getBlockSize_MN(gameState);
+	if (move == NULL) {
+		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT);
+	}
 	
-	return numCharsRequired;
+	size = getCellChangesSize(move);
+	if (size == 0) {
+		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT);
+	}
+
+	return size * 
+		(undo ? 
+			sizeof(SINGLE_CELL_MOVE_UNDO_OUTPUT_FORMAT) : 
+			sizeof(SINGLE_CELL_MOVE_REDO_OUTPUT_FORMAT) +
+		(SINGLE_CELL_MOVE_OUTPUT_FORMAT_NUMBER_OF_COORDINATES * getNumDecDigitsInNumber(MN + 1)));
 }
 
 /* Returns the total number of characters written. 
 This count does not include the additional null-character 
 automatically appended at the end of the string. */
-size_t sprintMoveStrOutput(char* outStr, Move* move, bool undo) { /* CR: if the move is empty (aka an autofill that changed nothing, perhaps have some indicative output?) */
+size_t sprintMoveStrOutput(char* outStr, const Move* move, bool undo) {
 	char* start = outStr;
-	Node* curr = getHead(&(move->singleCellMoves)); /* CR: access singleCellMoves through a wrapper function */
+	Node* curr;
+ 
+	if (move == NULL || getCellChangesSize(move) == 0) {
+		memcpy(outStr, MOVE_EMPTY_OUTPUT_FORMAT, sizeof(MOVE_EMPTY_OUTPUT_FORMAT));
+		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT)-1 /* minus null-character */;
+	}
+
+	curr = getFirstCellChange(move);
 	while (curr != NULL) {
-		singleCellMove* scMove = (singleCellMove*)curr->data; /* CR: access data through a wrapper function */
-		outStr += sprintf(outStr,
-						  SINGLE_CELL_MOVE_OUTPUT_FORMAT,
-						  scMove->row + 1, /* CR: you should print col before row, for consistency... */ /* CR: note the reason for the offset */
-						  scMove->col + 1,
-						  undo ? scMove->newVal : scMove->prevVal,
-						  undo ? scMove->prevVal : scMove->newVal);
-		curr = getNext(curr);
+		CellChange* change = (CellChange*)getNodeData(curr);
+		outStr += sprintf(
+				outStr,
+				undo ? SINGLE_CELL_MOVE_UNDO_OUTPUT_FORMAT : SINGLE_CELL_MOVE_REDO_OUTPUT_FORMAT,
+				change->col + 1, /* Note: +1 because user indicies are not zero based */
+				change->row + 1, /* Note: +1 because user indicies are not zero based */
+				change->prevVal,
+				change->newVal);
+		curr = getNodeNext(curr);
 	}
 
 	return outStr - start;
@@ -2080,17 +2109,13 @@ char* getUndoCommandStrOutput(Command* command, GameState* gameState) {
 
 	char* str = NULL;
 	size_t numCharsRequired = 0;
-	char* emptyString = "";
 
-	if (undoArguments->movesListOut != NULL) {
-		numCharsRequired = getMoveStrOutputSize(gameState, undoArguments->movesListOut);
-		str = calloc(numCharsRequired, sizeof(char)); /* CR: check returned value of calloc */
-		sprintMoveStrOutput(str, undoArguments->movesListOut, true);
-	} else {
-		numCharsRequired = strlen(emptyString) + 1; /* TODO: call here a call to a generic function that returns a dynamically allocated empty string */
-		str = calloc(numCharsRequired, sizeof(char));
+	numCharsRequired = getMoveStrOutputSize(gameState, undoArguments->movesListOut, true);
+	str = calloc(numCharsRequired, sizeof(char));
+	if (str == NULL) {
+		return NULL;
 	}
-
+	sprintMoveStrOutput(str, undoArguments->movesListOut, true);
 	return str;
 }
 
@@ -2122,7 +2147,7 @@ bool isRedoCommandErrorRecoverable(int error) {
 
 PerformRedoCommandErrorCode performRedoCommand(State* state, Command* command) {
 	RedoCommandArguments* redoArguments = (RedoCommandArguments*)(command->arguments);
-	redoArguments->movesListOut = redoMove(state);
+	redoArguments->movesListOut = redoMove(state->gameState);
 	if (redoArguments->movesListOut == NULL) {
 		return PERFORM_REDO_COMMAND_NOTHING_TO_REDO;
 	}
@@ -2133,17 +2158,10 @@ char* getRedoCommandStrOutput(Command* command, GameState* gameState) { /* CR: s
 	RedoCommandArguments* redoArguments = (RedoCommandArguments*)(command->arguments);
 	char* str = NULL;
 	size_t numCharsRequired = 0;
-	char* emptyString = "";
 
-	if (redoArguments->movesListOut != NULL) {
-		numCharsRequired = getMoveStrOutputSize(gameState, redoArguments->movesListOut);
-		str = calloc(numCharsRequired, sizeof(char));
-		sprintMoveStrOutput(str, redoArguments->movesListOut, false);
-	} else {
-		numCharsRequired = strlen(emptyString) + 1;
-		str = calloc(numCharsRequired, sizeof(char));
-	}
-
+	numCharsRequired = getMoveStrOutputSize(gameState, redoArguments->movesListOut, false);
+	str = calloc(numCharsRequired, sizeof(char));
+	sprintMoveStrOutput(str, redoArguments->movesListOut, false);
 	return str;
 }
 
@@ -2229,7 +2247,7 @@ PerformAutofillCommandErrorCode performAutofillCommand(State* state, Command* co
 	AutofillCommandArguments* autofillArguments = (AutofillCommandArguments*)(command->arguments);
 	Move* move = NULL;
 
-	if (!autofill(state, &move)) {
+	if (!autofill(state->gameState, &move)) {
 		return PERFORM_AUTO_FILL_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 
@@ -2242,7 +2260,7 @@ PerformResetCommandErrorCode performResetCommand(State* state, Command* command)
 
 	UNUSED(resetfillArguments);
 
-	if (!resetMoves(state)) {
+	if (!resetMoves(state->gameState)) {
 		return PERFORM_RESET_COMMAND_NO_CHANGES;
 	}
 	return ERROR_SUCCESS;
@@ -2399,21 +2417,15 @@ bool isCommandErrorRecoverable(CommandType type, int error) {
 	return func(error);
 }
 
-char* getAutofillCommandStrOutput(Command* command, GameState* gameState) { /* CR: autofill shouldn't have any output */
+char* getAutofillCommandStrOutput(Command* command, GameState* gameState) { /* CR+: autofill shouldn't have any output */ /* CR Response: according to spec it should */
 	AutofillCommandArguments* autofillArguments = (AutofillCommandArguments*)(command->arguments);
 
 	char* str = NULL;
 	size_t numCharsRequired = 0;
-	char* emptyString = "";
 
-	if (autofillArguments->movesListOut != NULL) {
-		numCharsRequired = getMoveStrOutputSize(gameState, autofillArguments->movesListOut);
-		str = calloc(numCharsRequired, sizeof(char));
-		sprintMoveStrOutput(str, autofillArguments->movesListOut, false);
-	} else {
-		numCharsRequired = strlen(emptyString) + 1;
-		str = calloc(numCharsRequired, sizeof(char));
-	}
+	numCharsRequired = getMoveStrOutputSize(gameState, autofillArguments->movesListOut, false);
+	str = calloc(numCharsRequired, sizeof(char));
+	sprintMoveStrOutput(str, autofillArguments->movesListOut, false);
 
 	return str;
 }

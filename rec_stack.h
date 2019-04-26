@@ -15,8 +15,8 @@ bool pushStack(Stack* stack, int curRow, int curCol);
 
 bool popStack(Stack* stack);
 
-bool peekStack(Stack* stack, int* curRow, int* curCol);
+bool peekStack(const Stack* stack, int* curRow, int* curCol);
 
-bool isEmptyStack(Stack* stack);
+bool isEmptyStack(const Stack* stack);
 
 #endif /* REC_STACK_H */

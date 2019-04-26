@@ -43,6 +43,7 @@ typedef struct {
 	bool shouldHideErrors;
 	GameState* gameState;} State;
 
+Board* getPuzzle(GameState* gameState);
 
 int getNumEmptyCells(GameState* gameState);
 
@@ -112,19 +113,23 @@ bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegal
 
 int setPuzzleCell(GameState* gameState, int row, int indexInRow, int value);
 
-bool makeSingleCellMove(State* state, int value, int row, int col); /* CR: shouldn't this func get GameState* rather than State*? */
+bool makeMove(GameState* gameState, Move* move);
 
-bool makeMultiCellMove(State* state, Board* newBoard); /* CR: shouldn't this func get GameState* rather than State*? */
+bool makeCellChangeMove(GameState* gameState, int value, int row, int col);
 
-bool calculateNumSolutions(GameState* state, int* numSolutions);
+bool makeMultiCellMove(GameState* gameState, Board* newBoard);
 
-bool autofill(State* state, Move** outMove); /* CR: shouldn't this func get GameState* rather than State*? */
+bool calculateNumSolutions(GameState* gameState, int* numSolutions);
 
-Move* undoMove(State* state); /* CR: shouldn't this func get GameState* rather than State*? */
+bool autofill(GameState* gameState, Move** outMove);
 
-Move* redoMove(State* state); /* CR: shouldn't this func get GameState* rather than State*? */
+/* Note: returned Move should not be freed or changed! */
+const Move* undoMove(GameState* gameState);
 
-bool resetMoves(State* state); /* CR: shouldn't this func get GameState* rather than State*? */
+/* Note: returned Move should not be freed or changed! */
+const Move* redoMove(GameState* gameState);
+
+bool resetMoves(GameState* gameState);
 
 bool isSolutionSuccessful(GameState* gameState);
 

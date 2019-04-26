@@ -17,12 +17,16 @@ typedef struct list
 } List;
 
 void initList(List* list);
-bool isEmpty(List* list);
-bool push(List* list, void* new_data); /* CR: again, please use cannonical names... */ /* CR: it would also be better to have the name of the data structure within the name of each function (ESPECIALLY when you use a name like push, which could collide with a stack module's push function) */
-void* pop(List* list);
-bool pushBack(List* list, void* new_data);
-void* popBack(List* list);
-Node* getHead(List* list);
-Node* getNext(Node* node);
+bool isListEmpty(const List* list);
+bool pushList(List* list, void* new_data);
+void* popList(List* list);
+bool pushListBack(List* list, void* new_data);
+void* popListBack(List* list);
+int getListSize(const List* list);
+Node* getListHead(const List* list);
+Node* getListTail(const List* list);
+Node* getNodeNext(Node* node);
+Node* getNodePrev(Node* node);
+void* getNodeData(Node* node);
 
 #endif /* LINKED_LIST_H */

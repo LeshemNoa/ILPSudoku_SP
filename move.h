@@ -1,8 +1,8 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-/* CR: this should simply be a part of undo_redo_list module (is there any reason for it being independent of it? */
-
+/* CR+: this should simply be a part of undo_redo_list module (is there any reason for it being independent of it? */
+/* CR Response: Commands module needs to know Move but doesn't need to know the undo list maintained by game */
 #include "linked_list.h"
 
 typedef struct {
@@ -10,10 +10,17 @@ typedef struct {
 	int col;
 	int prevVal;
 	int newVal;
-} singleCellMove; /* CR: since you use the word Move in many contexts, I advise this to be changed to cellChange (this isn't ambiguous, as far as I can tell) */
+} CellChange;
 
 typedef struct {
-	List singleCellMoves;
+	List cellChanges;
 } Move;
 
+Move* createMove();
+void destroyMove(Move* move);
+CellChange* createCellChange(int prevVal, int newVal, int row, int col);
+/* false is returned on memory allocation error */
+bool addCellChangeToMove(Move* move, int prevVal, int newVal, int row, int col);
+int getCellChangesSize(const Move* move);
+Node* getFirstCellChange(const Move* move);
 #endif /* MOVE_H */

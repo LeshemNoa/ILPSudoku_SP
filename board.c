@@ -107,23 +107,19 @@ int getBlockNumberByCell(Board* board, int row, int col) {
 
 bool getNextEmptyBoardCell(Board* board, int row, int col, int* outRow, int* outCol) {
 	Cell* curr;
-	int MN = getBoardBlockSize_MN(board);
+	int r, c, MN = getBoardBlockSize_MN(board);
 
-	while (row < MN) { /* CR: isn't this classic to be two nested for loops? where rowIndex is initialised to row and colIndex is initialised to col if rowIndex == row, or 0 otherwise ? */
-		curr = getBoardCellByRow(board, row, col);
-		if (curr->value == EMPTY_CELL_VALUE) {
-			*outRow = row;
-			*outCol = col;
-			return true;
+	c = col;
+	for (r = row; r < MN; r++) {
+		for (; c < MN; c++) {
+			curr = getBoardCellByRow(board, r, c);
+			if (curr->value == EMPTY_CELL_VALUE) {
+				*outRow = r;
+				*outCol = c;
+				return true;
+			}
 		}
-
-		if (col == MN - 1) {
-			row = row + 1;
-			col = 0;
-		} else {
-			/* row = row; */ /* CR: this would then be a by product of the nested loop "design" */
-			col = col + 1;
-		}
+		c = 0;
 	}
 
 	return false;

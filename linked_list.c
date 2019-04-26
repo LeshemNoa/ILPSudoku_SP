@@ -13,7 +13,7 @@ void initList(List* list) {
     }
 }
 
-bool isEmpty(List* list) {
+bool isListEmpty(const List* list) {
     return (list->size == 0);
 }
 
@@ -28,11 +28,11 @@ Node* createNewNode(void* new_data) {
     return new_node;
 }
 
-bool push(List* list, void* new_data) {
+bool pushList(List* list, void* new_data) {
     Node* new_node = createNewNode(new_data);
     if (new_node == NULL) { return false; }
 
-    if (!isEmpty(list)) {
+    if (!isListEmpty(list)) {
         list->head->prev = new_node;
         new_node->next = list->head;
         list->head = new_node;
@@ -45,11 +45,11 @@ bool push(List* list, void* new_data) {
     return true;
 }
 
-void* pop(List* list) {
+void* popList(List* list) {
     void* data;
     Node* old_head = NULL;
 
-    if (isEmpty(list)) { 
+    if (isListEmpty(list)) { 
         return NULL;
     }
 
@@ -69,11 +69,11 @@ void* pop(List* list) {
     return data;   
 }
 
-bool pushBack(List* list, void* new_data) { 
+bool pushListBack(List* list, void* new_data) { 
     Node* new_node = createNewNode(new_data);
     if (new_node == NULL) { return false; }
 
-    if (!isEmpty(list)) {
+    if (!isListEmpty(list)) {
         list->tail->next = new_node;
         new_node->prev = list->tail;
         list->tail = new_node;
@@ -86,11 +86,11 @@ bool pushBack(List* list, void* new_data) {
     return true;
 }
 
-void* popBack(List* list) { 
+void* popListBack(List* list) { 
     void* data;
     Node* old_tail = NULL;
 
-    if (isEmpty(list)) {
+    if (isListEmpty(list)) {
         return NULL;
     }
 
@@ -110,18 +110,46 @@ void* popBack(List* list) {
     return data;   
 }
 
-Node* getHead(List* list) {
-    if (list == NULL || isEmpty(list)) {
+int getListSize(const List* list) {
+    return list->size;
+}
+
+Node* getListHead(const List* list) {
+    if (list == NULL || isListEmpty(list)) {
         return NULL;
     }
 
     return list->head;
 }
 
-Node* getNext(Node* node) {
+Node* getListTail(const List* list) {
+    if (list == NULL || isListEmpty(list)) {
+        return NULL;
+    }
+
+    return list->tail;
+}
+
+Node* getNodeNext(Node* node) {
     if (node == NULL) {
         return NULL;
     }
 
     return node->next;
+}
+
+Node* getNodePrev(Node* node) {
+    if (node == NULL) {
+        return NULL;
+    }
+
+    return node->prev;
+}
+
+void* getNodeData(Node* node) {
+    if (node == NULL) {
+        return NULL;
+    }
+
+    return node->data;
 }

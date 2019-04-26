@@ -179,8 +179,8 @@ typedef struct { /* Note: order of row and col is reverse to that provided by us
 } GuessHintCommandArguments;
 
 typedef struct {
-	Move* movesListOut;
-} UndoCommandArguments, RedoCommandArguments, AutofillCommandArguments; /* CR: autofill needn't have output! */
+	const Move* movesListOut;
+} UndoCommandArguments, RedoCommandArguments, AutofillCommandArguments; /* CR+: autofill needn't have output! */ /* CR Respnse: Are you sure? Autofill spec says "fill it with the value and notify the user of the update. Repeat for all cells in the board" */
 
 typedef struct {
 	bool isSolvableOut;

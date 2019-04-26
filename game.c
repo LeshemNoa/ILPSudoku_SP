@@ -3,7 +3,6 @@
 #include "game.h"
 
 #include "undo_redo_list.h"
-#include "rec_stack.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -26,6 +25,10 @@ struct GameState {
 	int** blocksCellsValuesCounters;
 	UndoRedoList moveList;
 };
+
+Board* getPuzzle(GameState* gameState) {
+	return &(gameState->puzzle);
+}
 
 int getNumEmptyCells(GameState* gameState) {
 	return gameState->numEmpty;
@@ -361,140 +364,153 @@ bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegal
 /* Maintaining the invariant: at all times, all erroneous cells are marked
 correctly after each change in the board. Returning the previous value
 of that cell */
-int setPuzzleCell(GameState* state, int row, int col, int value) {
-	int prevValue = getCellValue(state, row, col); /* CR: perhaps have a condition that checks if prevValue == value... in which case nothing needs to be done */
+int setPuzzleCell(GameState* gameState, int row, int col, int value) {
+	int block, prevValue = getCellValue(gameState, row, col);
+	if (prevValue == value) {
+		/* Nothing to be done */
+		return value;
+	}
+
+	block = whichBlock(&(gameState->puzzle), row, col);
 
 	if (prevValue != EMPTY_CELL_VALUE) {
-		state->rowsCellsValuesCounters[row][prevValue]--;
-		state->columnsCellsValuesCounters[col][prevValue]--;
-		state->blocksCellsValuesCounters[whichBlock(&(state->puzzle), row, col)][prevValue]--;
+		gameState->rowsCellsValuesCounters[row][prevValue]--;
+		gameState->columnsCellsValuesCounters[col][prevValue]--;
+		gameState->blocksCellsValuesCounters[block][prevValue]--;
 	}
 
 	if (value != EMPTY_CELL_VALUE) {
-		state->rowsCellsValuesCounters[row][value]++;
-		state->columnsCellsValuesCounters[col][value]++;
-		state->blocksCellsValuesCounters[whichBlock(&(state->puzzle), row, col)][value]++;
+		gameState->rowsCellsValuesCounters[row][value]++;
+		gameState->columnsCellsValuesCounters[col][value]++;
+		gameState->blocksCellsValuesCounters[block][value]++;
 	}
 
-	if (isCellEmpty(state, row, col) && value != EMPTY_CELL_VALUE) {
-		state->numEmpty--;
+	if (isCellEmpty(gameState, row, col) && value != EMPTY_CELL_VALUE) {
+		gameState->numEmpty--;
 	}
-	if (!isCellEmpty(state, row, col) && value == EMPTY_CELL_VALUE) {
-		state->numEmpty++;
+	if (!isCellEmpty(gameState, row, col) && value == EMPTY_CELL_VALUE) {
+		gameState->numEmpty++;
 	}
-	setBoardCellValue(&(state->puzzle), row, col, value);
-	updateCellsErroneousness(state); /* CR: why not do something more efficient (going over just one row, col and block): you need only call updateCellErroneousnessInRow, updateCellErroneousnessInColumn, updateCellErroneousnessInBlock (no?? verify that I'm correct in assuming that only cells in the same row, column or block of the set cell may have changed in terms of erroneousness) */
+	setBoardCellValue(&(gameState->puzzle), row, col, value);
+	updateCellErroneousnessInRow(gameState, row);
+	updateCellErroneousnessInColumn(gameState, col);
+	updateCellErroneousnessInBlock(gameState, block);
 	return prevValue;
 }
 
 /* returns false upon memory allocation error. This function also
 causes the change in the board to be reflected in the undo-redo list  */
-bool makeSingleCellMove(State* state, int value, int row, int col) { /* CR: this would be read much more intuitively if it were called makeCellChange (this is a continuation of another CR comment, written in move.h */
+bool makeCellChangeMove(GameState* gameState, int value, int row, int col) {
 	int prevVal;
-	Move* move = (Move*) calloc(1, sizeof(Move));
+	Move* move = createMove();
 	if (move == NULL) { return false; }
-	initList(&move->singleCellMoves); /* access singleCellMoves through a wrapper function, or better yet - have an initMove function.. */
 
-	prevVal = setPuzzleCell(state->gameState, row, col, value); /* CR: again, if you chose not to have an empty autofill move documented to undo-redo list, so shouldn't be documented a set move that changed nothing, I think */
+	prevVal = setPuzzleCell(gameState, row, col, value);
+	if (prevVal == value) {
+		/* not documenting move if nothing has changed */
+		destroyMove(move);
+		return true;
+	}
 
-	if (!addSingleCellMoveToMove(move, prevVal, value, row, col) || 
-		!addNewMoveToList(&(state->gameState->moveList), move)) {
-		free(move);
+	if (!addCellChangeToMove(move, prevVal, value, row, col) || 
+		!addNewMoveToList(&(gameState->moveList), move)) {
+		destroyMove(move);
 		return false;
 	}
 
 	return true;
 }
 
+void applyMoveToBoard(GameState* gameState, const Move* move, bool undo) {
+	Node* currNode;
+	CellChange* change;
+
+	currNode = getFirstCellChange(move);
+	while (currNode != NULL) {
+		change = (CellChange*) getNodeData(currNode);
+		setPuzzleCell(gameState, change->row, change->col, undo ? change->prevVal : change->newVal);
+		currNode = getNodeNext(currNode);
+	}
+}
+
+
 /* returns false upon memory allocation error. This function also
 causes the change in the board to be reflected in the undo-redo list  */
-bool makeMultiCellMove(State* state, Board* newBoard) {
-	int MN, row, col, prevVal, newValue;
-	Node* curr;
-	Move* move = (Move*) calloc(1, sizeof(Move));
+bool makeMove(GameState* gameState, Move* move) {
 	if (move == NULL) { return false; }
-	MN = getBlockSize_MN(state->gameState);
 
-	initList(&move->singleCellMoves); /* CR: access singleCellMoves through a wrapper function, or better yet - have an initMove function.. */
+	/* add move to move list */
+	if (!addNewMoveToList(&(gameState->moveList), move)) {
+		return false;
+	}
 
-	/* find all differences and build single cell move list */ /* CR: if no differences were found... perhaps nothing needs happening later */
+	/* perform all single cell moves */
+	applyMoveToBoard(gameState, move, false);
+	return true;
+}
+
+/* returns false upon memory allocation error. This function also
+causes the change in the board to be reflected in the undo-redo list  */
+bool makeMultiCellMove(GameState* gameState, Board* newBoard) {
+	bool diff = false;
+	int MN, row, col, prevVal, newValue;
+	Move* move = createMove();
+	if (move == NULL) { return false; }
+	MN = getBlockSize_MN(gameState);
+
+	/* find all differences and build single cell move list */
 	for (row = 0; row < MN; row++) {
 		for (col = 0; col < MN; col++) {
-			prevVal = getCellValue(state->gameState, row, col);
+			prevVal = getCellValue(gameState, row, col);
 			newValue = getBoardCellValue(getBoardCellByRow(newBoard, row, col));
 			if (prevVal != newValue) {
-				if (!addSingleCellMoveToMove(move, prevVal, newValue, row, col)) {
+				diff = true;
+				if (!addCellChangeToMove(move, prevVal, newValue, row, col)) {
 					/* memory error, cleanup and return */
-					while (!isEmpty(&(move->singleCellMoves))) { /* CR: perhaps this could be a function of list? */
-						void* data = pop(&(move->singleCellMoves));
-						free(data);
-					}
-					free(move);
+					destroyMove(move);
 					return false;
 				}
 			}
 		}
 	}
 
-	/* add move to move list */
-	if (!addNewMoveToList(&(state->gameState->moveList), move)) {
+	if (!diff) {
+		/* not documenting move if nothing has changed */
+		destroyMove(move);
+		return true;
+	}
+
+	if (!makeMove(gameState, move)) {
 		/* memory error, cleanup and return */
-		while (!isEmpty(&(move->singleCellMoves))) { /* CR: yep, code repetition means you need a function */
-			void* data = pop(&(move->singleCellMoves));
-			free(data);
-		}
-		free(move);
+		destroyMove(move);
 		return false;
 	}
 
-	/* perform all single cell moves */ /* CR: this should be yet another function (apply move to Board)*/
-	curr = getHead(&(move->singleCellMoves));
-	while (curr != NULL) {
-		singleCellMove* scMove = (singleCellMove*)curr->data;
-		setPuzzleCell(state->gameState, scMove->row, scMove->col, scMove->newVal);
-		curr = getNext(curr);
-	}
-	
 	return true;
 }
 
-Move* undoMove(State* state) { /* CR: since the returned Move* stays in the list it is not very advisable and actually slightly dangerous to have it sent outwards as is (might be changed...), so returning a copy is a nice way to go. Alternatively, you can just document that the Move mustn't be changed not freed and so on */
-	singleCellMove* scMove;
-	Node* currNode;
-	Move* moveToUndo = undoInList(&(state->gameState->moveList));
+const Move* undoMove(GameState* gameState) {
+	Move* moveToUndo = undoInList(&(gameState->moveList));
 	if (moveToUndo == NULL) {
 		return NULL; /* nothing to undo */
 	}
-	currNode = getHead(&(moveToUndo->singleCellMoves)); /* CR: this and the following lines appear to be a function in the making */
-	while (currNode != NULL) {
-		scMove = (singleCellMove*) currNode->data; /* CR: accessing data should preferrably be throgh a wrapper function */
-		setPuzzleCell(state->gameState, scMove->row, scMove->col, scMove->prevVal);
-		currNode = getNext(currNode);
-	}
+	applyMoveToBoard(gameState, moveToUndo, true);
 	return moveToUndo;
 }
 
-Move* redoMove(State* state) { /* CR: similar to undoMove */
-	singleCellMove* scMove;
-	Node* currNode;
-	Move* moveToRedo = redoInList(&(state->gameState->moveList));
+const Move* redoMove(GameState* gameState) {
+	Move* moveToRedo = redoInList(&(gameState->moveList));
 	if (moveToRedo == NULL) {
 		return NULL; /* nothing to redo */
 	}
-	currNode = getHead(&(moveToRedo->singleCellMoves));
-	while (currNode != NULL) {
-		scMove = (singleCellMove*) currNode->data;
-		setPuzzleCell(state->gameState, scMove->row, scMove->col, scMove->newVal);
-		currNode = getNext(currNode);
-	}
-
+	applyMoveToBoard(gameState, moveToRedo, false);
 	return moveToRedo;
 }
 
-bool resetMoves(State* state) {
+bool resetMoves(GameState* gameState) {
 	bool changed = false;
-    while (canUndo(&(state->gameState->moveList))) {
-		undoMove(state);
+    while (canUndo(&(gameState->moveList))) {
+		undoMove(gameState);
         changed = true;
     }
     return changed;
@@ -510,126 +526,59 @@ bool isSolutionFailing(GameState* gameState) {
 		   (isBoardErroneous(gameState));
 }
 
-/* CR: this function is absolutely lovely */
-bool calculateNumSolutions(GameState* state, int* numSolutions) { /* CR: LOGIC should called from another module (possibly BT_solver), for modularity's sake (the idea is that we have two kinds of solvers) */
-	Stack stack = {{0}};
-	int curCol, curRow;
-	int sum = 0;
-	int MN = getBlockSize_MN(state);
-	initStack(&stack);
-
-	if (isBoardErroneous(state) || state->numEmpty == 0) {
-		/* board has errors or no moves to make, no possible solutions */
-		*numSolutions = 0;
-		return true;
-	}
-
-	initStack(&stack);
-
-	if (!getNextEmptyBoardCell(&(state->puzzle), 0, 0, &curRow, &curCol)) { /* CR: won't this mean that a solved board has no solutions? (this can be checked in edit mode) */
-		*numSolutions = 0;
-		return true;
-	}
-
-	/* push initial cell */
-	if (!pushStack(&stack, curRow, curCol)) {
-		/* memory error */
-		return false;
-	}
-
-	while (peekStack(&stack, &curRow, &curCol)) {
-		Cell* cell;
-		int nextRow, nextCol, newValue;
-		bool isLegalValue;
-
-		cell = getBoardCellByRow(&(state->puzzle), curRow, curCol);
-		if (getBoardCellValue(cell) == MN) { /* max value */
-			/* back track */
-			setPuzzleCell(state, curRow, curCol, EMPTY_CELL_VALUE);
-			popStack(&stack);
-			continue;
-		}
-
-		/* increment value, not assuming EMPTY_CELL_VALUE == 0 */
-		newValue = isBoardCellEmpty(cell) ? 1 : cell->value + 1;
-		/* check if board is valid after incrementing value*/
-		isLegalValue = isValueLegalForCell(state, curRow, curCol, newValue);
-		/* set value anyway (after checking legality) */
-		setPuzzleCell(state, curRow, curCol, newValue);
-		
-		if (!isLegalValue) {
-			/* illegal, try next value */
-			continue;
-		}
-
-		if (!getNextEmptyBoardCell(&(state->puzzle), curRow, curCol, &nextRow, &nextCol)) {
-			/* no more empty cells, count as solved */
-			sum++;
-			continue;
-		}
-
-		/* count solutions for next empty cell given current board */
-		if (!pushStack(&stack, nextRow, nextCol)) {
-			/* memory error, undo every change */
-			while(peekStack(&stack, &curRow, &curCol)) { /* CR: this loop looks like it should be a function of the stack */
-				setPuzzleCell(state, curRow, curCol, EMPTY_CELL_VALUE); /* CR: you'll probably be working on a copy of the original board, hence there won't be any read need to restore it to its original state */
-				popStack(&stack);
-			}
-			return false;
-		}
-	}
-
-	*numSolutions = sum;
-	return true;
-}
-
-bool autofill(State* state, Move** outMove) {
+bool autofill(GameState* gameState, Move** outMove) {
 	int MN, row, col, val;
-	bool filled = false;
-	bool retValue = true;
 	CellLegalValues** cellsLegalValues = NULL;
-
-	Board board = {0}; /* CR: is the reason for having this board here is that later you'll simply use makeMultiCellMove? It's fine, but as you can see, you can definitely just document each change as you go along (if it's easy to do this). This will be more efficient, generally speaking */
-	if (!exportBoard(state->gameState, &board)) {
+	Move* move = createMove();
+	if (move == NULL) {
 		return false;
 	}
 
-	if (!getSuperficiallyLegalValuesForAllBoardCells(&(state->gameState->puzzle), &cellsLegalValues)) {
-		cleanupBoard(&board);
+	if (!getSuperficiallyLegalValuesForAllBoardCells(&(gameState->puzzle), &cellsLegalValues)) {
+		destroyMove(move);
 		return false;
 	}
 
-	MN = getBlockSize_MN(state->gameState);
+	MN = getBlockSize_MN(gameState);
 	for (row = 0; row < MN; row++) {
 		for (col = 0; col < MN; col++) {
 			CellLegalValues* legalValuesStruct = &(cellsLegalValues[row][col]);
 			/* if only one legal value, set it in the board */
-			if (isCellEmpty(state->gameState, row, col) &&
+			if (isCellEmpty(gameState, row, col) &&
 				legalValuesStruct->numLegalValues == 1) {
 				for (val = 1; val <= MN; val++) {
 					if (legalValuesStruct->legalValues[val]) {
-						setBoardCellValue(&board, row, col, val);
-						filled = true;
+						if (!addCellChangeToMove(move, EMPTY_CELL_VALUE, val, row, col)) {
+							destroyMove(move);
+							freeCellsLegalValuesForAllBoardCells(&(gameState->puzzle), cellsLegalValues);
+							return false;
+						}
 						break;
 					}
 				}
 			}
 		}
 	}
+	/* we are done with this */
+	freeCellsLegalValuesForAllBoardCells(&(gameState->puzzle), cellsLegalValues);
 
-	if (filled) { /* CR: cool! but if you don't document empty moves to undo-redo list, then we need to be consistent all throughout the project: the same should apply for set that changed nothing, for guess that changed nothing (actually, I think this cannot happen), and for generate that (remarkably) changed nothing */
-		if (makeMultiCellMove(state, &board)) { /* CR: I find that it would be more intuitive if makeMultiCellMove itself returned the created move, so later you don't need to call getCurrent */
-			*outMove = getCurrent(&(state->gameState->moveList));
-		} else {
-			retValue = false;
+	/* if move had any changes */
+	if (getCellChangesSize(move) > 0) {
+		/* add move to move list */
+		if (!addNewMoveToList(&(gameState->moveList), move)) {
+			/* memory error, cleanup and return */
+			destroyMove(move);
+			return false;
 		}
+
+		/* perform all single cell moves on board */
+		applyMoveToBoard(gameState, move, false);
+		*outMove = move;
 	} else {
 		*outMove = NULL;
 	}
 
-	cleanupBoard(&board);
-	freeCellsLegalValuesForAllBoardCells(&(state->gameState->puzzle), cellsLegalValues);
-	return retValue;
+	return true;
 }
 
 char* getPuzzleAsString(State* state) {
