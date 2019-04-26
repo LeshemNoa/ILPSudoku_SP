@@ -1,4 +1,4 @@
-#include "BT_Solver.h"
+#include "BT_solver.h"
 #include "rec_stack.h"
 
 bool calculateNumSolutions(GameState* gameState, int* numSolutions) {
