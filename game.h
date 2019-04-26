@@ -43,7 +43,7 @@ typedef struct {
 	bool shouldHideErrors;
 	GameState* gameState;} State;
 
-Board* getPuzzle(GameState* gameState);
+Board* getPuzzle(GameState* gameState); /* CR: the whole point of hiding GameState's implementation was that the Board wouldn't be accessible. This function cannot appear in the header of game */
 
 int getNumEmptyCells(GameState* gameState);
 
@@ -123,7 +123,7 @@ bool calculateNumSolutions(GameState* gameState, int* numSolutions);
 
 bool autofill(GameState* gameState, Move** outMove);
 
-/* Note: returned Move should not be freed or changed! */
+/* Note: returned Move should not be freed or changed! */ /* CR: alright */
 const Move* undoMove(GameState* gameState);
 
 /* Note: returned Move should not be freed or changed! */

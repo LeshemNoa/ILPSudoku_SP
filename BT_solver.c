@@ -1,4 +1,5 @@
 #include "BT_solver.h"
+
 #include "rec_stack.h"
 
 bool calculateNumSolutions(GameState* gameState, int* numSolutions) {
@@ -61,8 +62,8 @@ bool calculateNumSolutions(GameState* gameState, int* numSolutions) {
 		/* count solutions for next empty cell given current board */
 		if (!pushStack(&stack, nextRow, nextCol)) {
 			/* memory error, undo every change */
-			while(peekStack(&stack, &curRow, &curCol)) { /* CR+: this loop looks like it should be a function of the stack */ /* CR Response: no because we want to backtrack all changes */
-				setPuzzleCell(gameState, curRow, curCol, EMPTY_CELL_VALUE); /* CR+: you'll probably be working on a copy of the original board, hence there won't be any read need to restore it to its original state */ /* CR Response: we're working with the original state, thus we need to revert all changes */
+			while(peekStack(&stack, &curRow, &curCol)) { /* CR+: this loop looks like it should be a function of the stack */ /* CR Response: no because we want to backtrack all changes */ /* CR: see comment in header file */
+				setPuzzleCell(gameState, curRow, curCol, EMPTY_CELL_VALUE); /* CR+: you'll probably be working on a copy of the original board, hence there won't be any read need to restore it to its original state */ /* CR Response: we're working with the original state, thus we need to revert all changes */ /* CR: see comment in header file */
 				popStack(&stack);
 			}
 			return false;

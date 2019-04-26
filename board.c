@@ -111,7 +111,7 @@ bool getNextEmptyBoardCell(Board* board, int row, int col, int* outRow, int* out
 
 	c = col;
 	for (r = row; r < MN; r++) {
-		for (; c < MN; c++) {
+		for (; c < MN; c++) { /* CR: Since you seem to like the '? :' syntax, I just point out that you could use here: c = r == row ? col : 0 */
 			curr = getBoardCellByRow(board, r, c);
 			if (curr->value == EMPTY_CELL_VALUE) {
 				*outRow = r;

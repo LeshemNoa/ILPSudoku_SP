@@ -32,7 +32,7 @@ CellChange* createCellChange(int prevVal, int newVal, int row, int col){
 bool addCellChangeToMove(Move* move, int prevVal, int newVal, int row, int col) {
     CellChange* change = createCellChange(prevVal, newVal, row, col);
     if (change == NULL) { return false; }
-    if (!pushList(&(move->cellChanges), change)) {
+    if (!pushList(&(move->cellChanges), change)) { /* CR: this should be a call to some clearList function, I feel */
         free(change);
         return false;
     }
@@ -43,6 +43,6 @@ int getCellChangesSize(const Move* move) {
     return getListSize(&(move->cellChanges));
 }
 
-Node* getFirstCellChange(const Move* move) {
+Node* getFirstCellChange(const Move* move) { /* CR: seems like the returned value should be a const pointer, too... (and also perhaps in all those functions in list which return nodes (aka getListHead...) */
     return getListHead(&(move->cellChanges));
 }

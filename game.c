@@ -26,7 +26,7 @@ struct GameState {
 	UndoRedoList moveList;
 };
 
-Board* getPuzzle(GameState* gameState) {
+Board* getPuzzle(GameState* gameState) { /* Note: that this function mustn't be exported */
 	return &(gameState->puzzle);
 }
 
@@ -407,7 +407,7 @@ bool makeCellChangeMove(GameState* gameState, int value, int row, int col) {
 
 	prevVal = setPuzzleCell(gameState, row, col, value);
 	if (prevVal == value) {
-		/* not documenting move if nothing has changed */
+		/* not documenting move if nothing has changed */ /* CR: alright. but again, what happens is autofill or generate fail to change anything? do we have an empty move being added to undo-redo list? */
 		destroyMove(move);
 		return true;
 	}
@@ -474,7 +474,7 @@ bool makeMultiCellMove(GameState* gameState, Board* newBoard) {
 		}
 	}
 
-	if (!diff) {
+	if (!diff) { /* CR: well that settles it for generate. How about autofill and guess? (and set) */
 		/* not documenting move if nothing has changed */
 		destroyMove(move);
 		return true;
@@ -489,7 +489,7 @@ bool makeMultiCellMove(GameState* gameState, Board* newBoard) {
 	return true;
 }
 
-const Move* undoMove(GameState* gameState) {
+const Move* undoMove(GameState* gameState) { /* CR: const is a cool solution */
 	Move* moveToUndo = undoInList(&(gameState->moveList));
 	if (moveToUndo == NULL) {
 		return NULL; /* nothing to undo */
@@ -562,7 +562,7 @@ bool autofill(GameState* gameState, Move** outMove) {
 	/* we are done with this */
 	freeCellsLegalValuesForAllBoardCells(&(gameState->puzzle), cellsLegalValues);
 
-	/* if move had any changes */
+	/* if move had any changes */ /* CR: and that settles it for autofill */
 	if (getCellChangesSize(move) > 0) {
 		/* add move to move list */
 		if (!addNewMoveToList(&(gameState->moveList), move)) {
