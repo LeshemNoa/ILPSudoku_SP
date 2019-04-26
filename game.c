@@ -189,27 +189,6 @@ void freeCellsValuesCounters(GameState* gameState) {
 	}
 }
 
-/*bool allocateCellsValuesCounters(GameState* gameState) {
-	gameState->rowsCellsValuesCounters = allocateNewSpecificCellsValuesCounters(&(gameState->puzzle));
-	gameState->columnsCellsValuesCounters = allocateNewSpecificCellsValuesCounters(&(gameState->puzzle));
-	gameState->blocksCellsValuesCounters = allocateNewSpecificCellsValuesCounters(&(gameState->puzzle));
-
-	if ((gameState->rowsCellsValuesCounters == NULL) ||
-		(gameState->columnsCellsValuesCounters == NULL) ||
-		(gameState->blocksCellsValuesCounters == NULL)) {
-		freeCellsValuesCounters(gameState);
-		return false;
-	}
-
-	return true;
-}*/
-
-/*void updateCellsValuesCounters(GameState* gameState) {
-	updateCellsValuesCountersByCategory(gameState->rowsCellsValuesCounters, &(gameState->puzzle), getBoardCellByRow);
-	updateCellsValuesCountersByCategory(gameState->columnsCellsValuesCounters, &(gameState->puzzle), getBoardCellByColumn);
-	updateCellsValuesCountersByCategory(gameState->blocksCellsValuesCounters, &(gameState->puzzle), getBoardCellByBlock);
-}*/
-
 void updateCellErroneousness(GameState* gameState, int row, int col) {
 	Cell* cell = getBoardCellByRow(&(gameState->puzzle), row, col);
 
@@ -436,7 +415,7 @@ bool makeMultiCellMove(State* state, Board* newBoard) {
 	if (move == NULL) { return false; }
 	MN = getBlockSize_MN(state->gameState);
 
-	initList(&move->singleCellMoves); /* access singleCellMoves through a wrapper function, or better yet - have an initMove function.. */
+	initList(&move->singleCellMoves); /* CR: access singleCellMoves through a wrapper function, or better yet - have an initMove function.. */
 
 	/* find all differences and build single cell move list */ /* CR: if no differences were found... perhaps nothing needs happening later */
 	for (row = 0; row < MN; row++) {

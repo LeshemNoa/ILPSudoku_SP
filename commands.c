@@ -1981,7 +1981,7 @@ bool isSetCommandErrorRecoverable(int error) {
 	}
 }
 
-/* Assuming that upon call to this functions all conditions have been
+/* Note: Assuming that upon call to this functions all conditions have been
 checked - in solve mode fixed cells cannot be set etc. This is consistent
 with the command loop flow */
 PerformSetCommandErrorCode performSetCommand(State* state, Command* command) {
@@ -2027,7 +2027,7 @@ char* getUndoCommandErrorString(int error) {
 bool isUndoCommandErrorRecoverable(int error) {
 	PerformUndoCommandErrorCode errorCode = (PerformUndoCommandErrorCode)error;
 
-	/* all undo errors are recoverable */
+	/* Note: all undo errors are recoverable */
 	switch (errorCode) {
 	default:
 		return true;
@@ -2113,7 +2113,7 @@ char* getRedoCommandErrorString(int error) {
 bool isRedoCommandErrorRecoverable(int error) {
 	PerformRedoCommandErrorCode errorCode = (PerformRedoCommandErrorCode)error;
 
-	/* all redo errors are recoverable */
+	/* Note: all redo errors are recoverable */
 	switch (errorCode) {
 	default:
 		return true;
@@ -2206,7 +2206,7 @@ typedef enum {
 bool isResetCommandErrorRecoverable(int error) {
 	PerformResetCommandErrorCode errorCode = (PerformResetCommandErrorCode)error;
 
-	/* all reset errors are recoverable */
+	/* Note: all reset errors are recoverable */
 	switch (errorCode) {
 	default:
 		return true;
@@ -2588,7 +2588,7 @@ ProcessStringAsCommandErrorCode processCommandArguments(State* state, char* comm
 }
 
 ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* commandStr, Command* commandOut, int* problematicArgNo, int* argsValidatorError) {
-	char* commandStrTokens[(COMMAND_MAX_LENGTH + 1)/2 + 1] = {0}; /* A definite upper-boundary on the number of possible tokens */
+	char* commandStrTokens[(COMMAND_MAX_LENGTH + 1)/2 + 1] = {0}; /* Note: A definite upper-boundary on the number of possible tokens */
 	char* commandType = NULL;
 
 	commandType = getFirstToken(commandStr);
@@ -2599,7 +2599,7 @@ ProcessStringAsCommandErrorCode processStringAsCommand(State* state, char* comma
 		return PROCESS_STRING_AS_COMMAND_COMMAND_NOT_ALLOWED_IN_CURRENT_MODE;
 	}
 
-	if (commandOut->type == COMMAND_TYPE_IGNORE) /* in such a case, looking for parameters is error-prone, and in any case there is no need */
+	if (commandOut->type == COMMAND_TYPE_IGNORE) /* Note: in such a case, looking for parameters is error-prone, and in any case there is no need */
 		return ERROR_SUCCESS;
 
 	commandOut->argumentsNum = splitArgumentsStringToTokens(commandStr, commandStrTokens);

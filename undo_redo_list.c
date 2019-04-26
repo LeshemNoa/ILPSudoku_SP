@@ -2,7 +2,7 @@
 
 #include "undo_redo_list.h"
 
-/* Lists are not dynamically allocated anymore. Nodes and their data still are */
+/* Note: Lists are not dynamically allocated anymore. Nodes and their data still are */
 
 void initUndoRedo(UndoRedoList* moveList) { 
     if (moveList != NULL) {

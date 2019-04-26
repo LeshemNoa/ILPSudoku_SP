@@ -121,7 +121,7 @@ bool getNextEmptyBoardCell(Board* board, int row, int col, int* outRow, int* out
 			row = row + 1;
 			col = 0;
 		} else {
-			/* row = row; */
+			/* row = row; */ /* CR: this would then be a by product of the nested loop "design" */
 			col = col + 1;
 		}
 	}
@@ -176,20 +176,6 @@ void setBoardCellFixedness(Cell* cell, bool isFixed) {
 void setBoardCellErroneousness(Cell* cell, bool isErroneous) {
 	cell->isErroneous = isErroneous;
 }
-
-/*int countNumErroneousCells(Board* board) {
-	int numErroneous = 0;
-	int MN = getBoardBlockSize_MN(board);
-	int row = 0;
-	int col = 0;
-
-	for (row = 0; row < MN; row++)
-		for (col = 0; col < MN; col++)
-			if (isBoardCellErroneous(getBoardCellByRow(board, row, col)))
-				numErroneous++;
-
-	return numErroneous;
-}*/
 
 void cleanupBoard(Board* boardInOut) {
 	int MN = getBoardBlockSize_MN(boardInOut);

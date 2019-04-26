@@ -231,7 +231,6 @@ typedef struct {
 	CommandType type;
 	int argumentsNum;
 	void* arguments;
-	/*char arguments[COMMAND_ARGUMENTS_MAX_SIZE];*/
 
 } Command;
 

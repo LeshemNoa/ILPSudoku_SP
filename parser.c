@@ -51,7 +51,6 @@ bool parseStringArg(char* arg, char** dst) {
 	if (strlen(arg) == 0)
 		return false;
 
-	/* validate that arg is all digits */
 	for (p = arg; *p != '\0'; p++)
 		if (isprint(*p) == 0)
 			return false;
