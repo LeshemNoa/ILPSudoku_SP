@@ -2064,7 +2064,7 @@ size_t getMoveStrOutputSize(const Move* move, bool undo) {
 		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT);
 	}
 	
-	size = getCellChangesSize(move);
+	size = getMoveSize(move);
 	if (size == 0) {
 		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT);
 	}
@@ -2082,7 +2082,7 @@ size_t sprintMoveStrOutput(char* outStr, const Move* move, bool undo) {
 	char* start = outStr;
 	const Node* curr;
  
-	if (move == NULL || getCellChangesSize(move) == 0) {
+	if (move == NULL || getMoveSize(move) == 0) {
 		memcpy(outStr, MOVE_EMPTY_OUTPUT_FORMAT, sizeof(MOVE_EMPTY_OUTPUT_FORMAT)); /* CR+: use strcpy for string copying */
 		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT)-1 /* minus null-character */; /* CR+: use strlen to get length of string (won't incldue the null terminator) */
 		/*CR Response: we could but it's a tiny bit ineffecient since sizeof is known at compilation time and strlen is done at runtime O(N) */

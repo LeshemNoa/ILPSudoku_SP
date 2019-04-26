@@ -32,14 +32,14 @@ CellChange* createCellChange(int prevVal, int newVal, int row, int col){
 bool addCellChangeToMove(Move* move, int prevVal, int newVal, int row, int col) {
     CellChange* change = createCellChange(prevVal, newVal, row, col);
     if (change == NULL) { return false; }
-    if (!pushList(&(move->cellChanges), change)) { /* CR: this should be a call to some clearList function, I feel */
+    if (!pushList(&(move->cellChanges), change)) { /* CR+: this should be a call to some clearList function, I feel */ /* CR Response: there's always a call to destroyMove after this fails, I don't think add should clear the list on its own */
         free(change);
         return false;
     }
     return true;
 }
 
-int getCellChangesSize(const Move* move) {
+int getMoveSize(const Move* move) {
     return getListSize(&(move->cellChanges));
 }
 

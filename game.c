@@ -409,7 +409,7 @@ bool makeCellChangeMove(GameState* gameState, int value, int row, int col) {
 
 	prevVal = setPuzzleCell(gameState, row, col, value);
 	if (prevVal == value) {
-		/* not documenting move if nothing has changed */ /* CR: alright. but again, what happens is autofill or generate fail to change anything? do we have an empty move being added to undo-redo list? */
+		/* not documenting move if nothing has changed */ /* CR+: alright. but again, what happens is autofill or generate fail to change anything? do we have an empty move being added to undo-redo list? */ /* CR Response: we never want to add empty move to undo list because then it will not do anything when undoing or redoing this move and it doesn't make sense */
 		destroyMove(move);
 		return true;
 	}
@@ -476,7 +476,7 @@ bool makeMultiCellMove(GameState* gameState, Board* newBoard) {
 		}
 	}
 
-	if (!diff) { /* CR: well that settles it for generate. How about autofill and guess? (and set) */
+	if (!diff) {
 		/* not documenting move if nothing has changed */
 		destroyMove(move);
 		return true;
@@ -565,7 +565,7 @@ bool autofill(GameState* gameState, Move** outMove) {
 	freeCellsLegalValuesForAllBoardCells(&(gameState->puzzle), cellsLegalValues);
 
 	/* if move had any changes */
-	if (getCellChangesSize(move) > 0) {
+	if (getMoveSize(move) > 0) {
 		/* add move to move list */
 		if (!addNewMoveToList(&(gameState->moveList), move)) {
 			/* memory error, cleanup and return */

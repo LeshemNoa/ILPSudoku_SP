@@ -43,7 +43,7 @@ typedef struct {
 	bool shouldHideErrors;
 	GameState* gameState;} State;
 
-const Board* getPuzzle(GameState* gameState); /* CR: the whole point of hiding GameState's implementation was that the Board wouldn't be accessible. This function cannot appear in the header of game */
+const Board* getPuzzle(GameState* gameState); /* CR+: the whole point of hiding GameState's implementation was that the Board wouldn't be accessible. This function cannot appear in the header of game */ /* CR Response: I made it const so it would be read-only, is that better? */
 
 int getNumEmptyCells(GameState* gameState);
 
