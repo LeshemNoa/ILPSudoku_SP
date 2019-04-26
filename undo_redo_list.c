@@ -4,7 +4,7 @@
 
 /* Note: Lists are not dynamically allocated anymore. Nodes and their data still are */
 
-void initUndoRedo(UndoRedoList* moveList) { 
+void initUndoRedo(UndoRedoList* moveList) {
     if (moveList != NULL) {
         initList(&(moveList->list));
         moveList->current = getListHead(&(moveList->list));
@@ -14,9 +14,9 @@ void initUndoRedo(UndoRedoList* moveList) {
 
 /* returns false upon memory allocation error in pushList */
 bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
-    while (getListHead(&(moveList->list)) != moveList->current) { /* CR: also, perhaps make this a function of undo_redo_list? (it could also naturally change numUndos to 0 */ /* CR: found bug: this check is not good enough, because current can point to head, but numUndos may still be greater than zero. I thin that all you really need to check is if numUndos is greater than zero (talk to me if don't understand what I mean; I can give you a case to run for youself) */
-        void* data = popList(&(moveList->list));
-        free(data);
+    while (getListHead(&(moveList->list)) != moveList->current) {
+        Move* move = (Move*)popList(&(moveList->list));
+        destroyMove(move);
     }
     if (!pushList(&(moveList->list), newMove)) { return false; }
     moveList->current = getListHead(&(moveList->list));
