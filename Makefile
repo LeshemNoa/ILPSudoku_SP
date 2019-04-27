@@ -1,5 +1,5 @@
 CC = gcc
-OBJS = main.o rec_stack.o linked_list.o undo_redo_list.o main_aux.o commands.o parser.o game.o board.o move.o BT_solver.o
+OBJS = main.o linked_list.o undo_redo_list.o main_aux.o commands.o parser.o game.o board.o move.o BT_solver.o
 EXEC = sudoku-console
 EXEC_NOVA = $(EXEC)-nova
 GUROBI_COMP = -I/usr/local/lib/gurobi563/include
@@ -38,8 +38,6 @@ main.o: main.c
 linked_list.o: linked_list.c linked_list.h 
 	$(CC) $(COMP_FLAGS) -c $*.c
 undo_redo_list.o: undo_redo_list.c undo_redo_list.h move.h
-	$(CC) $(COMP_FLAGS) -c $*.c
-rec_stack.o: rec_stack.c rec_stack.h
 	$(CC) $(COMP_FLAGS) -c $*.c
 
 all: $(EXEC) $(EXEC_NOVA)

@@ -2,8 +2,8 @@
 #define BT_SOLVER_H
 
 #include <stdbool.h>
-#include "game.h" /* CR: this module shouldn't know game. It should be the other way around (see LP_solver) */
+#include "board.h"
 
-bool calculateNumSolutions(GameState* gameState, int* numSolutions);
+bool calculateNumSolutions(const Board* board, int* numSolutions);
 
 #endif /* BT_SOLVER_H */

@@ -32,7 +32,7 @@ typedef struct {
 
 typedef void (*getCategory1BasedIDByCategory2BasedIDFunc)(const Board* board, int category1No, int indexInCategory1, int* category2No, int* indexInCateogry2);
 
-typedef const Cell* (*viewCellsByCategoryFunc)(const Board* board, int categoryNo, int indexInCategory); /* CR: do we need both the view and get functions? if so, perhaps only some of them need be exported? */
+typedef const Cell* (*viewCellsByCategoryFunc)(const Board* board, int categoryNo, int indexInCategory); /* CR+: do we need both the view and get functions? if so, perhaps only some of them need be exported? */ /*CR Response: we need to export both */
 
 typedef Cell* (*getCellsByCategoryFunc)(Board* board, int categoryNo, int indexInCategory);
 
