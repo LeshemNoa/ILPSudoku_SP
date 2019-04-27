@@ -1,3 +1,30 @@
+/**
+ * LP_SOLVER Summary:
+ *
+ * A module designed to solve sudoku boards, employing Linear Programming (LP) for the task.
+ * The Linear Programming is done via an external library called Gurobi.
+ *
+ * A sudoku board may be passed to this module in order for it to be solved in one of two modes:
+ * 		1. ILP (Integer Linear Programming) - in which the output would be a solved board
+ * 		2. LP (Linear Programming) - in which the output would be an array of possible values and
+ * 									 their scores for each and every empty cell in the input board.
+ *
+ * For both modes, a mathematical model is built, whereby each cell of the board to solve is
+ * represented by a chain of variables (each corresponding to one legal value or other that
+ * the cell may hold). All relevant constraints are enforced upon the variables in the model
+ * to ensure we get a valid Sudoku solution (i.e., constraints relevant to the cells themselves,
+ * and constraints relevant to each row, column and block).
+ * The module is designed to have as little as possible variables in the mathematical model, for
+ * efficiency's sake and so that Gurobi will have an easier time solving our models. To achieve this
+ * end, we use all sorts of index manipulations (which can be found in the functions below).
+ *
+ * Needless to say, but the variables for an ILP model are integers, and in an our implementation
+ * they are even more strictly limited to be binary (indicators, of whether a certain value is to be
+ * filled in the respective cell); for the LP model, however, each variable can contain any real
+ * number between 0.0 and 1.0, and thus the output scores for the values of each cell can be seen
+ * as representing (to some extent) a probability distribution of the different values for each cell.
+ */
+
 #include <stdlib.h>
 
 #include "LP_solver.h"
