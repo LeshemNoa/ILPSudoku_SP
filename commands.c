@@ -2071,7 +2071,7 @@ size_t getMoveStrOutputSize(const Move* move, bool undo) {
 
 	return size * 
 		(undo ? 
-			sizeof(SINGLE_CELL_MOVE_UNDO_OUTPUT_FORMAT) : 
+			sizeof(SINGLE_CELL_MOVE_UNDO_OUTPUT_FORMAT) : /* CR: you should note here that this use of sizeof is an upper boundary on the number of needed characters (crucically, the format %2d (the length of which is 3) will in effect require only 2 characaters...) */
 			sizeof(SINGLE_CELL_MOVE_REDO_OUTPUT_FORMAT));
 }
 
@@ -2086,6 +2086,7 @@ size_t sprintMoveStrOutput(char* outStr, const Move* move, bool undo) {
 		memcpy(outStr, MOVE_EMPTY_OUTPUT_FORMAT, sizeof(MOVE_EMPTY_OUTPUT_FORMAT)); /* CR+: use strcpy for string copying */
 		return sizeof(MOVE_EMPTY_OUTPUT_FORMAT)-1 /* minus null-character */; /* CR+: use strlen to get length of string (won't incldue the null terminator) */
 		/*CR Response: we could but it's a tiny bit ineffecient since sizeof is known at compilation time and strlen is done at runtime O(N) */
+		/* CR: true (negligible, I think, but nonetheless true). However... wait one second. ACTUALLY, why are you copying here the string at all? you know how many chars you need! just calloc accordingly, and let sprintf take care of the rest..! */
 	}
 
 	curr = getFirstCellChange(move);
@@ -2242,7 +2243,7 @@ PerformNumSoltionsCommandErrorCode performNumSolutionsCommand(State* state, Comm
 	NumSolutionsCommandArguments* args = (NumSolutionsCommandArguments*) command->arguments;
 	int numSolutions = 0;
 
-	if (!calculateNumSolutions(state->gameState, &numSolutions)) {
+	if (!calculateNumSolutions(state->gameState, &numSolutions)) { /* CR: continuation of a comment in BT_solver.h... I expect performNumSolutionsCommand to invoke a similar function from game, which will export the board, to have it sent to an independent (of game) BT_solver module, which only knows what boards are */
 		return PERFORM_NUM_SOLUTIONS_COMMAND_MEMORY_ALLOCATION_FAILURE;
 	}
 

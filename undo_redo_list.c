@@ -14,7 +14,7 @@ void initUndoRedo(UndoRedoList* moveList) {
 
 /* returns false upon memory allocation error in pushList */
 bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
-    while (getListHead(&(moveList->list)) != moveList->current) {
+    while (getListHead(&(moveList->list)) != moveList->current) { /* CR: this part (the loop) is intended to clear the redo part of the list, right? If so, I think there's a bug here. Copying the previous comment...: */ /* CR: found bug: this check is not good enough, because current can point to head, but numUndos may still be greater than zero. I thin that all you really need to check is if numUndos is greater than zero (talk to me if don't understand what I mean; I can give you a case to run for yourself) */
         Move* move = (Move*)popList(&(moveList->list));
         destroyMove(move);
     }

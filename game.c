@@ -409,7 +409,7 @@ bool makeCellChangeMove(GameState* gameState, int value, int row, int col) {
 
 	prevVal = setPuzzleCell(gameState, row, col, value);
 	if (prevVal == value) {
-		/* not documenting move if nothing has changed */ /* CR+: alright. but again, what happens is autofill or generate fail to change anything? do we have an empty move being added to undo-redo list? */ /* CR Response: we never want to add empty move to undo list because then it will not do anything when undoing or redoing this move and it doesn't make sense */
+		/* not documenting move if nothing has changed */ /* CR+: alright. but again, what happens is autofill or generate fail to change anything? do we have an empty move being added to undo-redo list? */ /* CR Response: we never want to add empty move to undo list because then it will not do anything when undoing or redoing this move and it doesn't make sense */ /* CR: sounds great. have you checked that it works in all cases? */
 		destroyMove(move);
 		return true;
 	}

@@ -8,7 +8,7 @@ struct Node {
     void* data;
     struct Node* next;
     struct Node* prev;
-};
+}; /* CR: hiding the implementation, huh? well, cool! */
 
 void initList(List* list) { 
     if (list != NULL) {
