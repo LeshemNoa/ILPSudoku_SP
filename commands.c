@@ -1916,6 +1916,7 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 				if (isBoardCellEmpty(viewBoardCellByRow(board, row, col))) {
 					int chosenValue = chooseGuessedValueForCell(board, row, col, valuesScores[row][col], guessArguments->threshold);
 					if (chosenValue != -1) {
+						setPuzzleCell(state->gameState, row, col, chosenValue);
 						if (!addCellChangeToMove(move, EMPTY_CELL_VALUE, chosenValue, row, col)) {
 							destroyMove(move);
 							memoryError = true;

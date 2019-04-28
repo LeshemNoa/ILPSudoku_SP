@@ -568,6 +568,7 @@ bool autofill(GameState* gameState, Move** outMove) {
 		applyMoveToBoard(gameState, move, false);
 		*outMove = move;
 	} else {
+		destroyMove(move);
 		*outMove = NULL;
 	}
 
