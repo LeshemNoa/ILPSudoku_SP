@@ -14,7 +14,14 @@ void initUndoRedo(UndoRedoList* moveList) {
 
 /* returns false upon memory allocation error in pushList */
 bool addNewMoveToList(UndoRedoList* moveList, Move* newMove) {
-    while (getListHead(&(moveList->list)) != moveList->current) {
+    while (getListHead(&(moveList->list)) != moveList->current) { /* CR: this part (the loop) is intended to clear the redo part of the list, right? If so, I think there's a bug here. Copying the previous comment...: */ /* CR: found bug: this check is not good enough, because current can point to head, but numUndos may still be greater than zero. I thin that all you really need to check is if numUndos is greater than zero (talk to me if don't understand what I mean; I can give you a case to run for yourself) CR: (continued) the exact flow I wrote to you on our Whatsapp chat can be used to see the bug. I don't understand why you deleted this comment as if it were addressed. I repeat said flow here for your convenience:
+	set 1 1 1
+	undo (clears (1,1))
+	set 1 1 2
+	undo (clear (1,1,))
+	undo (should say there's nothing to undo, however it does something (and the board is effectively unchanged) 
+	redo (should put 2 in (1,1), however will put there 1 
+	redo (should day there's nothing to redo, however it will put 2 in (1,1) */
         Move* move = (Move*)popList(&(moveList->list));
         destroyMove(move);
     }

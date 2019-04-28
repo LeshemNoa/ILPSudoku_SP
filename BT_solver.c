@@ -8,6 +8,7 @@ typedef struct {
     int curCol;
 } CallFrame;
 
+/* CR: I don't see why you'd keep this files here. You probably intend to move them to a generic Stack module? */
 bool pushStack(List* stack, int curRow, int curCol) {
     CallFrame* frame = (CallFrame*)calloc(1, sizeof(CallFrame));
     if (frame == NULL) {
@@ -52,19 +53,19 @@ void clearStack(List* stack) {
 }
 
 bool calculateNumSolutions(const Board* boardIn, int* numSolutions) {
-	List stack = {0};
+	List stack = {0}; /* CR: this will of course later be Stack stack = {0};, right? */
 	int curCol, curRow;
 	int sum = 0;
 	int MN = getBoardBlockSize_MN(boardIn);
 	bool erroneous = false;
-	Board boardCopy;
+	Board boardCopy = {0};
 	
 	if (!checkErroneousCells(boardIn, &erroneous)) {
 		/* memory error */
 		return false;
 	}
 
-	if (erroneous) {
+	if (erroneous) { /* CR: to make life easier you can have a pre-condition that the input board is not erroneous. num_solutions is guaranteed not to run in such circumstances anyway.. */
 		/* board has errors, no possible solutions */
 		*numSolutions = 0;
 		return true;
@@ -105,7 +106,7 @@ bool calculateNumSolutions(const Board* boardIn, int* numSolutions) {
 		/* increment value, not assuming EMPTY_CELL_VALUE == 0 */
 		newValue = isBoardCellEmpty(cell) ? 1 : cell->value + 1;
 		/* check if board is valid after incrementing value*/
-		isLegalValue = isValueLegalForBoardCell(&boardCopy, curRow, curCol, newValue);
+		isLegalValue = isValueLegalForBoardCell(&boardCopy, curRow, curCol, newValue); /* CR: note that calling this function will result in the same running time as the previous code did (which updated erroneousness). Surely you must have noticed that if you ran num_solutions on a large-enough board. You could save running time by creating counters. I leave it to you, to consider doing this or not (i.e. mimicking what isValueLegalForCell does in game module */
 		/* set value anyway (after checking legality) */
 		setBoardCellValue(&boardCopy, curRow, curCol, newValue);
 		
