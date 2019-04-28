@@ -4,10 +4,7 @@
 #include <stdbool.h>
 #include "linked_list.h"
 
-typedef struct Stack
-{
-    List list;
-} Stack;
+typedef List Stack;
 
 void initStack(Stack* stack);
 bool isStackEmpty(const Stack* stack);
