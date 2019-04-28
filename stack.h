@@ -2,13 +2,11 @@
 #define STACK_H
 
 #include <stdbool.h>
-
-typedef struct StackNode StackNode;
+#include "linked_list.h"
 
 typedef struct Stack
 {
-    StackNode* head;
-    int size;
+    List list;
 } Stack;
 
 void initStack(Stack* stack);
