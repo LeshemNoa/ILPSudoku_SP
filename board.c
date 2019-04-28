@@ -700,7 +700,7 @@ bool writeCellFromBoardToFile(FILE* file, Cell* cell, bool isLastInRow) {
 	return true;
 }
 
-bool writeCellsFromBoardToFile(FILE* file, Board* boardInOut) {
+bool writeCellsFromBoardToFile(FILE* file, const Board* boardInOut) {
 	int MN = boardInOut->numColumnsInBlock_N * boardInOut->numRowsInBlock_M;
 
 	int row = 0, col = 0;
@@ -714,7 +714,7 @@ bool writeCellsFromBoardToFile(FILE* file, Board* boardInOut) {
 	return true;
 }
 
-SaveBoardToFileErrorCode saveBoardToFile(char* filePath, Board* board) {
+SaveBoardToFileErrorCode saveBoardToFile(char* filePath, const Board* board) {
 	SaveBoardToFileErrorCode retVal = ERROR_SUCCESS;
 	FILE* file = NULL;
 	int fprintfRetVal = 0;

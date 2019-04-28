@@ -43,7 +43,7 @@ typedef struct {
 	bool shouldHideErrors;
 	GameState* gameState;} State;
 
-const Board* getPuzzle(GameState* gameState); /* CR+: the whole point of hiding GameState's implementation was that the Board wouldn't be accessible. This function cannot appear in the header of game */ /* CR Response: I made it const so it would be read-only, is that better? */ /* CR+: it is. I'm still not a fan (this doesn't mean you should delete the function from here)... you see, one can still bypass this by explicitly casting the returned const pointer to a regular Board* variable... what do you say to this? CR Response: you can also cast to void* and start to read/override the memory as you see fit, we can't protect against bad programming */ /* CR: Alright then. This function then renders exportBoard redundant unless I am much mistaken. If you feel like swapping every occurrence of exportBoard with getPuzzle and then deleting exportBoard - do so. If not, no big deal. */
+const Board* getPuzzle(GameState* gameState);
 
 int getNumEmptyCells(GameState* gameState);
 

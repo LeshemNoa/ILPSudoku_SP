@@ -85,14 +85,7 @@ bool isBoardErroneous(GameState* gameState) {
 getPuzzleSolutionErrorCode getPuzzleSolution(GameState* gameState, Board* solutionOut) {
 	getPuzzleSolutionErrorCode retVal = GET_PUZZLE_SOLUTION_SUCCESS;
 
-	Board board = {0};
-
-	if (!exportBoard(gameState, &board)) {
-		retVal = GET_PUZZLE_SOLUTION_MEMORY_ALLOCATION_FAILURE;
-		return retVal;
-	}
-
-	switch (getBoardSolution(&board, solutionOut)) {
+	switch (getBoardSolution(getPuzzle(gameState), solutionOut)) {
 		case GET_BOARD_SOLUTION_SUCCESS:
 			retVal = GET_PUZZLE_SOLUTION_SUCCESS;
 			break;
@@ -110,8 +103,6 @@ getPuzzleSolutionErrorCode getPuzzleSolution(GameState* gameState, Board* soluti
 	if (retVal != GET_PUZZLE_SOLUTION_SUCCESS) {
 		cleanupBoard(solutionOut);
 	}
-
-	cleanupBoard(&board);
 
 	return retVal;
 }

@@ -1,6 +1,6 @@
 #include "BT_solver.h"
 
-#include "linked_list.h"
+#include "stack.h"
 #include <stdlib.h>
 
 typedef struct {
@@ -8,15 +8,14 @@ typedef struct {
     int curCol;
 } CallFrame;
 
-/* CR: I don't see why you'd keep this files here. You probably intend to move them to a generic Stack module? */
-bool pushStack(List* stack, int curRow, int curCol) {
+bool pushCallFrame(Stack* stack, int curRow, int curCol) {
     CallFrame* frame = (CallFrame*)calloc(1, sizeof(CallFrame));
     if (frame == NULL) {
         return false;
     }
     frame->curRow = curRow;
     frame->curCol = curCol;
-    if (!pushList(stack, frame)) {
+    if (!pushStack(stack, frame)) {
         free(frame);
         return false;
     }
@@ -24,20 +23,20 @@ bool pushStack(List* stack, int curRow, int curCol) {
     return true;
 }
 
-bool peekStack(const List* stack, int* curRow, int* curCol) {
-    CallFrame* frame;
-    if (isListEmpty(stack)) {
+bool peekCallFrame(const Stack* stack, int* curRow, int* curCol) {
+    const CallFrame* frame;
+    if (isStackEmpty(stack)) {
         return false;
     }
     
-    frame = (CallFrame*)getNodeData(getListHead(stack));
+    frame = (const CallFrame*)peekStack(stack);
     *curRow = frame->curRow;
     *curCol = frame->curCol;
     return true;
 }
 
-bool popStack(List* stack) {
-    CallFrame* frame = (CallFrame*) popList(stack);
+bool popCallFrame(Stack* stack) {
+    CallFrame* frame = (CallFrame*) popStack(stack);
     if (frame == NULL) {
         return false;
     }
@@ -46,33 +45,21 @@ bool popStack(List* stack) {
     return true;
 }
 
-void clearStack(List* stack) {
-    while(!isListEmpty(stack)) {
-        popStack(stack);
+void clearCallFrames(Stack* stack) {
+    while(!isStackEmpty(stack)) {
+        popCallFrame(stack);
     }
 }
-
+/* pre-condition: the input board is not erroneous. */
 bool calculateNumSolutions(const Board* boardIn, int* numSolutions) {
-	List stack = {0}; /* CR: this will of course later be Stack stack = {0};, right? */
+	Stack stack = {0};
 	int curCol, curRow;
 	int sum = 0;
 	int MN = getBoardBlockSize_MN(boardIn);
-	bool erroneous = false;
 	Board boardCopy = {0};
 	
-	if (!checkErroneousCells(boardIn, &erroneous)) {
-		/* memory error */
-		return false;
-	}
-
-	if (erroneous) { /* CR: to make life easier you can have a pre-condition that the input board is not erroneous. num_solutions is guaranteed not to run in such circumstances anyway.. */
-		/* board has errors, no possible solutions */
-		*numSolutions = 0;
-		return true;
-	}
-
 	if (!getNextEmptyBoardCell(boardIn, 0, 0, &curRow, &curCol)) {
-		*numSolutions = 1; /* board is full and has no errors */
+		*numSolutions = 1; /* board is full and has no errors (pre-condition) */
 		return true;
 	}
 
@@ -81,16 +68,16 @@ bool calculateNumSolutions(const Board* boardIn, int* numSolutions) {
 		return false;
 	}
 
-	initList(&stack);
+	initStack(&stack);
 
-	/* push initial cell */
-	if (!pushStack(&stack, curRow, curCol)) {
+	/* push initial empty cell */
+	if (!pushCallFrame(&stack, curRow, curCol)) {
 		/* memory error */
 		cleanupBoard(&boardCopy);
 		return false;
 	}
 
-	while (peekStack(&stack, &curRow, &curCol)) {
+	while (peekCallFrame(&stack, &curRow, &curCol)) {
 		Cell* cell;
 		int nextRow, nextCol, newValue;
 		bool isLegalValue;
@@ -99,7 +86,7 @@ bool calculateNumSolutions(const Board* boardIn, int* numSolutions) {
 		if (getBoardCellValue(cell) == MN) { /* max value */
 			/* back track */
 			emptyBoardCell(cell);
-			popStack(&stack);
+			popCallFrame(&stack);
 			continue;
 		}
 
@@ -122,9 +109,9 @@ bool calculateNumSolutions(const Board* boardIn, int* numSolutions) {
 		}
 
 		/* count solutions for next empty cell given current board */
-		if (!pushStack(&stack, nextRow, nextCol)) {
+		if (!pushCallFrame(&stack, nextRow, nextCol)) {
 			/* memory error */
-			clearStack(&stack);
+			clearCallFrames(&stack);
 			cleanupBoard(&boardCopy);
 			return false;
 		}

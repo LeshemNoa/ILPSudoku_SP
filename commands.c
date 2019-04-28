@@ -1717,21 +1717,14 @@ PerformGuessHintCommandErrorCode performGuessHintCommand(State* state, Command* 
 	GuessHintCommandArguments* guessHintArguments = (GuessHintCommandArguments*)(command->arguments);
 
 	PerformGuessHintCommandErrorCode retVal = ERROR_SUCCESS;
-
+	const Board* board = getPuzzle(state->gameState);
 	bool isBoardSolved = false;
-
-	Board board = {0};
 	double*** valuesScores = NULL;
 	int MN = 0;
 
-	if (!exportBoard(state->gameState, &board)) {
-		retVal = PERFORM_GUESS_HINT_COMMAND_MEMORY_ALLOCATION_FAILURE;
-		return retVal;
-	}
+	MN = getBoardBlockSize_MN(board);
 
-	MN = getBoardBlockSize_MN(&board);
-
-	switch (guessValuesForAllPuzzleCells(&board, &valuesScores)) {
+	switch (guessValuesForAllPuzzleCells(board, &valuesScores)) {
 	case GUESS_VALUES_FOR_ALL_PUZZLE_CELLS_BOARD_SOLVED:
 		isBoardSolved = true;
 		break;
@@ -1757,8 +1750,7 @@ PerformGuessHintCommandErrorCode performGuessHintCommand(State* state, Command* 
 		}
 	}
 
-	freeValuesScoresArr(valuesScores, &board);
-	cleanupBoard(&board);
+	freeValuesScoresArr(valuesScores, board);
 
 	return retVal;
 }
@@ -1843,7 +1835,7 @@ bool isGuessCommandErrorRecoverable(int error) {
 	}
 }
 
-int chooseGuessedValueForCell(Board* board, int row, int col, double* valuesScores, double threshold) { /* Note: array is changed */
+int chooseGuessedValueForCell(const Board* board, int row, int col, double* valuesScores, double threshold) { /* Note: array is changed */
 	int value = 1;
 	double legalValuesScoresSum = 0.0;
 	double incrementalNormalisedScore = 0.0;
@@ -1889,18 +1881,13 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 
 	bool isBoardSolved = false;
 
-	Board board = {0};
+	const Board* board = getPuzzle(state->gameState);
 	double*** valuesScores = NULL;
 	int MN = 0;
 
-	if (!exportBoard(state->gameState, &board)) {
-		retVal = PERFORM_GUESS_COMMAND_MEMORY_ALLOCATION_FAILURE;
-		return retVal;
-	}
+	MN = getBoardBlockSize_MN(board);
 
-	MN = getBoardBlockSize_MN(&board);
-
-	switch (guessValuesForAllPuzzleCells(&board, &valuesScores)) {
+	switch (guessValuesForAllPuzzleCells(board, &valuesScores)) {
 	case GUESS_VALUES_FOR_ALL_PUZZLE_CELLS_BOARD_SOLVED:
 		isBoardSolved = true;
 		break;
@@ -1926,8 +1913,8 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 
 		for (row = 0; row < MN && !memoryError; row++) {
 			for (col = 0; col < MN && !memoryError; col++)
-				if (isBoardCellEmpty(getBoardCellByRow(&board, row, col))) {
-					int chosenValue = chooseGuessedValueForCell(&board, row, col, valuesScores[row][col], guessArguments->threshold);
+				if (isBoardCellEmpty(viewBoardCellByRow(board, row, col))) {
+					int chosenValue = chooseGuessedValueForCell(board, row, col, valuesScores[row][col], guessArguments->threshold);
 					if (chosenValue != -1) {
 						if (!addCellChangeToMove(move, EMPTY_CELL_VALUE, chosenValue, row, col)) {
 							destroyMove(move);
@@ -1944,8 +1931,7 @@ PerformGuessCommandErrorCode performGuessCommand(State* state, Command* command)
 		}
 	}
 
-	freeValuesScoresArr(valuesScores, &board);
-	cleanupBoard(&board);
+	freeValuesScoresArr(valuesScores, board);
 
 	return retVal;
 }
