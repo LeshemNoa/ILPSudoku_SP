@@ -77,10 +77,12 @@ void freeIntAndIndexBasedLegalValuesForAllCells(const Board* board, int*** cellL
  * 											  nums form an oredered sequence (1, 2, 3, ..., numLegalValues); if
  * 											  value=0 then num represented the number of legal values for cell
  * 											  (row, col).
+ * @param isThereUnsolvableCellOut		[out] a boolean variable indicating whether there is a cell which causes
+ *											  the board to be unsolvable because there is no legal value for it.
  *
  * @return bool							true when succeeds, false otherwise (due to memory allocation failure)
  */
-bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(const Board* board, CellLegalValues** cellsLegalValues, int**** cellLegalValuesIntBasedOut) {
+bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(const Board* board, CellLegalValues** cellsLegalValues, int**** cellLegalValuesIntBasedOut, bool* isThereUnsolvableCellOut) {
 	bool retValue = true;
 	int*** cellLegalValuesIntBased = NULL;
 
@@ -109,6 +111,8 @@ bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(const Board* bo
 						int legalValueIndex = 0;
 
 						cellLegalValuesIntBased[row][col][0] = cellsLegalValues[row][col].numLegalValues;
+						if (cellLegalValuesIntBased[row][col][0] == 0)
+							*isThereUnsolvableCellOut = true;
 						for (value = 1; value <= MN; value++) {
 							if (cellsLegalValues[row][col].legalValues[value]) {
 								legalValueIndex++;
@@ -140,10 +144,12 @@ bool convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(const Board* bo
  * @param cellLegalValuesIntBased	[out] the sough-for array (created using
  * 										  convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased).
  * 										  It must later be freed using freeIntAndIndexBasedLegalValuesForAllCells.
+ * @param isThereUnsolvableCellOut	[out] a boolean variable indicating whether there is a cell which causes
+ *										  the board to be unsolvable because there is no legal value for it.
  *
  * @return bool						true when succeeds, false otherwise (due to memory allocation failure)
  */
-bool getLegalValuesForAllCells(const Board* board, int**** cellLegalValuesIntBasedOut) {
+bool getLegalValuesForAllCells(const Board* board, int**** cellLegalValuesIntBasedOut, bool* isThereUnsolvableCellOut) {
 	bool retValue = true;
 	CellLegalValues** cellsLegalValues = NULL;
 	int*** cellLegalValuesIntBased = NULL;
@@ -152,7 +158,7 @@ bool getLegalValuesForAllCells(const Board* board, int**** cellLegalValuesIntBas
 		return false;
 	}
 
-	if (convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(board, cellsLegalValues, &cellLegalValuesIntBased)) {
+	if (convertBooleanBasedLegalValuesForAllCellsToIntAndIndexBased(board, cellsLegalValues, &cellLegalValuesIntBased, isThereUnsolvableCellOut)) {
 		*cellLegalValuesIntBasedOut = cellLegalValuesIntBased;
 	} else
 		retValue = false;
@@ -853,6 +859,7 @@ solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solve
 	solveBoardUsingLinearProgrammingErrorCode retVal = SOLVE_BOARD_USING_LINEAR_PROGRAMMING_SUCCESS;
 
 	int*** cellLegalValuesIntBased = NULL;
+	bool isThereUnsolvableCell = false;
 	int numVars = 0;
 	GRBenv* env = NULL;
 
@@ -863,8 +870,13 @@ solveBoardUsingLinearProgrammingErrorCode solveBoardUsingLinearProgramming(solve
 		}
 	}
 
-	if (!getLegalValuesForAllCells(board, &cellLegalValuesIntBased)) {
+	if (!getLegalValuesForAllCells(board, &cellLegalValuesIntBased, &isThereUnsolvableCell)) {
 		retVal = SOLVE_BOARD_USING_LINEAR_PROGRAMMING_MEMORY_ALLOCATION_FAILURE;
+		return retVal;
+	}
+	if (isThereUnsolvableCell) {
+		freeIntAndIndexBasedLegalValuesForAllCells(board, cellLegalValuesIntBased);
+		retVal = SOLVE_BOARD_USING_LINEAR_PROGRAMMING_BOARD_ISNT_SOLVABLE;
 		return retVal;
 	}
 	numVars = getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental(board, cellLegalValuesIntBased);
