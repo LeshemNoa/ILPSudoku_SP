@@ -38,14 +38,6 @@ int getNumErroneousCells(GameState* gameState) {
 	return gameState->numErroneous;
 }
 
-int getNumColumnsInBlock_N(GameState* gameState) {
-	return getNumColumnsInBoardBlock_N(&(gameState->puzzle));
-}
-
-int getNumRowsInBlock_M(GameState* gameState) {
-	return getNumRowsInBoardBlock_M(&(gameState->puzzle));
-}
-
 int getBlockSize_MN(GameState* gameState) {
 	return getBoardBlockSize_MN(&(gameState->puzzle));
 }
@@ -154,18 +146,6 @@ bool shouldMarkErrors(State* state) {
 
 void setMarkErrors(State* state, bool shouldMarkErrors) {
 	state->shouldHideErrors = !shouldMarkErrors;
-}
-
-bool isThereMoveToUndo(GameState* gameState) {
-	UNUSED(gameState);
-
-	return false;
-}
-
-bool isThereMoveToRedo(GameState* gameState) {
-	UNUSED(gameState);
-
-	return false;
 }
 
 void freeCellsValuesCounters(GameState* gameState) {
