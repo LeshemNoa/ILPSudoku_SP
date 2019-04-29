@@ -2,6 +2,11 @@
 #define BOARD_H_
 
 #include <stdbool.h>
+/**
+ * The board module is designed to take care of everything related to the suduko board
+ * data structure itself. 
+ */
+
 
 /**
  * The value defined in this constant would mark an empty cell in the sudoku board.
