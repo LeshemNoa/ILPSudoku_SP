@@ -495,19 +495,19 @@ addConstraintsFuncsErrorCode addCellsConstraints(GRBenv* env, GRBmodel* model, c
  * Constraints: - all variables of a certain value in a certain instance of a certain category must together
  * 				  amount to exactly 1.0.
  *
- * @param env						[in] a pointer to the GRB environment of the model.
+ * @param env							[in] a pointer to the GRB environment of the model.
  * @param model						[in] the GRB model
  * @param board						[in] the board to be solved
  * @param numVars					[in] the number of variables to add to the model
  * @param cellLegalValuesIntBased	[in] an int-based array of legal values for all cells (gotten via
- * 										 getLegalValuesForAllCells and transformed via
- * 										 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
+ * 										 								 getLegalValuesForAllCells and transformed via
+ * 																		 getTotalNumLegalValuesAndMakeNumsOfLegalValuesIncremental)
  * @param categoryNo				[in] no. of category
- * @param value						[in] the value
+ * @param value							[in] the value
  * @param getRowBasedIDfunc			[in] a function translating category-based cell ID to row-based cell ID
  *
  * @return addConstraintsFuncsErrorCode		an error code is returned, specifying whether the constraints
- * 											were added, or else	that an error has occurred
+ * 																				were added, or else	that an error has occurred
  */
 addConstraintsFuncsErrorCode addCategoryInstanceValueConstraints(GRBenv* env, GRBmodel* model, const Board* board, int numVars, int*** cellLegalValuesIntBased, int categoryNo, int value, getCategory1BasedIDByCategory2BasedIDFunc getRowBasedIDfunc) {
 	addConstraintsFuncsErrorCode retVal = ADD_CONSTRAINTS_FUNCS_SUCCESS;

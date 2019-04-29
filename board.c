@@ -116,11 +116,6 @@ int whichBlock(const Board* board, int row, int col) {
 	return rowInBlocksMatrix * board->numRowsInBlock_M + colInBlocksMatrix;
 }
 
-int getBlockNumberByCell(const Board* board, int row, int col) {
-	return ((row / board->numRowsInBlock_M) * board->numRowsInBlock_M) +
-			(col / board->numColumnsInBlock_N);
-}
-
 bool getNextEmptyBoardCell(const Board* board, int row, int col, int* outRow, int* outCol) {
 	const Cell* curr;
 	int r, c, MN = getBoardBlockSize_MN(board);
@@ -137,26 +132,6 @@ bool getNextEmptyBoardCell(const Board* board, int row, int col, int* outRow, in
 	}
 
 	return false;
-}
-
-int getNumEmptyBoardCells(const Board* board) {
-	int i, j;
-	int numEmpty = 0;
-	const Cell* curr;
-	int MN = getBoardBlockSize_MN(board);
-	for (i = 0; i < MN; i++) {
-		for (j = 0; j < MN; j++) {
-			 curr = viewBoardCellByRow(board, i, j);
-			if (curr->value == EMPTY_CELL_VALUE) {
-				numEmpty++;
-			}
-		}
-	}
-	return numEmpty;
-}
-
-int getNumFilledBoardCells(const Board* board) {
-	return getBoardSize_MN2(board) - getNumEmptyBoardCells(board);
 }
 
 bool isBoardCellFixed(const Cell* cell) {
@@ -251,6 +226,12 @@ void freeSpecificCellsValuesCounters(int** cellValuesCounters, const Board* boar
 	free(cellValuesCounters);
 }
 
+/**
+ * Allocates memory for a counter matrix. 
+ * 
+ * @param board 		[in] Board whose size determines the dimensions of the matrix
+ * @return int** 		[out] A 2-dimensional int array for counters
+ */
 int** allocateNewSpecificCellsValuesCounters(const Board* board) {
 	int** cellsValuesCounters = NULL;
 	int MN = getBoardBlockSize_MN(board);
@@ -276,6 +257,16 @@ int** allocateNewSpecificCellsValuesCounters(const Board* board) {
 	return cellsValuesCounters;
 }
 
+/**
+ * Update an array of counters according to a particular row, column or block.
+ * 
+ * @param categoryNoCellsValuesCounters 	[in, out] A pointer to the array to be filled 
+ * 											according to the situation in that category
+ * @param board 							[in] The board to be examined
+ * @param categoryNo 						[in] The number of row, column or block to be checked
+ * @param getCellFunc 						[in] A pointer to one of the getCellsByCategoryFunc functions which 
+ * 											will be used to traverse the cells in the category
+ */
 void updateCellsValuesCountersInCategory(int* categoryNoCellsValuesCounters, const Board* board, int categoryNo, viewCellsByCategoryFunc getCellFunc) {
 	int MN = getBoardBlockSize_MN(board);
 	int index = 0;
@@ -289,6 +280,15 @@ void updateCellsValuesCountersInCategory(int* categoryNoCellsValuesCounters, con
 	}
 }
 
+/**
+ * Update a counter matrix of all the rows, columns or blocks.
+ *  
+ * @param categoryCellsValuesCounters 	[in, out] A pointer to the array to be filled 
+ * 										according to the situation in that category
+ * @param board 						[in] The board to be examined
+ * @param getCellFunc 					[in] A pointer to one of the getCellsByCategoryFunc functions which 
+ * 										will be used to traverse the cells in the category
+ */
 void updateCellsValuesCountersByCategory(int** categoryCellsValuesCounters, const Board* board, viewCellsByCategoryFunc getCellFunc) {
 	int numCategories = getBoardBlockSize_MN(board);
 	int categoryIndex = 0;
@@ -371,7 +371,17 @@ bool checkErroneousCells(const Board* board, bool* outErroneous) {
 
 	return true;
 }
-
+/**
+ * Finds erroneous cells in a particular row, column, or block, specified by the category
+ * type and index within it. Each erroneous cell's isErroneous marker as a consequence.
+ *
+ * @param board 			[in, out] Board to whose cells' erroneousness status will be updated
+ * @param categoryNo 		[in] The row, column or block number to be searched for errors	
+ * @param getCellFunc 		[in] A pointer to one of the viewCellsByCategoryFunc functions which 
+ * 							will be used to traverse the cells in the category	
+ * @return true 			iff the procedure was successful
+ * @return false 			iff a memory error has occurred during the process
+ */
 bool findErroneousCellsInCategory(Board* board, int categoryNo, getCellsByCategoryFunc getCellFunc) {
 	int MN = getBoardBlockSize_MN(board);
 	int index = 0;
@@ -401,6 +411,15 @@ bool findErroneousCellsInCategory(Board* board, int categoryNo, getCellsByCatego
 	return true;
 }
 
+/**
+ * Find and mark all erroneous cells by row, column or block in the provided board. 
+ * 
+ * @param board 			[in, out] Board to whose cells' erroneousness status will be updated
+ * @param getCellFunc 		[in] A pointer to one of the viewCellsByCategoryFunc functions which 
+ * 							will be used to traverse the cells in the category	
+ * @return true 			iff the procedure was successful
+ * @return false 			iff a memory error has occurred during the process
+ */
 bool findErroneousCellsByCategory(Board* board, getCellsByCategoryFunc getCellFunc) {
 	int numCategories = getBoardBlockSize_MN(board);
 	int index = 0;
@@ -412,6 +431,13 @@ bool findErroneousCellsByCategory(Board* board, getCellsByCategoryFunc getCellFu
 	return true;
 }
 
+/**
+ * Find and mark all erroneous cells in the provided board. 
+ * 
+ * @param board 			[in, out] Board to whose cells' erroneousness status will be updated
+ * @return true 			iff the procedure was successful
+ * @return false 			iff a memory error has occurred during the process
+ */
 bool findErroneousCells(Board* board) {
 	if (!findErroneousCellsByCategory(board, getBoardCellByRow))
 		return false;
@@ -464,6 +490,22 @@ void cleanupBoardCellLegalValuesStruct(CellLegalValues* cellLegalValues) {
 	cellLegalValues->numLegalValues = 0;
 }
 
+/**
+ * Check if a particular value is valid for a particular cell, with regard to its row, 
+ * column or block.
+ * 
+ * @param boardIn 		[in] The board to be examined
+ * @param row 			[in] The row in which the cell is located
+ * @param col 			[in] The column in which the cell is located
+ * @param value 		[in] The value whose validity for that cell is evaluated
+ * @param getCellFunc 	[in] A pointer to one of the viewCellsByCategoryFunc which will be used
+ * 						to go over the cells in that cell's category
+ * @param switchIDFunc  [in] A pointer to one of the getCategory1BasedIDByCategory2BasedIDFunc
+ * 						functions which will be used to transform the indices of cells for 
+ * 						traversal of the category
+ * @return true 		iff no other cell in that row, column or block shares the input value
+ * @return false 		iff the input value is invalid for that cell
+ */
 bool isValueLegalForBoardCellInCategory(const Board* boardIn, int row, int col, int value, viewCellsByCategoryFunc getCellFunc, getCategory1BasedIDByCategory2BasedIDFunc switchIDFunc) {
 	int MN = getBoardBlockSize_MN(boardIn);
 	int cellCategoryNo = 0;
@@ -581,6 +623,13 @@ bool getSuperficiallyLegalValuesForAllBoardCells(const Board* boardIn, CellLegal
 	return retValue;
 }
 
+/**
+ * Checks if a file is empty.
+ * 
+ * @param file 			[in] a pointer to a File object to be examined
+ * @return true 		iff the file is empty
+ * @return false 		otherwise
+ */
 bool isFileEmpty(FILE* file) {
 	char chr = '\0';
 	int fscanfRetVal = 0;
@@ -588,6 +637,18 @@ bool isFileEmpty(FILE* file) {
 	return fscanfRetVal == EOF;
 }
 
+/**
+ * Fill a board cell by reading the contents of that cell from a file that 
+ * contains a saved board in the specified format.
+ * 
+ * @param file 			[in] File being read from
+ * @param destination 	[in, out] Pointer to a cell filled according to the file
+ * 						contents
+ * @param isLastCell 	[in] true iff the cell being processed is at the bottom
+ * 						right corner of the board
+ * @return true 		iff reading from file was successful
+ * @return false 		iff nothing could be read from file
+ */
 bool readCellFromFileToBoard(FILE* file, Cell* destination, bool isLastCell) {
 	char isFixedChar = '\0';
 
@@ -607,6 +668,16 @@ bool readCellFromFileToBoard(FILE* file, Cell* destination, bool isLastCell) {
 	return false;
 }
 
+/**
+ * Fill an entire board by reading the contents of that cell from a file that 
+ * contains a saved board in the specified format.
+ * 
+ * @param file 			[in] File being read from
+ * @param boardInOut 	[in, out] Pointer to a board struct to be filled with
+ * 						the file contents
+ * @return true 		iff all cells were read successfully
+ * @return false 		otherwise
+ */
 bool readCellsFromFileToBoard(FILE* file, Board* boardInOut) {
 	int MN = getBoardBlockSize_MN(boardInOut);
 
@@ -619,6 +690,15 @@ bool readCellsFromFileToBoard(FILE* file, Board* boardInOut) {
 	return true;
 }
 
+/**
+ * Checks that all the values in all cells of the provided board are either
+ * equal to EMPTY_CELL_VALUE or in the range [1, MN] where MN is the number of cells 
+ * in a block of the board.
+ * 
+ * @param board 	[in] The board to be examined.
+ * @return true 	iff all cell values are legal
+ * @return false 	otherwise
+ */
 bool areCellValuesInRange(Board* board) {
 	int MN = getBoardBlockSize_MN(board);
 	int row = 0;
@@ -679,6 +759,15 @@ LoadBoardFromFileErrorCode loadBoardFromFile(char* filePath, Board* boardInOut) 
 }
 
 
+/**
+ * 
+ * 
+ * @param file 
+ * @param cell 
+ * @param isLastInRow 
+ * @return true 
+ * @return false 
+ */
 bool writeCellFromBoardToFile(FILE* file, Cell* cell, bool isLastInRow) {
 	int fprintfRetVal = 0;
 	fprintfRetVal = fprintf(file, "%d", cell->value);
@@ -700,6 +789,14 @@ bool writeCellFromBoardToFile(FILE* file, Cell* cell, bool isLastInRow) {
 	return true;
 }
 
+/**
+ * 
+ * 
+ * @param file 
+ * @param boardInOut 
+ * @return true 
+ * @return false 
+ */
 bool writeCellsFromBoardToFile(FILE* file, const Board* boardInOut) {
 	int MN = boardInOut->numColumnsInBlock_N * boardInOut->numRowsInBlock_M;
 
@@ -852,11 +949,24 @@ GuessValuesForAllPuzzleCellsErrorCode guessValuesForAllPuzzleCells(const Board* 
 	return retVal;
 }
 
-
+/**
+ * Gets the number of characters required to represent a board row in a text file in the
+ * specified format.
+ * 
+ * @param board  [in] Board to which info is relevant
+ * @return int 	 Number of characters in a file line according to the board sizes
+ */
 int getLineLength(const Board* board) {
 	return LENGTH_OF_STRING_REPRESENTING_CELL * (getBoardBlockSize_MN(board)) + getNumRowsInBoardBlock_M(board) + 1 + 1;
 }
 
+/**
+ * Outputs a separator line fitted to the length of a line in the file according to format.
+ * 
+ * @param str 		[in, out] Pointer to where to start writing the output string 
+ * @param board 	[in] The board to which the separator line is fitted
+ * @return char*     pointer to the place right after the written string
+ */
 char* writeSeparatorLine(char* str, const Board* board) {
 	int i = 0;
 	for (i = 0; i < getLineLength(board) - 1; i++)
@@ -866,6 +976,18 @@ char* writeSeparatorLine(char* str, const Board* board) {
 	return str;
 }
 
+/**
+ * Output the contents of the cell with provided indices to a sting in the specified
+ * format for files.
+ * 
+ * @param str 		[in, out] Pointer to where to start writing the output string
+ * @param board 	[in] Board being written into the file
+ * @param row		[in] The number of row in which this cell is located
+ * @param col 		[in] The number of column in which this cell is located
+ * @param shouldMarkErrors [in] If true, errors will be marked according to the format
+ * 							in the output string
+ * @return char* 	pointer to the place right after the written string
+ */
 char* writeCell(char* str, const Board* board, int row, int col, bool shouldMarkErrors) {
 	str += sprintf(str, "%c", SPACE_CHARACTER);
 
@@ -883,6 +1005,17 @@ char* writeCell(char* str, const Board* board, int row, int col, bool shouldMark
 	return str;
 }
 
+/**
+ * Output the contents of an entire row in the provided board to a string in the specified
+ * format for files. 
+ *  
+ * @param str 				[in, out] Pointer to where to start writing the output string
+ * @param board 			[in] Board being written into the file
+ * @param rowsBlock 		[in] Number of rows in a single board block
+ * @param shouldMarkErrors 	[in] If true, errors will be marked according to the format
+ * 							in the output string
+ * @return char* 	pointer to the place right after the written string
+ */
 char* writeRow(char* str, const Board* board, int rowsBlock, int rowInBlock, bool shouldMarkErrors) {
 	int M = getNumRowsInBoardBlock_M(board);
 	int N = getNumColumnsInBoardBlock_N(board);
@@ -912,6 +1045,14 @@ char* writeRowsBlock(char* str, const Board* board, int rowsBlock, bool shouldMa
 	return str;
 }
 
+/**
+ * Write an entire board to string in the specified format for files.
+ * 
+ * @param board 			[in] The board to be written
+ * @param shouldMarkErrors 	[in] If true, errors will be marked according to the format
+ * 							in the output string
+ * @return char* 			The string representing the board in format
+ */
 char* getBoardAsString(const Board* board, bool shouldMarkErrors) {
 	char* str = NULL;
 	char* strPointer = NULL;
