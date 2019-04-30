@@ -24,11 +24,23 @@
 
 #define ERROR_SUCCESS (0)
 
+/**
+ * Prints input string to stdout.
+ * 
+ * @param str 	[in] input string
+ */
 void printString(char* str) {
 	if (str != NULL)
 		printf("%s", str);
 }
 
+/**
+ * Prints a dynamically allocated string to stdout and free it afterwards.
+ * 
+ * @param str 		[in] input string
+ * @return true 	iff the provided pointer was not NULL
+ * @return false 	otherwise
+ */
 bool printAllocatedString(char* str) {
 	printString(str);
 	if (str != NULL) {
@@ -38,6 +50,10 @@ bool printAllocatedString(char* str) {
 	return false;
 }
 
+/**
+ * Print the error prefix string to stdout.
+ * 
+ */
 void printErrorPrefix() {
 	printString(ERROR_PREFIX_STR);
 }
@@ -84,23 +100,49 @@ GetInputStringErrorCode getInputString(char* commandStrOut, int commandMaxSize) 
 	return ERROR_SUCCESS;
 }
 
+/**
+ * Print the prompt to the user to enter a command.	
+ * 
+ * @param state 	[in] Current state of the game
+ */
 void promptUserToInput(State* state) {
 	printString(getCurModeString(state)); printString(USER_PROMPT_MARKER_STR);
 }
 
+/**
+ * Print an announcement that the board is successfully solved. 
+ */
 void announceBoardSolved() {
 	printString(BOARD_SUCCESSFULLY_SOLVED_STR);
 }
 
+/**
+ * Print an announcement state that the board it still erroneous.
+ * 
+ */
 void announceBoardErroneous() {
 	printString(BOARD_REMAINS_UNSOLVED_STR);
 }
 
+/**
+ * Clean up all existing data in the provided state, and switch back to init mode,
+ * allowing the state of a new game.
+ * 
+ * @param state 	[in] State to be cleaned and reset
+ */
 void switchToInitMode(State* state) {
 	cleanupGameState(state->gameState); state->gameState = NULL;
 	state->gameMode = GAME_MODE_INIT;
 }
 
+/**
+ * Prints the board conrained in the provided State struct, in format according to the
+ * instructions.
+ * 
+ * @param state 		[in] State whose board is to be printed
+ * @return true 		iff procedure was successful
+ * @return false 		iff a memory error occurred
+ */
 bool printBoard(State* state) {
 	return printAllocatedString(getPuzzleAsString(state));
 }
