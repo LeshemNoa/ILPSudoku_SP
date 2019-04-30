@@ -1,18 +1,19 @@
-/**
- * PARSER Summary:
- *
- * A module designed to parse user commands for a sudoku game.
- *
- * cleanupCommand - cleans up any resources allocated for a previously parsed user command
- * parseCommand - parses a user command
- */
+/* The parser module contains some general parsing functions for different types of data
+ * types. 
+ * parseIntArg - Parse provided string to an integer.
+ * parseIntArgOffset - Parse provided string to an integer, with provided offset
+ * parseBooleanIntArg - Parse provided string, containg the integer 1 or the integer 0, to a boolean.
+ * parseStringArg - Validates the provided string argument is comprised entirely of printable chracters,
+ *                  and assigns it to the provided pointer. 
+ * parseDoubleArg - Parse provided string to a double.
+ * getFirstToken - Get the first token in the provided string, where tokens are separated by spaces.
+ * splitArgumentsStringToTokens - Split command into tokens and assign the tokens to the provided array.
+*/
 
 #ifndef PARSER_H_
 #define PARSER_H_
 
 #include <stdbool.h>
-/* The parser module contains some general parsing functions for different types of data
-types. */
 
 /**
  * Parse provided string to an integer.

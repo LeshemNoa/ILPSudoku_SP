@@ -5,6 +5,13 @@
 
 /**
  * The Move module is responsible for representing and updating moves in the undo-redo list.
+ * 
+ * createMove - Creates a new, initialized Move struct.
+ * destroyMove - Destroys a Move struct by freeing all the memory allocated to it and its sub-structs.
+ * createCellChange - Creates a new CellChange struct with provided parameters.
+ * addCellChangeToMove - Adds a new CellChange to an existing Move struct, which consists of a list of CellChanges.
+ * getMoveSize - Get the number of CellChanges a particular Move struct contains. 
+ * getFirstCellChange - Get the head of the list in a particular Move struct.
  */
 
 /**
