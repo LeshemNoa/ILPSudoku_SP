@@ -2,8 +2,11 @@
 
 #include "linked_list.h"
 
-
-/* Note: Nodes and data are dynamically allocated while lists aren't */
+/**
+ * the Node struct represents a list element. It has to pointers, to the next node
+ * and the previous node, and a void pointer to the data the node contains.
+ * 
+ */
 struct Node {
     void* data;
     struct Node* next;
@@ -22,6 +25,12 @@ bool isListEmpty(const List* list) {
     return (list->size == 0);
 }
 
+/**
+ * Creates a new Node struct containing the provided data.
+ * 
+ * @param new_data      [in] the new node's data
+ * @return Node*        A pointer to the created node, or NULL on memory error
+ */
 Node* createNewNode(void* new_data) {
     Node* new_node;
     new_node = (Node*) calloc(1, sizeof(Node));
