@@ -346,7 +346,7 @@ void freeSpecificCellsValuesCounters(int** cellValuesCounters, const Board* boar
  * @param getCellFunc 				[in] A pointer to one of the viewCellsByCategoryFunc functions, which 
  * 														will be used to construct the counter matrix
  * @return int** 							The filled counter matrix corresponding to the board and the requsted
- * 														category
+ * 														category, or NULL if a memory error occurred
  */
 int** createCellsValuesCountersByCategory(const Board* board, viewCellsByCategoryFunc getCellFunc);
 
