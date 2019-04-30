@@ -1,3 +1,11 @@
+/**
+ * GAME Summary:
+ *
+ * A module designed to allow for a Sudoku game to be prepared and later 
+ * run from start to finish; in this we include a whole game (multiple
+ * boards), and also one instance (i.e., a single Sudoku board).
+ */
+
 #include <stdlib.h>
 
 #include "game.h"

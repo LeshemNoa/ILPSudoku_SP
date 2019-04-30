@@ -1,3 +1,10 @@
+/**
+ * STACK Summary:
+ *
+ * An implementation of a stack based on a doubly linked list.
+ * The API is almost exacly identical to that of the linked list.
+ */
+
 #include <stdlib.h>
 
 #include "stack.h"

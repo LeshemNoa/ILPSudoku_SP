@@ -1,12 +1,18 @@
+/**
+ * BT_SOLVER Summary:
+ *
+ * This module is designed to calculate the number of solution to a provided sudoku board
+ * using the exhaustive backtracking algorithm, using a stack to simulate the recursion instead
+ * of making explicit recursive calls
+ *
+ * calculateNumSolutions - calculates the number of solution to the given board
+ */
+
 #ifndef BT_SOLVER_H
 #define BT_SOLVER_H
 
 #include <stdbool.h>
 #include "board.h"
-
-/* This module is designed to calculate the number of solution to a provided sudoku board
-using the exhaustive backtracking algorithm, using a stack to simulate the recursion instead
-of making explicit recursive calls */
 
 /**
  * Calculates the number of possible solutions to the provided suduko board. 

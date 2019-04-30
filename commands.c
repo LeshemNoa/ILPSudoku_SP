@@ -1,3 +1,16 @@
+/**
+ * COMMANDS Summary:
+ *
+ * The Commands module is designed as an interface for the game. It's responsible for taking
+ * user input, parsing it, managing commands, presenting output to the user and take care of
+ * errors that may occur at any stage of the game.
+ * 
+ * Note: Were we given permission to use directories in this project to have its files better
+ * organized, we would have split this file so that each command would have been in a file of
+ * its own. For now we leave it as it is, mainly to avoid excessive inflation of the already
+ * large number of files our project holds.
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>

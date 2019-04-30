@@ -1,3 +1,10 @@
+/**
+ * PARSER Summary:
+ *
+ *  The parser module contains some general parsing functions for different types of data
+ * types. 
+ */
+
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>

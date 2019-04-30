@@ -1,3 +1,10 @@
+/**
+ * MAIN_AUX Summary:
+ *
+ * A module designed to help main run a proper sudoku game
+ *
+ */
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>

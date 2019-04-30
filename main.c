@@ -1,3 +1,9 @@
+/**
+ * MAIN Summary:
+ *
+ * A simple module, running the Sudoku game
+ */
+
 #include <stdlib.h>
 #include <time.h>
 

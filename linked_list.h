@@ -1,9 +1,6 @@
-#ifndef LINKED_LIST_H
-#define LINKED_LIST_H
-
-#include <stdbool.h>
-
 /**
+ * LINKED_LIST Summary:
+ *
  * As part of the requirements of the project, this module contains an implementation of
  * a generic doubly linked list. 
  * 
@@ -20,6 +17,11 @@
  * getNodePrev -  Get the provided node's previous node.
  * getNodeData -  Get the data contained in the provided node.
  */
+
+#ifndef LINKED_LIST_H
+#define LINKED_LIST_H
+
+#include <stdbool.h>
 
 typedef struct Node Node;
 

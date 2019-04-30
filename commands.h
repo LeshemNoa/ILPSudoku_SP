@@ -1,5 +1,5 @@
 /**
- * BOARD Summary:
+ * COMMANDS Summary:
  *
  * The Commands module is designed as an interface for the game. It's responsible for taking
  * user input, parsing it, managing commands, presenting output to the user and take care of

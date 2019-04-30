@@ -1,5 +1,9 @@
-/* The parser module contains some general parsing functions for different types of data
+/**
+ * PARSER Summary:
+ *
+ *  The parser module contains some general parsing functions for different types of data
  * types. 
+ *
  * parseIntArg - Parse provided string to an integer.
  * parseIntArgOffset - Parse provided string to an integer, with provided offset
  * parseBooleanIntArg - Parse provided string, containg the integer 1 or the integer 0, to a boolean.
@@ -8,7 +12,7 @@
  * parseDoubleArg - Parse provided string to a double.
  * getFirstToken - Get the first token in the provided string, where tokens are separated by spaces.
  * splitArgumentsStringToTokens - Split command into tokens and assign the tokens to the provided array.
-*/
+ */
 
 #ifndef PARSER_H_
 #define PARSER_H_

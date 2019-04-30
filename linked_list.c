@@ -1,3 +1,10 @@
+/**
+ * LINKED_LIST Summary:
+ *
+ * As part of the requirements of the project, this module contains an implementation of
+ * a generic doubly linked list. 
+ */
+
 #include <stdlib.h>
 
 #include "linked_list.h"

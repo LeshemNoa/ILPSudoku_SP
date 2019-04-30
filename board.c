@@ -1,3 +1,10 @@
+/**
+ * BOARD Summary:
+ *
+ * The board module is designed to take care of everything related to the suduko board
+ * data structure itself. 
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 

@@ -1,3 +1,11 @@
+/**
+ * BT_SOLVER Summary:
+ *
+ * This module is designed to calculate the number of solution to a provided sudoku board
+ * using the exhaustive backtracking algorithm, using a stack to simulate the recursion instead
+ * of making explicit recursive calls
+ */
+
 #include "BT_solver.h"
 
 #include "stack.h"

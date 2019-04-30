@@ -1,9 +1,6 @@
-#ifndef MOVE_H
-#define MOVE_H
-
-#include "linked_list.h"
-
 /**
+ * MOVE Summary:
+ *
  * The Move module is responsible for representing and updating moves in the undo-redo list.
  * 
  * createMove - Creates a new, initialized Move struct.
@@ -13,6 +10,11 @@
  * getMoveSize - Get the number of CellChanges a particular Move struct contains. 
  * getFirstCellChange - Get the head of the list in a particular Move struct.
  */
+
+#ifndef MOVE_H
+#define MOVE_H
+
+#include "linked_list.h"
 
 /**
  * Represents an atomic modification in a single cell that followed some move made during

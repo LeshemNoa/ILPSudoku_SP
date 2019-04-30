@@ -1,4 +1,6 @@
 /**
+ * UNDO_REDO_LIST Summary:
+ *
  * The undo-redo list module, as part of the requirements, implements the list of moves
  * in a suduko game session. It can be traveresed using the Undo and Redo commands.
  * 

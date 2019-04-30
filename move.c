@@ -1,3 +1,9 @@
+/**
+ * MOVE Summary:
+ *
+ * The Move module is responsible for representing and updating moves in the undo-redo list.
+ */
+
 #include "move.h"
 #include <stdlib.h>
 
