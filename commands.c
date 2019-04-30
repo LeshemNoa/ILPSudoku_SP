@@ -2730,7 +2730,7 @@ PerformResetCommandErrorCode performResetCommand(State* state, Command* command)
 	UNUSED(resetfillArguments);
 
 	if (!resetMoves(state->gameState)) {
-		return PERFORM_RESET_COMMAND_NO_CHANGES;
+		return ERROR_SUCCESS;
 	}
 	return ERROR_SUCCESS;
 }
