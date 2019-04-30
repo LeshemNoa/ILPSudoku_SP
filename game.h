@@ -5,7 +5,39 @@
  * run from start to finish; in this we include a whole game (multiple
  * boards), and also one instance (i.e., a single Sudoku board).
  *
- * <LIST_OF_FUNCTIONS_NEEDS_TO_FOLLOW>
+ * getPuzzle - returns the puzzle
+ * getNumEmptyCells - returns the number of empty cells
+ * getBlockSize_MN - returns MN
+ * getPuzzleBoardSize_MN2 - returns MN^2
+ * isIndexInRange - checks if the cell index is in the right range
+ * isCellValueInRange - checks if the cell value is in the right range
+ * getCurModeString - returns a string representing the current game mode
+ * isBoardFilled - checks if the game board is filled
+ * isBoardErroneous - checks if the game board is erroneous
+ * getPuzzleSolution - returns a solution to the puzzle
+ * isPuzzleSolvable - checks if the puzzle is solvable
+ * isCellEmpty - checks if a cell is empty
+ * isCellFixed - checks if a cell is fixed
+ * isCellErroneous - checks if a cell is erroneous
+ * getCellValue - returns the value of a cell
+ * shouldMarkErrors - checks if the game should mark errors or not
+ * setMarkErrors - sets whether the game should mark errors or not
+ * createGameState - creates a new GameState object
+ * cleanupGameState - cleanups a GameState object
+ * exportBoard - exports the game board
+ * cleanupCellLegalValuesStruct - cleanup legal values struct
+ * isValueLegalForCell - checks if the value is legal for a cell
+ * setPuzzleCell - sets the value of a cell
+ * makeMove - makes a move
+ * makeCellChangeMove - makes a Cell Change move
+ * makeMultiCellMove - makes a Multi Cell move)
+ * autofill - performs autofill
+ * undoMove - undos a move
+ * redoMove - redos a move
+ * resetMoves - resets the game board
+ * isSolutionSuccessful - checks if the current setting of the game board is right
+ * isSolutionFailing - checks if the solution of the current setting of the game board is not right 
+ * getPuzzleAsString - returns a string representing the game puzzle
  */
 
 #ifndef GAME_H_

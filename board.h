@@ -1,11 +1,61 @@
+/**
+ * BOARD Summary:
+ *
+ * The board module is designed to take care of everything related to the suduko board
+ * data structure itself. 
+ *
+ * getNumColumnsInBoardBlock_N - gets N of board
+ * getNumRowsInBoardBlock_M - gets M of board
+ * getBoardBlockSize_MN - gets MN of board
+ * getBoardSize_MN2 - gets MN^2 of board
+ * viewBoardCellByRow - returns a a cell by row indices (for view only)
+ * viewBoardCellByColumn - returns a a cell by column indices (for view only)
+ * viewBoardCellByBlock - returns a a cell by block indices (for view only)
+ * getBoardCellByRow - returns a a cell by row indices
+ * getBoardCellByColumn - returns a a cell by column indices
+ * getBoardCellByBlock - returns a a cell by block indices
+ * whichBlock - returns the block index of a given cell
+ * getNextEmptyBoardCell - returns the next empty cell in the board
+ * getRowBasedIDGivenRowBasedID - converts row-based coordinates to row-based coordinates
+ * getRowBasedIDGivenBlockBasedID - converts block-based coordinates to row-based coordinates
+ * getRowBasedIDGivenColumnBasedID - converts column-based coordinates to row-based coordinates
+ * getColumnBasedIDGivenRowBasedID - converts row-based coordinates to column-based coordinates
+ * getBlockBasedIDGivenRowBasedID - converts row-based coordinates to block-based coordinates
+ * isBoardCellFixed - checks if a cell is fixed
+ * isBoardCellErroneous - checks if a cell is erroneous
+ * getBoardCellValue - returns the value of a cell
+ * isBoardCellEmpty - checks if a cell is empty
+ * emptyBoardCell - empties a cell
+ * setBoardCellFixedness - sets the fixedness of a cell
+ * setBoardCellErroneousness - sets the erroneousness of a cell
+ * cleanupBoard - cleanups a board
+ * createEmptyBoard - creates an empty board
+ * countNumEmptyCells - counts the number of empty cells in the board
+ * freeSpecificCellsValuesCounters - frees a counter previously allocated by createCellsValuesCountersByCategory
+ * createCellsValuesCountersByCategory - allocated a counter for the board
+ * checkErroneousCellsInCategory - checks for erroneousness in a category (row, column, or block)
+ * checkErroneousCells - checks for erroneousness in all cells
+ * copyBoard - copies the board
+ * setBoardCellValue - sets the value of a cell
+ * cleanupBoardCellLegalValuesStruct - cleanups a legal values struct
+ * isValueLegalForBoardCell - checks if a value is legal for a cell
+ * fillBoardCellLegalValuesStruct - fills a legal values struct
+ * freeCellsLegalValuesForAllBoardCells - frees legal values structs for all cells
+ * getSuperficiallyLegalValuesForAllBoardCells - returns legal values structs for all cells
+ * loadBoardFromFile - loads a board from a file
+ * saveBoardToFile - saves a board to a file
+ * markAllCellsAsNotFixed - mark all cells as not fixed
+ * markFilledCellsAsFixed - marks filled cells as fixed
+ * getBoardSolution - returns a solution to the board
+ * isBoardSolvable - checks if the board is solvable
+ * guessValuesForAllPuzzleCells - guesses values for all cells
+ * getBoardAsString - returns a string representation of the board
+ */
+
 #ifndef BOARD_H_
 #define BOARD_H_
 
 #include <stdbool.h>
-/**
- * The board module is designed to take care of everything related to the suduko board
- * data structure itself. 
- */
 
 
 /**

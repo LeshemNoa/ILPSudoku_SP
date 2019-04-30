@@ -1,12 +1,6 @@
-#ifndef COMMANDS_H_
-#define COMMANDS_H_
-
-#include <stdbool.h>
-
-#include "game.h"
-#include "move.h"
-
 /**
+ * BOARD Summary:
+ *
  * The Commands module is designed as an interface for the game. It's responsible for taking
  * user input, parsing it, managing commands, presenting output to the user and take care of
  * errors that may occur at any stage of the game.
@@ -16,7 +10,36 @@
  * its own. For now we leave it as it is, mainly to avoid excessive inflation of the already
  * large number of files our project holds.
  * 
+ * getAllowingModesString - gets a string specifying the modes allowing a command
+ * isCorrectArgumentsNum - checks if num of arguments is correct
+ * isCommandAllowed - checks if command is allowed
+ * getAllowedCommandsString - gets a string specifying the commands allowed in the current mode
+ * getCommandUsage - returns the usage of a command
+ * identifyCommandByType - identifies a command by its type
+ * getSizeofCommandArgsStruct - gets the size of the args struct of a command
+ * getCommandArgsParser - gets the args parser of a command
+ * getCommandArgsRangeChecker - gets the args range checker of a command
+ * getCommandArgsExpectedRangeString - gets a string representing the expected range for an arg of a command
+ * getCommandArgsValidator - gets the args validator of a command
+ * isBoardValidForCommand - checks if the board is valid for a command
+ * getIsBoardValidForCommandErrorString - returns a string representing the error, if the board is not valid for a command
+ * performCommand - performs a command
+ * getCommandErrorString - returns a string representing the error that had happened when performing a command
+ * isCommandErrorRecoverable - checks if an error that has occurred when performing a command is recoverable or not
+ * getCommandStrOutput - returns the string output of a command
+ * shouldPrintBoardPostCommand - checks whether the board needs be printed after the relevant command
+ * processStringAsCommand - process a string as a command
+ * getProcessStringAsCommandErrorString - returns a string representing the error that has occurred when processing a string as a command
+ * cleanupCommand - cleanups a command
  */
+
+#ifndef COMMANDS_H_
+#define COMMANDS_H_
+
+#include <stdbool.h>
+
+#include "game.h"
+#include "move.h"
 
 #define ERROR_SUCCESS (0)
 
