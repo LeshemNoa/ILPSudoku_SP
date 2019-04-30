@@ -1,3 +1,18 @@
+/**
+ * The undo-redo list module, as part of the requirements, implements the list of moves
+ * in a suduko game session. It can be traveresed using the Undo and Redo commands.
+ * 
+ * initUndoRedo - Initializes an UndoRedoList struct.
+ * addNewMoveToList -  Adds a new Move struct to the list right after the Node pointed to by the current
+ * pointer.
+ * canUndo - Checks whether exists any move to undo in the list.
+ * canRedo - Checks whether exists any move to redo in the list.
+ * undoInList - Reflects the consequences of a Undo command on the UndoRedoList struct. 
+ * redoInList - Reflects the consequences of a Redo command on the UndoRedoList struct. 
+ * getCurrentMove - Get the Move contained in the the current Node.
+ * cleanupUndoRedoList - Destroys a UndoRedoList struct by freeing all the memory allocated to it and its sub-structs.
+ */
+
 #ifndef UNDO_REDO_LIST_H
 #define UNDO_REDO_LIST_H
 
@@ -5,12 +20,6 @@
 
 #include "linked_list.h"
 #include "move.h"
-
-/**
- * The undo-redo list module, as part of the requirements, implements the list of moves
- * in a suduko game session. It can be traveresed using the Undo and Redo commands.
- * 
- */
 
 /**
  * The UndoRedoList consists of a doubly linked list whose nodes contain Move structs,

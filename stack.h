@@ -1,12 +1,21 @@
+/**
+ * An implementation of a stack based on a doubly linked list.
+ * The API is almost exacly identical to that of the linked list.
+ * 
+ * initStack(Stack* stack) - Initialize the provided stack.
+ * isStackEmpty - Checks if the stack is empty.
+ * pushStack - Push a new item to the stack.
+ * popStack(Stack* stack) - Pop the top element of the stack.
+ * getStackSize - Get the number of elements in the stack.
+ * peekStack - Get the top element in the stack without popping it.
+ */
+
 #ifndef STACK_H
 #define STACK_H
 
 #include <stdbool.h>
 #include "linked_list.h"
-/**
- * An implementation of a stack based on a doubly linked list.
- * The API is almost exacly identical to that of the linked list.
- */
+
 
 typedef List Stack;
 

@@ -6,6 +6,19 @@
 /**
  * As part of the requirements of the project, this module contains an implementation of
  * a generic doubly linked list. 
+ * 
+ * initList - Initialize the provided list. 
+ * isListEmpty - Checks if the provided list is empty.
+ * pushList - Add a new item at the head of the list. 
+ * popList - Removes the node at the head of the list.
+ * pushListBack - Add a new item at the tail of the list. 
+ * popListBack - Removes the node at the tail of the list.
+ * getListSize - Get the size of the provided list.
+ * getListHead - Get the Node at the head of the list.
+ * getListTail -  Get the Node at the tail of the list.
+ * getNodeNext - Get the provided node's next node.
+ * getNodePrev -  Get the provided node's previous node.
+ * getNodeData -  Get the data contained in the provided node.
  */
 
 typedef struct Node Node;
@@ -91,7 +104,7 @@ int getListSize(const List* list);
 const Node* getListHead(const List* list);
 
 /**
- * @brief Get the List Tail object
+ * Get the Node at the tail of the list.
  * 
  * @param list 
  * @return const Node* 
@@ -115,10 +128,10 @@ const Node* getNodeNext(const Node* node);
 const Node* getNodePrev(const Node* node);
 
 /**
- * @brief Get the Node Data object
+ * Get the data contained in the provided node.
  * 
- * @param node 
- * @return void* 
+ * @param node      [in] Node whose data is requested
+ * @return void*    The data
  */
 void* getNodeData(const Node* node);
 
