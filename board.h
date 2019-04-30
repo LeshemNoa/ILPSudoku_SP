@@ -41,11 +41,17 @@ typedef struct {
    	int numColumnsInBlock_N;
    	Cell** cells;} Board;
 
-/* TODO: how should i descrive these? */
+/**
+ * Functions who share a signature, used to transform cell indices from one format to another.
+ * 
+ */
 typedef void (*getCategory1BasedIDByCategory2BasedIDFunc)(const Board* board, int category1No, int indexInCategory1, int* category2No, int* indexInCateogry2);
-
 typedef const Cell* (*viewCellsByCategoryFunc)(const Board* board, int categoryNo, int indexInCategory);
 
+/**
+ * Functions who share a signature, used to get a cell with provided indices, row, column, or
+ * block based. 
+ */
 typedef Cell* (*getCellsByCategoryFunc)(Board* board, int categoryNo, int indexInCategory);
 
 /**

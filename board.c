@@ -230,7 +230,8 @@ void freeSpecificCellsValuesCounters(int** cellValuesCounters, const Board* boar
  * Allocates memory for a counter matrix. 
  * 
  * @param board 		[in] Board whose size determines the dimensions of the matrix
- * @return int** 		[out] A 2-dimensional int array for counters
+ * @return int** 		[out] A 2-dimensional int array for counters, or NULL if a memory error
+ * 						has occurred
  */
 int** allocateNewSpecificCellsValuesCounters(const Board* board) {
 	int** cellsValuesCounters = NULL;

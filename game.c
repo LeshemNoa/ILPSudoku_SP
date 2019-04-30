@@ -26,6 +26,7 @@ struct GameState {
 	UndoRedoList moveList;
 };
 
+
 const Board* getPuzzle(GameState* gameState) { /* Note: that this function mustn't be exported */
 	return &(gameState->puzzle);
 }
@@ -148,6 +149,11 @@ void setMarkErrors(State* state, bool shouldMarkErrors) {
 	state->shouldHideErrors = !shouldMarkErrors;
 }
 
+/**
+ * Free all memory allocated to all counter matrices in the GameState.
+ * 
+ * @param gameState 	[in, out] GameState whose counter matrices are freed
+ */
 void freeCellsValuesCounters(GameState* gameState) {
 	if (gameState->rowsCellsValuesCounters != NULL) {
 		freeSpecificCellsValuesCounters(gameState->rowsCellsValuesCounters, &(gameState->puzzle));
@@ -163,6 +169,15 @@ void freeCellsValuesCounters(GameState* gameState) {
 	}
 }
 
+/**
+ * Checks whether the cell with the provided indices is erroneous and reflects the
+ * consequences in the provided GameState: updates the numErroneous field and marks
+ * the cell as erroneous if necessary.
+ * 
+ * @param gameState 	[in, out] GameState to be examined and updated accordingly
+ * @param row 			[in] The number of row in which this cell is located
+ * @param col 			[in] The number of column in which this cell is located
+ */
 void updateCellErroneousness(GameState* gameState, int row, int col) {
 	Cell* cell = getBoardCellByRow(&(gameState->puzzle), row, col);
 
@@ -193,6 +208,12 @@ void updateCellErroneousness(GameState* gameState, int row, int col) {
 	gameState->numErroneous += deltaInNumErroneous;
 }
 
+/**
+ * Update the erroneousness status of all cells in a row.
+ * 
+ * @param gameState 	[in, out] GameState to be examined and updated accordingly
+ * @param row 			[in] Number of row to update
+ */
 void updateCellErroneousnessInRow(GameState* gameState, int row) {
 	int MN = gameState->puzzle.numColumnsInBlock_N * gameState->puzzle.numRowsInBlock_M;
 	int i = 0;
@@ -200,6 +221,12 @@ void updateCellErroneousnessInRow(GameState* gameState, int row) {
 		updateCellErroneousness(gameState, row, i);
 }
 
+/**
+ * Update the erroneousness status of all cells in a column.
+ * 
+ * @param gameState 	[in, out] GameState to be examined and updated accordingly
+ * @param col 			[in] Number of column to update
+ */
 void updateCellErroneousnessInColumn(GameState* gameState, int col) {
 	int MN = gameState->puzzle.numColumnsInBlock_N * gameState->puzzle.numRowsInBlock_M;
 	int i = 0;
@@ -207,6 +234,12 @@ void updateCellErroneousnessInColumn(GameState* gameState, int col) {
 		updateCellErroneousness(gameState, i, col);
 }
 
+/**
+ * Update the erroneousness status of all cells in a block.
+ * 
+ * @param gameState 	[in, out] GameState to be examined and updated accordingly
+ * @param block 		[in] Number of block to update
+ */
 void updateCellErroneousnessInBlock(GameState* gameState, int block) {
 	int MN = gameState->puzzle.numColumnsInBlock_N * gameState->puzzle.numRowsInBlock_M;
 	int i = 0;
@@ -218,6 +251,11 @@ void updateCellErroneousnessInBlock(GameState* gameState, int block) {
 
 }
 
+/**
+ * Update the erroneousness status of all cells in the provided GameState's board.
+ * 
+ * @param gameState 	[in, out] GameState to be examined and updated accordingly
+ */
 void updateCellsErroneousness(GameState* gameState) {
 	int MN = gameState->puzzle.numColumnsInBlock_N * gameState->puzzle.numRowsInBlock_M;
 	int row = 0, col = 0;
@@ -227,6 +265,14 @@ void updateCellsErroneousness(GameState* gameState) {
 			updateCellErroneousness(gameState, row, col);
 }
 
+/**
+ * Create all three counter matrices for the provided GameState's board, for rows, columns
+ * and blocks.
+ * 
+ * @param gameState 	[in, out] GameState for whom the counters are created
+ * @return true 		iff the procedure was successful and all counters were assigned
+ * @return false 		iff a memory error occurred
+ */
 bool createCellsValuesCounters(GameState* gameState) {
 	const Board* puzzle = getPuzzle(gameState);
 
@@ -293,12 +339,28 @@ void cleanupGameState(GameState* gameState) {
 	free(gameState);
 }
 
+/**
+ * Set the provided cell's isFixed marker according to the provided boolean argument.
+ * 
+ * @param gameState 	[in, out] GameState whose board's cell is updated
+ * @param row 			[in] The number of row in which this cell is located
+ * @param col 			[in] The number of column in which this cell is located
+ * @param isFixed 		[in] the value to place in the cell's isFixed field
+ */
 void setCellFixedness(GameState* gameState, int row, int col, bool isFixed) {
 	setBoardCellFixedness(getBoardCellByRow(&(gameState->puzzle), row, col), isFixed);
 }
 
-void setCellErroneousness(GameState* gameState, int row, int col, bool isFixed) {
-	setBoardCellErroneousness(getBoardCellByRow(&(gameState->puzzle), row, col), isFixed);
+/**
+ * Set the provided cell's isErroneous marker according to the provided boolean argument.
+ * 
+ * @param gameState 		[in, out] GameState whose board's cell is updated
+ * @param row 				[in] The number of row in which this cell is located
+ * @param col 				[in] The number of column in which this cell is located
+ * @param isErroneous 		[in] the value to place in the cell's isErroneous field
+ */
+void setCellErroneousness(GameState* gameState, int row, int col, bool isErroneous) {
+	setBoardCellErroneousness(getBoardCellByRow(&(gameState->puzzle), row, col), isErroneous);
 }
 
 bool exportBoard(GameState* gameState, Board* boardInOut) {
@@ -316,27 +378,6 @@ bool isValueLegalForCell(GameState* gameState, int row, int col, int value) {
 		   (gameState->blocksCellsValuesCounters[block][value] == 0);
 }
 
-bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegalValues* cellLegalValuesInOut) {
-	int MN = getBlockSize_MN(gameState);
-	int value = 0;
-
-	cellLegalValuesInOut->numLegalValues = 0;
-	cellLegalValuesInOut->legalValues = calloc(MN + 1, sizeof(bool));
-	if (cellLegalValuesInOut->legalValues == NULL)
-		return false;
-
-	for (value = 1; value <= MN; value++) {
-		if (isValueLegalForCell(gameState, row, col, value)) {
-			cellLegalValuesInOut->legalValues[value] = true;
-			cellLegalValuesInOut->numLegalValues++;
-		}
-	}
-	return true;
-}
-
-/* Maintaining the invariant: at all times, all erroneous cells are marked
-correctly after each change in the board. Returning the previous value
-of that cell */
 int setPuzzleCell(GameState* gameState, int row, int col, int value) {
 	int block, prevValue = getCellValue(gameState, row, col);
 	if (prevValue == value) {
@@ -371,8 +412,6 @@ int setPuzzleCell(GameState* gameState, int row, int col, int value) {
 	return prevValue;
 }
 
-/* returns false upon memory allocation error. This function also
-causes the change in the board to be reflected in the undo-redo list  */
 bool makeCellChangeMove(GameState* gameState, int value, int row, int col) {
 	int prevVal;
 	Move* move = createMove();
@@ -394,6 +433,13 @@ bool makeCellChangeMove(GameState* gameState, int value, int row, int col) {
 	return true;
 }
 
+/**
+ * Apply the changes caused by an Undo or a Redo of the provided Move to the board.
+ * 
+ * @param gameState 	[in, out] GameState to be updated
+ * @param move 			[in] Move to undo or redo
+ * @param undo 			iff true, move is undo. Else, move is redone
+ */
 void applyMoveToBoard(GameState* gameState, const Move* move, bool undo) {
 	const Node* currNode;
 	CellChange* change;
@@ -407,8 +453,6 @@ void applyMoveToBoard(GameState* gameState, const Move* move, bool undo) {
 }
 
 
-/* returns false upon memory allocation error. This function also
-causes the change in the board to be reflected in the undo-redo list  */
 bool makeMove(GameState* gameState, Move* move) {
 	if (move == NULL) { return false; }
 
@@ -422,8 +466,6 @@ bool makeMove(GameState* gameState, Move* move) {
 	return true;
 }
 
-/* returns false upon memory allocation error. This function also
-causes the change in the board to be reflected in the undo-redo list  */
 bool makeMultiCellMove(GameState* gameState, Board* newBoard) {
 	bool diff = false;
 	int MN, row, col, prevVal, newValue;

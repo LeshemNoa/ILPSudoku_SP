@@ -250,40 +250,170 @@ bool shouldMarkErrors(State* state);
  */
 void setMarkErrors(State* state, bool shouldMarkErrors);
 
+/**
+ * Creates a new gameState struct containing a copy of the provided board and associated data: 
+ * counts empty cells and initializes the undo-redo list. 
+ * 
+ * @param board 		[in] The board to be copied into the GameState
+ * @param mode 			[in] iff mode == GAME_EDIT_MODE, mark all cells as not fixed				
+ * @return GameState* 	[out] A pointer to the new GameState
+ */
 GameState* createGameState(Board* board, GameMode mode);
 
+/**
+ * Destroys the GameState struct and frees all memory allocated to it.
+ * 
+ * @param state 	[in] pointer to the GameState struct to be freed
+ */
 void cleanupGameState(GameState* state);
 
+/**
+ * Produces a copy of the GameState's Board struct and assigns it to the provided pointer.
+ * 
+ * @param gameState 		[in] The GameState whose Board is exported
+ * @param boardInOut 		[in, out] A pointer to be assigned with the board's copy
+ * @return true 			iff the procedure was successful
+ * @return false 			iff a memory error occurred
+ */
 bool exportBoard(GameState* gameState, Board* boardInOut);
 
+/**
+ * Free all memory allocated to a CellLegalValues struct.
+ * 
+ * @param cellLegalValuesInOut 
+ */
 void cleanupCellLegalValuesStruct(CellLegalValues* cellLegalValuesInOut);
 
+/**
+ * Checks if a particular value is a valid selection for a particular cell in the 
+ * provided GameState's board.
+ * 
+ * @param gameState 	[in] GameState whose board's cell is examined
+ * @param row 			[in] The row number of the cell being checked
+ * @param col 			[in] The column number of the cell being checked
+ * @param value 		[in] The value whose validity for the cell is checked	
+ * @return true 		iff the value is indeed a valid selection for the cell
+ * @return false 		otherwise
+ */
 bool isValueLegalForCell(GameState* gameState, int row, int col, int value);
 
-bool fillCellLegalValuesStruct(GameState* gameState, int row, int col, CellLegalValues* cellLegalValuesInOut);
-
+/**
+ * Sets the value of the cell with provided indices, and reflecting the consequences of
+ * that across the GameState's Board: updates the value counters, marks new errors that may
+ * have appeared, and updated the board's numEmpty field if necessary.
+ * 
+ * @param gameState 		[in, out] GameState whose board is changed
+ * @param row 				[in] The number of row in which this cell is located
+ * @param indexInRow 		[in] The number of column in which this cell is located
+ * @param value 			[in] value to be set in this cell
+ * @return int 				the previous value of that cell, for further processing
+ */
 int setPuzzleCell(GameState* gameState, int row, int indexInRow, int value);
 
+/**
+ * Adds provided Move struct to the GameStates UndoRedoList, and applies the changes
+ * the Move consists of to the board.
+ * 
+ * @param gameState 		[in, out] GameState to which the Move is applied
+ * @param move 				[in] Move to apply
+ * @return true 			iff the procedure was susccessful
+ * @return false 			iff a memory error occurred
+ */
 bool makeMove(GameState* gameState, Move* move);
 
+/**
+ * Makes a move that involves a single cell only, reflecting the change in the board
+ * and the undo-redo list.
+ * 
+ * @param gameState 	[in, out] GameState to which the Move is applied
+ * @param value 		[in] The value to which the cell is set
+ * @param row 			[in] The number of row in which this cell is located 
+ * @param col 			[in] The number of column in which this cell is located
+ * @return true 		iff the procedure was successful
+ * @return false 		iff a memory error occurred
+ */
 bool makeCellChangeMove(GameState* gameState, int value, int row, int col);
 
+/**
+ * To make a move that involves multiple cells, makeMultiCellMove takes a new Board struct
+ * describing the game's setup right after the change. It compares the new board with the old
+ * one contained in the GameState struct provided, and documents the differences in the board,
+ * cell by cell. Finally it also documents the move in the undo-redo list.
+ * 
+ * @param gameState 	[in, out] GameState whose Board is updated
+ * @param newBoard 		[in] The board describing the game setup after the change took place
+ * @return true 		iff the procedure was successful
+ * @return false 		iff a memory error occurred
+ */
 bool makeMultiCellMove(GameState* gameState, Board* newBoard);
 
+/**
+ * Autofills the GameState's board according to the instructions, that is: if a cell
+ * has only one legal value in the current game's setup, it is set to it, although it 
+ * may be erroneous due to prior errors. The changes are reflected in the board and 
+ * documented in the Move struct that is provided as output.
+ * 
+ * @param gameState 	[in, out] GameState to which autofill is applied
+ * @param outMove 		[in, out] Pointer to be assigned with a pointed to the Move struct
+ * 						produced according to the changes in the board
+* @return true 			iff the procedure was successful
+ * @return false 		iff a memory error occurred
+ */
 bool autofill(GameState* gameState, Move** outMove);
 
-/* Note: returned Move should not be freed or changed! */
+/**
+ * Applies an Undo command to the provided GameState, based on its undo-redo list.
+ * 
+ * @param gameState 		[in, out] GameState to which Undo is applied
+ * @return const Move* 		A read-only pointer to the Move struct, documenting the move
+ * 							that has just been undone
+ */
 const Move* undoMove(GameState* gameState);
 
-/* Note: returned Move should not be freed or changed! */
+/**
+ * Applies a Redo command to the provided GameState, based on its undo-redo list.
+ * 
+ * @param gameState 		[in, out] GameState to which Undo is applied
+ * @return const Move* 		A read-only pointer to the Move struct, documenting the move
+ * 							that has just been redone
+ */
 const Move* redoMove(GameState* gameState);
 
+/**
+ * Applies a Reset command to the provided GameState, by undoing all moves in its undo-redo
+ * list in order.
+ * 
+ * @param gameState 	[in, out] GameState to which Reset is applied
+ * @return true 		iff the board has changed as a result
+ * @return false 		otherwise
+ */
 bool resetMoves(GameState* gameState);
 
+/**
+ * Checks whether the GameState's board is successfully solved.
+ * 
+ * @param gameState 	[in] The GameState examined
+ * @return true 		iff the board is filled completely with no errors
+ * @return false 		otherwise
+ */
 bool isSolutionSuccessful(GameState* gameState);
 
+/**
+ * Checks whether the GameState's board is not successfully solved.
+ * 
+ * @param gameState 	[in] The GameState examined 
+ * @return true 		iff the board is not full or it contains errors
+ * @return false 		iff the board is successfully solved
+ */
 bool isSolutionFailing(GameState* gameState);
 
+/**
+ * Get the board contained in the provided State struct as a string in the specified format
+ * for files.
+ * 
+ * @param state 		[in] State whose Board member is to be written into a string
+ * @return char* 		String description of the board
+ */
 char* getPuzzleAsString(State* state);
 
 #endif /* GAME_H_ */

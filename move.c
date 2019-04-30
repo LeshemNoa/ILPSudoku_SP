@@ -28,7 +28,6 @@ CellChange* createCellChange(int prevVal, int newVal, int row, int col){
     return change;
 }
 
-/* false is returned on memory allocation error */
 bool addCellChangeToMove(Move* move, int prevVal, int newVal, int row, int col) {
     CellChange* change = createCellChange(prevVal, newVal, row, col);
     if (change == NULL) { return false; }
